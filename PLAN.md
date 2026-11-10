@@ -38,7 +38,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 ## Phase 3 - Projects and access control  (about 2 days)
 
-- [ ] **T3.1 [BUILD]** `services/access.py`: permission matrix (owner / participant / no
+- [x] **T3.1 [BUILD]** `services/access.py`: permission matrix (owner / participant / no
       access). Write it as a table in the docstring first.
 - [ ] **T3.2 [BUILD]** `POST /projects` (creator becomes owner, in one transaction).
 - [ ] **T3.3 [BUILD]** `GET /project/<id>/info`, `PUT /project/<id>/info`.

@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T3.1 - Centralized permission matrix and access control service
+- **What was built:** Created `src/app/services/access.py` containing a comprehensive markdown docstring permission matrix and centralized authorization functions: `get_project_membership`, `require_project_access`, `require_project_owner`, and `require_document_access`. Wrote unit tests in `tests/unit/test_access.py` covering owners, participants, non-members, and non-existent resources.
+- **Key concept:** Information leakage prevention through consistent 404 responses: when an unauthorized user requests an entity they do not have access to, the server always returns HTTP 404 Not Found rather than HTTP 403 Forbidden. This prevents attackers from enumerating valid project or document IDs.
+- **Why this way:** Centralizing access logic in `services/access.py` guarantees DRY permission rules across all present and future endpoints, ensuring business and authorization logic is never scattered or duplicated inline across HTTP routers.
+- **Possible defense question:** Why return 404 Not Found instead of 403 Forbidden when a user tries to access a project they are not a member of?
+  - **Answer:** Returning 403 Forbidden reveals to an unauthorized user that a resource with that ID actually exists in the database (ID enumeration vulnerability). Returning 404 Not Found hides the existence of the project entirely, treating non-membership and non-existence identically.
+
 ### T2.4 - Comprehensive authentication test suite and end-to-end verification
 - **What was built:** Implemented `tests/integration/test_auth_flow.py` covering the complete end-to-end authentication lifecycle: user registration (201), duplicate username rejection (409), invalid password handling (401), successful login (200 with JWT), authenticated access to `/auth/me` (200), rejection of tampered tokens (401), rejection of expired tokens (401), and rejection of unauthenticated requests (401).
 - **Key concept:** End-to-end test suites verify the interaction between routers, schemas, services, cryptography, and PostgreSQL in a unified user story, confirming that individual components integrate seamlessly.
