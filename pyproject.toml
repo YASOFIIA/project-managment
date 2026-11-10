@@ -24,6 +24,7 @@ dev = [
     "httpx>=0.27.0",
     "mypy>=1.11.0",
     "ruff>=0.6.0",
+    "pre-commit>=3.8.0",
 ]
 
 [build-system]
@@ -77,4 +78,4 @@ disallow_incomplete_defs = false
 minversion = "8.0"
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --cov=src/app --cov-report=term-missing --cov-fail-under=85"

@@ -46,7 +46,7 @@ class LocalStorage(StorageBackend):
         target_path = self._resolve_safe_path(stored_filename)
         if not target_path.is_file():
             raise FileNotFoundError(f"Stored file '{stored_filename}' not found.")
-        return open(target_path, "rb")
+        return open(target_path, "rb")  # noqa: SIM115
 
     def delete(self, stored_filename: str) -> bool:
         """Delete a file from the local storage directory."""

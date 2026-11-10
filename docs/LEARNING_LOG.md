@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T6.2 - Coverage gate enforcement and pre-commit configuration
+- **What was built:** Configured automated test coverage threshold enforcement in `pyproject.toml` (`--cov-fail-under=85`). Configured `.pre-commit-config.yaml` containing essential hygiene hooks (`trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-added-large-files`), code linting and formatting via `ruff`, and strict static typing via `mypy`. Added `# noqa: SIM115` on `LocalStorage.get` returning raw binary stream.
+- **Key concept:** Continuous quality gates and pre-commit prevention:
+  - Adding `--cov-fail-under=85` into pytest default `addopts` ensures no commit or pull request can silently drop code coverage below 85% (current coverage is ~96%).
+  - Pre-commit hooks run automatically before each git commit, preventing trailing whitespaces, unformatted code, linting violations, or type mismatches from entering version control.
+  - Using a local hook for mypy guarantees type checking runs inside the project's exact Python virtualenv with all plugins (`pydantic.mypy`) and pinned libraries.
+- **Why this way:** Automated gates remove subjective code-review overhead and ensure strict adherence to repository cleanliness and high test quality standards.
+- **Possible defense question:** Why is `--cov-fail-under=85` placed in `pyproject.toml` under `[tool.pytest.ini_options]` rather than just in a CI script?
+  - **Answer:** Placing `--cov-fail-under=85` in `pyproject.toml` ensures that local developer test runs enforce the exact same quality gate as the CI pipeline. A developer immediately notices if newly added code lacks sufficient test coverage without needing to push to remote and wait for CI feedback.
+
 ### T6.1 - Unified error format and request-ID logging middleware without sensitive data
 - **What was built:** Added `src/app/core/logging.py`, `src/app/core/middleware.py`, and `src/app/core/errors.py`. Registered `RequestIDLoggingMiddleware` and custom error handlers for `StarletteHTTPException` (including 404 and 405), `RequestValidationError` (422), and general `Exception` (500) in `src/app/main.py`. Added unit tests in `tests/unit/test_errors_and_middleware.py`.
 - **Key concept:** Observability, correlation IDs, and unified API error contracts:
