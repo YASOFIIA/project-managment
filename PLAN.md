@@ -93,7 +93,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 - [x] **T8.1 [BUILD]** `.github/workflows/ci.yml`: ruff, mypy, pytest with `postgres` service,
       coverage, uv cache. Runs on push and pull request.
-- [ ] **T8.2 [BUILD]** Build Docker image in CI; on merge to `main` push to a registry (GHCR).
+- [x] **T8.2 [BUILD]** Build Docker image in CI; on merge to `main` push to a registry (GHCR).
 - [ ] **T8.3 [optional]** Vulnerability scan (e.g. `pip-audit`, Trivy), deploy job (see Phase 13).
 - Reminder: "block merge on failure" is a GitHub branch-protection setting you enable manually.
 

@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T8.2 - Docker build and GHCR publish job in CI workflow
+- **What was built:** Added `docker` job in `.github/workflows/ci.yml` with `needs: test`. The job sets up Docker Buildx, logs into GitHub Container Registry (`ghcr.io`), extracts image metadata (tags `latest` and `sha-...`), and uses `docker/build-push-action@v6` with GitHub Actions cache (`type=gha`). On pull requests, it verifies Dockerfile compilation without pushing; on push/merge to `main`, it publishes the built container image to GHCR.
+- **Key concept:** Continuous Delivery and container registry integration:
+  - Automating container image builds upon green test runs enforces that only tested and verified code is packaged into deployable artifacts.
+  - Layer caching via GitHub Actions cache backend (`cache-from: type=gha`, `cache-to: type=gha,mode=max`) avoids rebuilding unchanged layers, accelerating delivery.
+  - Conditional push logic (`push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}`) prevents unauthorized or unreviewed PR branches from publishing to production registry namespaces.
+- **Why this way:** Standard containerized CI/CD workflow providing ready-to-deploy release artifacts on GHCR.
+- **Possible defense question:** Why should container image publishing depend on `needs: test` rather than running in parallel with the tests?
+  - **Answer:** If image building ran independently in parallel, a failing test or type mismatch could still result in a broken container image being built and pushed to the container registry. Adding `needs: test` ensures strict fail-fast ordering: an artifact is only built and released if and only if all code quality gates (linting, type checking, 100% test pass rate, and coverage gate) succeed completely.
+
 ### T8.1 - GitHub Actions CI workflow with PostgreSQL service and uv caching
 - **What was built:** Created `.github/workflows/ci.yml` triggering on push to `main` and pull requests. The workflow provisions a `postgres:16-alpine` service container with `pg_isready` healthcheck, sets up `uv` via `astral-sh/setup-uv@v5` with caching, installs Python 3.12, runs `ruff check` and `ruff format --check`, runs strict `mypy`, executes the `pytest` test suite with automated coverage gate enforcement (`--cov-fail-under=85`), and builds the distribution package via `uv build`.
 - **Key concept:** Continuous Integration pipelines and reproducible testing environments:
