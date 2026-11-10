@@ -128,7 +128,7 @@ to mark the document as rejected, otherwise reports the new total to the API (st
 
 ## Phase 12 - Defense preparation  (about 0.5 day)
 
-- [ ] **T12.1 [USER]** Demo script (5-7 minutes) using the API docs UI or a small script.
+- [x] **T12.1 [USER]** Demo script (5-7 minutes) using the API docs UI or a small script.
 - [ ] **T12.2 [USER]** Read your whole `docs/LEARNING_LOG.md` out loud; for every file in
       `src/app/` be able to say what it does and why. Ask the agent to quiz you
       (see `PROMPTS.md`, "Quiz me").

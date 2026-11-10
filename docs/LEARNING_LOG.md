@@ -14,6 +14,15 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T12.1 - 5-7 minute defense demo script and automated walkthrough
+- **What was built:** Authored interactive defense walkthrough manual `docs/DEMO_SCRIPT.md` with exact minute-by-minute timetable, Swagger UI clicks, speaking notes, expected HTTP statuses, and defensive security talking points. Created standalone executable bash automation script `scripts/demo.sh` demonstrating the complete live lifecycle via `curl` and `jq`: service health, Alice (owner) registration & login, Bob (participant) registration & login, project creation, binary magic-byte document upload, 404 information hiding against uninvited users, project invitation, participant document download, 403 authorization gate on unauthorized project deletion, and atomic cascading cleanup.
+- **Key concept:** Structured Technical Defense Presentation and Live System Verification:
+  - Demonstrating software effectively requires highlighting design rationales and security invariants (e.g. why 404 is preferred over 403 for non-members) rather than just clicking through positive paths.
+  - Providing both an interactive Swagger UI guide and a scripted curl walkthrough gives flexibility during live presentations.
+- **Why this way:** Ensures the student can confidently navigate and narrate every feature, error code, and security guardrail during the 5-7 minute mentor defense.
+- **Possible defense question:** Walk me through what happens when an uninvited user tries to query a private project ID, and why your API behaves that way.
+  - **Answer:** The API returns `404 Not Found` rather than `403 Forbidden`. If we returned 403, an attacker could iterate integer IDs (`/project/1`, `/project/2`, ...) to confirm which project IDs exist on the server, mapping organizational project volume and activity. Returning 404 conceals the existence of private resources from unauthorized parties.
+
 ### T11.1 - Database design documentation, 3NF proof, and denormalization analysis
 - **What was built:** Authored exhaustive relational database design architecture documentation in `docs/DB_DESIGN.md`:
   - Detailed Mermaid Entity-Relationship (ER) diagram representing `users`, `projects`, `documents`, and `project_members`, including primary keys, candidate keys, foreign key constraints with `ON DELETE CASCADE`, and B-Tree indexes.
