@@ -58,7 +58,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
       bytes, max size, safe stored file name.
 - [x] **T4.3 [BUILD]** `POST /project/<id>/documents` (one or many files),
       `GET /project/<id>/documents`.
-- [ ] **T4.4 [BUILD]** `GET /document/<id>` (download), `PUT /document/<id>` (replace),
+- [x] **T4.4 [BUILD]** `GET /document/<id>` (download), `PUT /document/<id>` (replace),
       `DELETE /document/<id>`.
 - [ ] **T4.5 [BUILD]** Project delete removes files from storage. Tests incl. bad type,
       too large, no access.

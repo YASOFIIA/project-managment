@@ -14,6 +14,17 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T4.4 - Document download, replace, and deletion with quota synchronization
+- **What was built:** Added `get_document_for_download`, `replace_document`, and `delete_document` to `src/app/services/documents.py`. Added endpoints `GET /document/{document_id}` (streaming file content with RFC 5987 encoded `Content-Disposition`), `PUT /document/{document_id}` (replacing document binary and metadata with quota delta check), and `DELETE /document/{document_id}` (removing database record, storage object, and decrementing project size) in `src/app/api/documents.py`. Added comprehensive integration tests in `tests/integration/test_document_operations_api.py`.
+- **Key concept:** Safe state mutations and resource streaming:
+  - Streaming downloads via `StreamingResponse` prevent buffering entire files in web server RAM.
+  - Document replacement computes `size_delta = new_size - old_size`, checking project quota *before* persisting.
+  - Old storage keys are only deleted *after* the new file is committed to PostgreSQL, preventing data loss if the database write fails.
+  - Deletion cleans up both the metadata row and physical storage object, keeping `project.total_size_bytes` strictly consistent.
+- **Why this way:** Per requirements (`OPEN_QUESTIONS.md` item 3), both project owners and participants can download, replace, and delete documents, while non-members receive 404 to hide document existence.
+- **Possible defense question:** How does document replacement handle project size quotas if the replacement file is larger than the original?
+  - **Answer:** The service calculates the difference in size `size_delta = len(new_content) - doc.file_size_bytes`. It checks whether `project.total_size_bytes + size_delta > project_size_limit_bytes`. If the replacement would exceed the 50 MB limit, it fails immediately with HTTP 413 Content Too Large without modifying the existing document or writing anything permanently to storage.
+
 ### T4.3 - Document upload and listing endpoints with atomic quota enforcement
 - **What was built:** Implemented `upload_documents` and `list_project_documents` in `src/app/services/documents.py`. Created API endpoints `POST /project/{project_id}/documents` (supporting single or batch multipart uploads) and `GET /project/{project_id}/documents` in `src/app/api/documents.py`. Registered `documents_router` in `src/app/main.py`. Added comprehensive integration tests in `tests/integration/test_documents_api.py`.
 - **Key concept:** Transactional integrity with dual-write systems (Database + Storage Backend):

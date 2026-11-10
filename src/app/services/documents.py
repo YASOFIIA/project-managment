@@ -1,4 +1,5 @@
 import contextlib
+from typing import BinaryIO
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -6,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models.document import Document
-from app.services.access import require_project_access
+from app.models.project import Project
+from app.services.access import require_document_access, require_project_access
 from app.services.file_validation import validate_file_upload
 from app.storage.base import StorageBackend
 
@@ -125,3 +127,128 @@ def list_project_documents(
         .order_by(Document.created_at.asc(), Document.id.asc())
     )
     return list(db.scalars(stmt).all())
+
+
+def get_document_for_download(
+    db: Session,
+    storage: StorageBackend,
+    document_id: int,
+    user_id: int,
+) -> tuple[Document, BinaryIO]:
+    """Retrieve document metadata and open binary stream for file download.
+
+    Permitted for project owners and participants.
+
+    Raises:
+        HTTPException(404): if document does not exist OR user lacks access.
+    """
+    doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
+    stream = storage.get(doc.stored_filename)
+    return doc, stream
+
+
+def replace_document(
+    db: Session,
+    storage: StorageBackend,
+    document_id: int,
+    user_id: int,
+    file: UploadFile,
+) -> Document:
+    """Replace a document's file contents with a new upload.
+
+    Permitted for project owners and participants.
+    Validates the replacement file, checks project quota with the size delta,
+    saves the new file, updates the database, and removes the old file from storage.
+
+    Raises:
+        HTTPException(404): if document does not exist OR user lacks access.
+        HTTPException(400): if file is empty, invalid type, or magic bytes mismatch.
+        HTTPException(413): if replaced file exceeds the project size limit.
+    """
+    doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
+    project = db.get(Project, doc.project_id)
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {doc.project_id} not found",
+        )
+
+    if not file.filename:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Filename cannot be empty",
+        )
+
+    content = file.file.read()
+    settings = get_settings()
+    size_limit = settings.project_size_limit_bytes
+
+    clean_name, safe_stored_name, mime_type = validate_file_upload(
+        filename=file.filename,
+        content=content,
+        max_size_bytes=size_limit,
+    )
+
+    size_delta = len(content) - doc.file_size_bytes
+    if project.total_size_bytes + size_delta > size_limit:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=(
+                f"Project size limit of {size_limit} bytes exceeded "
+                f"(current: {project.total_size_bytes}, delta: {size_delta})"
+            ),
+        )
+
+    old_stored_filename = doc.stored_filename
+
+    # Save new file first
+    storage.save(filename=safe_stored_name, content=content)
+
+    try:
+        doc.filename = clean_name
+        doc.stored_filename = safe_stored_name
+        doc.file_size_bytes = len(content)
+        doc.content_type = mime_type
+        project.total_size_bytes += size_delta
+        db.commit()
+        db.refresh(doc)
+    except Exception:
+        db.rollback()
+        with contextlib.suppress(Exception):
+            storage.delete(safe_stored_name)
+        raise
+
+    # Clean up old file after successful database commit
+    with contextlib.suppress(Exception):
+        storage.delete(old_stored_filename)
+
+    return doc
+
+
+def delete_document(
+    db: Session,
+    storage: StorageBackend,
+    document_id: int,
+    user_id: int,
+) -> None:
+    """Delete a document from database and storage backend.
+
+    Permitted for project owners and participants.
+    Adjusts the project total_size_bytes accordingly.
+
+    Raises:
+        HTTPException(404): if document does not exist OR user lacks access.
+    """
+    doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
+    project = db.get(Project, doc.project_id)
+    stored_key = doc.stored_filename
+    doc_size = doc.file_size_bytes
+
+    db.delete(doc)
+    if project is not None:
+        project.total_size_bytes = max(0, project.total_size_bytes - doc_size)
+
+    db.commit()
+
+    with contextlib.suppress(Exception):
+        storage.delete(stored_key)
