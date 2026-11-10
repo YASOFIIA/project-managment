@@ -29,7 +29,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 ## Phase 2 - Authentication  (about 1 day)
 
 - [x] **T2.1 [BUILD]** Password hashing (argon2) + JWT create/verify (1 hour expiry).
-- [ ] **T2.2 [BUILD]** `POST /auth` (login, password, repeat_password; passwords must match,
+- [x] **T2.2 [BUILD]** `POST /auth` (login, password, repeat_password; passwords must match,
       login unique -> 409) and `POST /login` (returns access token).
 - [ ] **T2.3 [BUILD]** `get_current_user` dependency (Bearer token -> user, 401 otherwise).
 - [ ] **T2.4 [BUILD]** Tests: register, duplicate login, wrong password, expired token,

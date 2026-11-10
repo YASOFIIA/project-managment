@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T2.2 - User registration and login endpoints with conflict and credential validation
+- **What was built:** Defined Pydantic v2 schemas in `src/app/schemas/auth.py` (`UserRegisterRequest` with `@model_validator` password match check, `UserLoginRequest`, `TokenResponse`, `UserResponse`). Built service functions in `src/app/services/auth.py` (`register_user`, `authenticate_user`) and FastAPI router in `src/app/api/auth.py` exposing `POST /auth` (201) and `POST /login` (200). Added integration tests in `tests/integration/test_auth_api.py`.
+- **Key concept:** Pydantic v2 cross-field validation (`@model_validator(mode="after")`): validates business constraints across multiple payload fields (e.g. `password == repeat_password`) before the request ever reaches the service or database layer, instantly returning standard HTTP 422 errors.
+- **Why this way:** Using `Annotated[Session, Depends(get_db)]` avoids function calls in argument defaults (ruff bugbear B008) while keeping dependency injection clean and type-safe. Passwords and hashes are excluded from `UserResponse` by design.
+- **Possible defense question:** Why return HTTP 409 Conflict instead of HTTP 400 Bad Request when a user tries to register with an existing login?
+  - **Answer:** HTTP 400 denotes a malformed request syntax, whereas HTTP 409 Conflict is the RFC 9110 standard code explicitly designated for requests that conflict with the current state of the target resource (such as unique constraint violations on existing database records).
+
 ### T2.1 - Password hashing with Argon2 and JWT creation and verification
 - **What was built:** Implemented `src/app/core/security.py` with Argon2id password hashing via `pwdlib` (`hash_password`, `verify_password`) and JWT token issuing/decoding with PyJWT (`create_access_token`, `decode_access_token`). Custom exception hierarchy (`TokenExpiredError`, `InvalidTokenError`). Wrote unit tests in `tests/unit/test_security.py` verifying hashing, claim verification, 1-hour expiration enforcement, and rejection of tampered tokens.
 - **Key concept:** JWT tokens are digitally signed, not encrypted. Claims (such as `sub`, `login`, and `exp`) can be read by anyone inspecting the payload, but any tampering with the payload invalidates the cryptographic HMAC-SHA256 signature, causing the server to reject the token.
