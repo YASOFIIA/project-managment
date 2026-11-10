@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.db.session import get_db
-from app.schemas.project import ProjectCreateRequest, ProjectResponse
-from app.services.projects import create_project
+from app.schemas.project import ProjectCreateRequest, ProjectResponse, ProjectUpdateRequest
+from app.services.projects import create_project, get_project_info, update_project_info
 
 router = APIRouter(tags=["Projects"])
 
@@ -28,4 +28,44 @@ def create_new_project(
 ) -> ProjectResponse:
     """Create a new project endpoint."""
     project = create_project(db=db, user=current_user, data=data)
+    return ProjectResponse.model_validate(project)
+
+
+@router.get(
+    "/project/{project_id}/info",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get project info",
+    description="Return project's details, if user has access (owner or participant).",
+)
+def get_info(
+    project_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> ProjectResponse:
+    """Retrieve project details endpoint."""
+    project = get_project_info(db=db, project_id=project_id, user_id=current_user.id)
+    return ProjectResponse.model_validate(project)
+
+
+@router.put(
+    "/project/{project_id}/info",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update project info",
+    description="Update project's details - name, description. Returns updated project info.",
+)
+def update_info(
+    project_id: int,
+    data: ProjectUpdateRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> ProjectResponse:
+    """Update project details endpoint."""
+    project = update_project_info(
+        db=db,
+        project_id=project_id,
+        user_id=current_user.id,
+        data=data,
+    )
     return ProjectResponse.model_validate(project)

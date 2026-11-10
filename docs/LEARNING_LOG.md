@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T3.3 - Project details retrieval and update endpoints with permission checks
+- **What was built:** Added `get_project_info` and `update_project_info` to `src/app/services/projects.py`. Exposed `GET /project/{project_id}/info` and `PUT /project/{project_id}/info` in `src/app/api/projects.py`. Added comprehensive integration tests in `tests/integration/test_projects_api.py` verifying access for owners and participants, information hiding (404) for unauthorized users and missing projects, and input validation.
+- **Key concept:** Resource-based endpoint design with permission verification: endpoints in the singular `/project/{id}/info` operate on specific project instances. Before returning or mutating state, the service layer queries `access.require_project_access` to verify membership.
+- **Why this way:** Both owners and participants are authorized to read and update project metadata per requirements («participant can modify»), while unauthenticated users get 401 and non-members get 404.
+- **Possible defense question:** Why use PUT instead of PATCH for updating project info in this endpoint?
+  - **Answer:** PUT replaces or updates the designated sub-resource fields (`name` and `description`) according to the exact contract specified in the project requirements (`PUT /project/<project_id>/info`). Both fields are passed and validated together.
+
 ### T3.2 - Project creation endpoint with atomic owner assignment
 - **What was built:** Defined Pydantic v2 schemas in `src/app/schemas/project.py` (`ProjectCreateRequest`, `ProjectResponse`, `ProjectUpdateRequest`), service logic in `src/app/services/projects.py` (`create_project`), and endpoint `POST /projects` in `src/app/api/projects.py`. Added integration tests in `tests/integration/test_projects_api.py` verifying atomic transaction handling, owner assignment, 401 unauthenticated rejection, and 422 payload validation.
 - **Key concept:** Transaction atomicity across related tables: when creating a multi-tenant resource (a project and its initial owner membership), both the `Project` insert and the `ProjectMember` insert occur within a single database transaction. If either insert fails, the transaction rolls back, guaranteeing that a project can never exist without an owner.

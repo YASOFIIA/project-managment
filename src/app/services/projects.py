@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.models.project import Project, ProjectMember, ProjectRole
 from app.models.user import User
-from app.schemas.project import ProjectCreateRequest
+from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
+from app.services.access import require_project_access
 
 
 def create_project(
@@ -26,6 +27,41 @@ def create_project(
         role=ProjectRole.OWNER,
     )
     db.add(membership)
+
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+def get_project_info(
+    db: Session,
+    project_id: int,
+    user_id: int,
+) -> Project:
+    """Retrieve project details, verifying the user is an owner or participant.
+
+    Raises:
+        HTTPException(404): if project does not exist OR user is not a member.
+    """
+    project, _ = require_project_access(db, project_id=project_id, user_id=user_id)
+    return project
+
+
+def update_project_info(
+    db: Session,
+    project_id: int,
+    user_id: int,
+    data: ProjectUpdateRequest,
+) -> Project:
+    """Update project details (name, description), permitted for owners and participants.
+
+    Raises:
+        HTTPException(404): if project does not exist OR user is not a member.
+    """
+    project, _ = require_project_access(db, project_id=project_id, user_id=user_id)
+
+    project.name = data.name.strip()
+    project.description = data.description.strip() if data.description else None
 
     db.commit()
     db.refresh(project)
