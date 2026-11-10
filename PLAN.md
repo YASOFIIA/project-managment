@@ -18,7 +18,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 ## Phase 1 - Data model  (about 1 day)
 
-- [ ] **T1.1 [BUILD]** SQLAlchemy models: `User`, `Project`, `ProjectMember` (role: owner |
+- [x] **T1.1 [BUILD]** SQLAlchemy models: `User`, `Project`, `ProjectMember` (role: owner |
       participant), `Document`. Think: unique constraints, foreign keys, `ON DELETE CASCADE`.
 - [ ] **T1.2 [BUILD]** Alembic setup + migration `0001` from the models.
 - [ ] **T1.3 [BUILD]** `schema.sql`: the same schema written by hand in plain SQL

@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T1.1 - SQLAlchemy domain models with relationships and cascade rules
+- **What was built:** Defined typed SQLAlchemy 2.0 models using `Mapped[...]` and `mapped_column()`: `User`, `Project`, `ProjectMember` (with `ProjectRole` enum), and `Document`. Configured foreign keys with `ondelete="CASCADE"`, table unique constraints (`uq_project_members_project_user`, `users.login`, `documents.stored_filename`), and comprehensive unit tests.
+- **Key concept:** Difference between database-level cascade (`ForeignKey(..., ondelete="CASCADE")`) and ORM-level cascade (`relationship(..., cascade="all, delete-orphan", passive_deletes=True)`). `passive_deletes=True` signals SQLAlchemy to rely on the database engine to handle cascades, reducing extra SELECT and DELETE queries from Python.
+- **Why this way:** Using `ProjectRole(StrEnum)` with `Enum(..., native_enum=False)` creates a portable VARCHAR column with a CHECK constraint instead of PostgreSQL-specific native types, ensuring identical behavior across SQLite tests, Alembic migrations, and hand-written `schema.sql`.
+- **Possible defense question:** Why is `stored_filename` separated from `filename` in the `Document` model?
+  - **Answer:** `filename` is the human-readable client name (e.g. `report.pdf`) used for downloading. `stored_filename` is a sanitized unique identifier (e.g. UUID) used in the underlying filesystem or S3 bucket, preventing path traversal attacks, file collisions, and encoding errors.
+
 ### T0.3 - PostgreSQL database setup and connection verification
 - **What was built:** Created local databases `pm_db` and `pm_test_db`, configured connection strings with `psycopg 3` driver, created declarative `Base` in `src/app/db/base.py`, configured SQLAlchemy `Engine` and `SessionLocal` with `pool_pre_ping=True` in `src/app/db/session.py`, and added integration tests for DB connectivity.
 - **Key concept:** Connection pooling and `pool_pre_ping=True`: checks connections with a lightweight `SELECT 1` (or ping) before handing them out to request handlers, gracefully recovering from dropped/stale connections without raising 500 errors.
