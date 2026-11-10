@@ -67,7 +67,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 - [x] **T5.1 [BUILD]** `POST /project/<id>/invite?user=<login>`: owner only, unknown user 404,
       already member 409, result: participant.
-- [ ] **T5.2 [BUILD]** Tests + end-to-end scenario test: register A and B -> A creates project
+- [x] **T5.2 [BUILD]** Tests + end-to-end scenario test: register A and B -> A creates project
       -> uploads -> invites B -> B lists/downloads/replaces -> B cannot delete the project ->
       A deletes the project -> files are gone.
 - [ ] **T5.3 [optional]** `GET /project/<id>/share?with=<email>` + `GET /join?token=...`

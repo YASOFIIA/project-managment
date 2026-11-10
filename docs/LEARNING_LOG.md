@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T5.2 - Comprehensive end-to-end multi-user collaboration scenario test
+- **What was built:** Created `tests/integration/test_collaboration_scenario.py` verifying the full Phase 5 multi-user collaboration lifecycle: registration & login of Users A & B -> project creation -> document upload & quota increment -> member invitation -> project & document discovery by participant -> binary download -> document replacement with quota & storage update -> metadata modification by participant -> permission denial on unauthorized actions (delete, invite) -> project deletion by owner with foreign key cascade in DB and physical file deletion in `StorageBackend` -> subsequent 404 on all endpoints.
+- **Key concept:** End-to-end multi-user collaboration and resource isolation:
+  - Validates that the entire system functions coherently across real HTTP endpoints (FastAPI `TestClient`), a live PostgreSQL database, and physical storage.
+  - Verifies that `stored_filename` stays encapsulated as an internal storage key and is never leaked via public API schemas (`DocumentResponse`).
+  - Confirms dual-write cleanup: when a project is deleted by its owner, relational tables (`projects`, `project_members`, `documents`) are cleaned up via PostgreSQL cascade, while binary files in `StorageBackend` are wiped completely without leaving orphaned files.
+- **Why this way:** A single end-to-end scenario test mirrors real-world user workflows and catches subtle integration bugs between authentication, authorization, transactional databases, and disk/S3 storage that isolated unit tests cannot detect.
+- **Possible defense question:** How does the test verify that binary files are actually deleted from disk and not just unlinked in PostgreSQL?
+  - **Answer:** The test retrieves the internal `stored_filename` keys from the database before deletion, verifies their existence in `StorageBackend` via `storage.exists(key) is True`, performs `DELETE /project/{id}` through the HTTP API, and then directly asserts `storage.exists(key) is False` on the storage backend instance after the operation completes.
+
 ### T5.1 - Project member invitation endpoint with owner-only access control
 - **What was built:** Added `ProjectMemberResponse` schema in `src/app/schemas/project.py`. Implemented `invite_member` in `src/app/services/projects.py` and endpoint `POST /project/{project_id}/invite?user=<login>` in `src/app/api/projects.py`. Created comprehensive integration test suite in `tests/integration/test_sharing_api.py`.
 - **Key concept:** Role-based access control and state validation in resource sharing:
