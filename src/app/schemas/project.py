@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.document import DocumentResponse
+
 
 class ProjectCreateRequest(BaseModel):
     """Payload for creating a new project via POST /projects."""
@@ -28,3 +30,9 @@ class ProjectResponse(BaseModel):
     total_size_bytes: int
     created_at: datetime
     updated_at: datetime
+
+
+class ProjectDetailResponse(ProjectResponse):
+    """Detailed project model including attached documents list for GET /projects."""
+
+    documents: list[DocumentResponse] = Field(default_factory=list)

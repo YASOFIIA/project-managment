@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T3.4 - Raw SQL GET /projects with JOIN and DB_DESIGN analysis
+- **What was built:** Created `src/app/schemas/document.py` (`DocumentResponse`) and updated `src/app/schemas/project.py` (`ProjectDetailResponse`). Created `src/app/db/raw_queries.py` containing parameterized raw SQL with `LEFT JOIN` (`get_user_projects_with_documents_raw`) and an equivalent ORM query (`get_user_projects_with_documents_orm`). Exposed `GET /projects` in `src/app/api/projects.py`. Authored `docs/DB_DESIGN.md` analyzing N+1 query prevention, roundtrip efficiency, and trade-offs. Wrote integration tests in `tests/integration/test_projects_list_api.py`.
+- **Key concept:** Raw SQL query execution with bound parameters via `db.execute(text(...), {"user_id": user_id})`: guarantees 100% protection against SQL injection while avoiding the N+1 query problem by combining three relational tables (`projects`, `project_members`, `documents`) into a single network roundtrip.
+- **Why this way:** In high-traffic dashboard views, raw SQL bypasses the heavy CPU/RAM overhead of SQLAlchemy ORM object instantiation (hydration), providing maximum query performance and predictable execution plans.
+- **Possible defense question:** Why use a `LEFT JOIN` instead of an `INNER JOIN` on the `documents` table in the raw SQL query?
+  - **Answer:** An `INNER JOIN` would filter out any projects that do not currently have any attached documents. A `LEFT JOIN` ensures that all projects accessible to the user are included in the results, returning an empty list of documents for projects with zero uploads.
+
 ### T3.3 - Project details retrieval and update endpoints with permission checks
 - **What was built:** Added `get_project_info` and `update_project_info` to `src/app/services/projects.py`. Exposed `GET /project/{project_id}/info` and `PUT /project/{project_id}/info` in `src/app/api/projects.py`. Added comprehensive integration tests in `tests/integration/test_projects_api.py` verifying access for owners and participants, information hiding (404) for unauthorized users and missing projects, and input validation.
 - **Key concept:** Resource-based endpoint design with permission verification: endpoints in the singular `/project/{id}/info` operate on specific project instances. Before returning or mutating state, the service layer queries `access.require_project_access` to verify membership.

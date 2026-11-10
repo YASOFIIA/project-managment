@@ -42,7 +42,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
       access). Write it as a table in the docstring first.
 - [x] **T3.2 [BUILD]** `POST /projects` (creator becomes owner, in one transaction).
 - [x] **T3.3 [BUILD]** `GET /project/<id>/info`, `PUT /project/<id>/info`.
-- [ ] **T3.4 [BUILD]** `GET /projects`: **raw SQL** with JOIN (projects + documents of every
+- [x] **T3.4 [BUILD]** `GET /projects`: **raw SQL** with JOIN (projects + documents of every
       project the user can access). Compare with an ORM version and note the difference in
       `docs/DB_DESIGN.md`.
 - [ ] **T3.5 [BUILD]** `DELETE /project/<id>` (owner only; documents deleted too, including

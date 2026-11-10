@@ -5,8 +5,18 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.db.session import get_db
-from app.schemas.project import ProjectCreateRequest, ProjectResponse, ProjectUpdateRequest
-from app.services.projects import create_project, get_project_info, update_project_info
+from app.schemas.project import (
+    ProjectCreateRequest,
+    ProjectDetailResponse,
+    ProjectResponse,
+    ProjectUpdateRequest,
+)
+from app.services.projects import (
+    create_project,
+    get_project_info,
+    list_user_projects,
+    update_project_info,
+)
 
 router = APIRouter(tags=["Projects"])
 
@@ -29,6 +39,23 @@ def create_new_project(
     """Create a new project endpoint."""
     project = create_project(db=db, user=current_user, data=data)
     return ProjectResponse.model_validate(project)
+
+
+@router.get(
+    "/projects",
+    response_model=list[ProjectDetailResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get all projects",
+    description="Get all projects accessible for the current user, "
+    "returning full info with attached documents using raw SQL.",
+)
+def get_all_projects(
+    current_user: CurrentUser,
+    db: DbSession,
+) -> list[ProjectDetailResponse]:
+    """Retrieve all accessible projects with documents."""
+    projects = list_user_projects(db=db, user_id=current_user.id)
+    return [ProjectDetailResponse.model_validate(p) for p in projects]
 
 
 @router.get(

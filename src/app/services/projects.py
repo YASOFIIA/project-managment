@@ -1,5 +1,8 @@
+from typing import Any
+
 from sqlalchemy.orm import Session
 
+from app.db.raw_queries import get_user_projects_with_documents_raw
 from app.models.project import Project, ProjectMember, ProjectRole
 from app.models.user import User
 from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
@@ -31,6 +34,14 @@ def create_project(
     db.commit()
     db.refresh(project)
     return project
+
+
+def list_user_projects(
+    db: Session,
+    user_id: int,
+) -> list[dict[str, Any]]:
+    """Retrieve all projects accessible to the user with attached documents using raw SQL."""
+    return get_user_projects_with_documents_raw(db=db, user_id=user_id)
 
 
 def get_project_info(
