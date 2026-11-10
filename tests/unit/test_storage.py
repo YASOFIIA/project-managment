@@ -105,7 +105,7 @@ def test_get_storage_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     storage = get_storage()
     assert isinstance(storage, LocalStorage)
 
-    # Test s3 backend raises NotImplementedError (Phase 9)
+    # Test s3 backend returns S3Storage (Phase 9)
     s3_settings = Settings(
         jwt_secret_key="test-secret-32-chars-long-minimum!",
         lambda_callback_secret="test-lambda-secret",
@@ -114,8 +114,10 @@ def test_get_storage_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     monkeypatch.setattr("app.storage.get_settings", lambda: s3_settings)
     get_storage.cache_clear()
 
-    with pytest.raises(NotImplementedError, match="S3 storage backend will be enabled in Phase 9"):
-        get_storage()
+    from app.storage.s3 import S3Storage
+
+    s3_storage = get_storage()
+    assert isinstance(s3_storage, S3Storage)
 
     # Clean up lru_cache
     get_storage.cache_clear()

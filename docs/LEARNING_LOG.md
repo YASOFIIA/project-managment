@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T9.1 - S3Storage backend implementation with boto3
+- **What was built:** Added `boto3` and `boto3-stubs[s3]`. Implemented `S3Storage(StorageBackend)` in `src/app/storage/s3.py` with `save` (via `put_object`), `get` (returning streaming `Body`), `delete` (safe existence check + `delete_object`), `exists` (via metadata-only `head_object`), and helper `format_s3_key` (`projects/<project_id>/<document_id>/<name>`). Updated `get_storage()` factory in `src/app/storage/__init__.py` to instantiate `S3Storage` when `STORAGE_BACKEND=s3`. Added unit test suite `tests/unit/test_s3_storage.py` and updated factory tests in `tests/unit/test_storage.py`.
+- **Key concept:** Storage abstraction and AWS SDK integration:
+  - Polymorphic storage backend: Business domain services and API endpoints depend exclusively on the abstract `StorageBackend` interface, allowing runtime switching between `LocalStorage` and `S3Storage` through simple environment variable configuration (`STORAGE_BACKEND=local|s3`).
+  - Network efficiency: `exists()` utilizes S3 `head_object` rather than downloading entire binary payloads (`get_object`), checking existence with minimal latency and zero transfer overhead.
+  - Streaming: `get()` yields S3's `StreamingBody` directly into Starlette's `StreamingResponse`, streaming chunks directly to clients without buffering 50MB files into server RAM.
+- **Why this way:** Adheres to the Dependency Inversion Principle (SOLID), decoupling cloud storage vendor details from project and document business logic.
+- **Possible defense question:** How does the app switch between local filesystem storage and AWS S3 without modifying any business logic or API endpoint code?
+  - **Answer:** FastAPI dependency injection (`Depends(get_storage)`) injects the `StorageBackend` abstract interface into routers and services. When `STORAGE_BACKEND=s3` is set in the environment, the factory function `get_storage()` returns an instance of `S3Storage` instead of `LocalStorage`. Because both classes strictly implement identical method signatures (`save`, `get`, `delete`, `exists`), all endpoint controllers, quota enforcement routines, and cleanup hooks operate completely unchanged.
+
 ### T8.2 - Docker build and GHCR publish job in CI workflow
 - **What was built:** Added `docker` job in `.github/workflows/ci.yml` with `needs: test`. The job sets up Docker Buildx, logs into GitHub Container Registry (`ghcr.io`), extracts image metadata (tags `latest` and `sha-...`), and uses `docker/build-push-action@v6` with GitHub Actions cache (`type=gha`). On pull requests, it verifies Dockerfile compilation without pushing; on push/merge to `main`, it publishes the built container image to GHCR.
 - **Key concept:** Continuous Delivery and container registry integration:

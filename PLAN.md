@@ -99,7 +99,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 ## Phase 9 - S3 storage  (about 1 day)
 
-- [ ] **T9.1 [BUILD]** `S3Storage` (boto3) implementing `StorageBackend`; selected by
+- [x] **T9.1 [BUILD]** `S3Storage` (boto3) implementing `StorageBackend`; selected by
       `STORAGE_BACKEND=local|s3`. S3 key layout: `projects/<project_id>/<document_id>/<name>`.
 - [ ] **T9.2 [BUILD]** LocalStack in docker-compose, bucket created on startup, integration tests.
 - [ ] **T9.3 [USER]** Explain-back: why is the storage behind an interface? What changes in
