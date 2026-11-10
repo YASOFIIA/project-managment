@@ -14,6 +14,15 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T4.1 - StorageBackend abstraction and LocalStorage with Path Traversal protection
+- **What was built:** Created abstract interface `StorageBackend` in `src/app/storage/base.py` (`save`, `get`, `delete`, `exists`). Implemented `LocalStorage` in `src/app/storage/local.py` supporting both raw `bytes` and chunked binary streams (`BinaryIO`), directory auto-creation, and strict path normalization with traversal mitigation (`is_relative_to`). Exposed singleton factory `get_storage()` in `src/app/storage/__init__.py`. Added comprehensive unit tests in `tests/unit/test_storage.py`.
+- **Key concept:** Dependency Inversion Principle (DIP) and security sandboxing:
+  - Higher-level services depend on the abstract `StorageBackend` contract rather than a concrete filesystem or AWS S3 SDK. This allows seamless switching between `LocalStorage` in development/testing and S3 in cloud deployments without altering business logic.
+  - Path Traversal prevention (`../../etc/passwd`): filenames must be stripped of leading slashes and resolved against `base_dir.resolve()`, enforcing that `target_path.is_relative_to(base_dir)` evaluates to `True`.
+- **Why this way:** Chunked streaming (`read(8192)`) minimizes memory usage when handling large file uploads. Abstracting storage enables LocalStack and AWS S3 integration in later phases without refactoring document controllers.
+- **Possible defense question:** How does `LocalStorage` protect against directory traversal attacks if a malicious user provides `../../etc/passwd` as a file name?
+  - **Answer:** The `_resolve_safe_path` method strips leading slashes, resolves the path to its absolute canonical form using `Path.resolve()`, and verifies `target_path.is_relative_to(self.base_dir)`. If the resolved path attempts to escape the designated storage root, a `ValueError` is raised immediately before any filesystem read or write operation can take place.
+
 ### T3.7 - Security and validation hardening across schema, database, secrets, and auth
 - **What was built:**
   1. Configured `Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]` for project names in `src/app/schemas/project.py`. Whitespace-only strings like `"   "` strip to `""` before `min_length` check, rejecting with HTTP 422 on `POST /projects` and `PUT /project/<id>/info`.
