@@ -13,7 +13,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
       folder layout from `AGENTS.md`, `.gitignore`, `.env.example`.
 - [x] **T0.2 [BUILD]** `core/config.py` (pydantic-settings), `create_app()`, `GET /health`,
       first test for `/health`.
-- [ ] **T0.3 [BUILD]** Local PostgreSQL (docker run or installed), `DATABASE_URL`, test DB.
+- [x] **T0.3 [BUILD]** Local PostgreSQL (docker run or installed), `DATABASE_URL`, test DB.
 - Done when: `uv run uvicorn app.main:app` starts, `/docs` opens, `pytest` is green.
 
 ## Phase 1 - Data model  (about 1 day)

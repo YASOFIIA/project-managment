@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T0.3 - PostgreSQL database setup and connection verification
+- **What was built:** Created local databases `pm_db` and `pm_test_db`, configured connection strings with `psycopg 3` driver, created declarative `Base` in `src/app/db/base.py`, configured SQLAlchemy `Engine` and `SessionLocal` with `pool_pre_ping=True` in `src/app/db/session.py`, and added integration tests for DB connectivity.
+- **Key concept:** Connection pooling and `pool_pre_ping=True`: checks connections with a lightweight `SELECT 1` (or ping) before handing them out to request handlers, gracefully recovering from dropped/stale connections without raising 500 errors.
+- **Why this way:** Using the `psycopg 3` driver (`postgresql+psycopg://`) provides modern performance, native Python types, and cleaner parameter binding compared to the legacy `psycopg2`. Using separate `pm_db` and `pm_test_db` prevents unit/integration tests from wiping or corrupting development data.
+- **Possible defense question:** What does `pool_pre_ping=True` do in SQLAlchemy, and why is it important for web applications?
+  - **Answer:** It tests connections for liveness before using them from the pool. If PostgreSQL or a firewall closed an idle connection, SQLAlchemy transparently discards it and creates a fresh one instead of throwing an OperationalError at the user during an incoming HTTP request.
+
 ### T0.2 - Application factory, configuration settings, and health check endpoint
 - **What was built:** Implemented `Settings` with `pydantic-settings` in `src/app/core/config.py` with `@lru_cache`, `create_app()` factory in `src/app/main.py` with unauthenticated `GET /health` endpoint, plus unit and integration tests.
 - **Key concept:** Application factory pattern (`create_app()`) isolates application configuration, allowing clean test instances with custom settings or fixtures without polluting global state.
