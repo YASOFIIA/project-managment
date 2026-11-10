@@ -108,5 +108,5 @@ disallow_incomplete_defs = false
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 addopts = "-v --tb=short --cov=src/app --cov-report=term-missing --cov-fail-under=85"

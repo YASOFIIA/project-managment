@@ -14,6 +14,21 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T10.1 - Lambda size limit handler with mocked S3 unit tests
+- **What was built:** Implemented AWS Lambda serverless function in `lambdas/size_limit/handler.py` triggered by S3 `ObjectCreated` events. Key features:
+  - Regex-based key parsing for `projects/<project_id>/<document_id>/<filename>` with URL unquoting (`unquote_plus`).
+  - Total project size calculation using paginated `list_objects_v2` with `Prefix=projects/<project_id>/`.
+  - Quota enforcement: if total project size exceeds `MAX_PROJECT_SIZE_BYTES` (default 50 MB), the function deletes the offending object via `s3.delete_object` and sends an HTTP POST webhook to `API_CALLBACK_URL` with `status="rejected"`.
+  - If within quota, records `status="accepted"` and dispatches the updated `total_size_bytes` to the API.
+  - Callback dispatch using standard library `urllib.request` (zero external dependencies inside Lambda runtime) authenticated via `X-Lambda-Secret`.
+  - Added comprehensive unit test suite in `tests/unit/test_lambda_size_limit.py` covering within-limit acceptance, exceeded-limit rejection and object deletion, multi-page S3 pagination, URL-encoded filenames, webhook failures, and endpoint overriding.
+- **Key concept:** Event-driven serverless architecture and decoupled asynchronous quota enforcement:
+  - Instead of blocking API upload threads to calculate total bucket storage across thousands of files, S3 asynchronously emits `s3:ObjectCreated:*` events to an independent serverless Lambda function.
+  - Serverless functions should remain lightweight and self-contained; using Python standard library `urllib.request` avoids packing bloated dependencies like `requests` or `httpx` into the Lambda zip deployment artifact.
+- **Why this way:** Offloads storage size auditing from the web application workers, keeping upload latency low while guaranteeing that projects never exceed their allotted storage quota.
+- **Possible defense question:** Why use an S3 event-driven Lambda to enforce project size limits instead of calculating the total size synchronously inside the upload API endpoint?
+  - **Answer:** Calculating total storage size in S3 synchronously on every upload requires issuing `list_objects_v2` calls over potentially thousands of files before returning an HTTP response to the client. This introduces network latency, burns web server CPU/threads, and causes timeouts during concurrent uploads. Offloading this check to an asynchronous event-driven Lambda decouples the upload response from the audit process: files are saved immediately, and if a limit violation occurs, the Lambda cleans up the object and asynchronously alerts the API.
+
 ### T9.3 - Explain-back: storage interface abstraction and zero-change switching
 - **What was built:** Architectural explain-back documenting the core design decisions for file storage: why storage operations are decoupled behind the abstract base class `StorageBackend`, and what exact modifications occur in business code when switching between local disk storage and AWS S3.
 - **Key concept:** Dependency Inversion Principle (DIP) and Polymorphic Storage:
