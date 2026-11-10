@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T1.2 - Alembic configuration and initial migration 0001
+- **What was built:** Configured Alembic with `alembic.ini` and `src/app/db/migrations/env.py`, connecting dynamically to `Settings.database_url`. Generated initial migration `0001_initial_schema.py` covering all models, foreign keys, unique constraints, and indexes. Added integration test `tests/integration/test_migrations.py` validating upgrade to `head` and downgrade to `base`.
+- **Key concept:** Transactional DDL in PostgreSQL: Alembic wraps schema migrations (`upgrade` and `downgrade`) inside an atomic database transaction (`with context.begin_transaction()`). If any DDL statement fails, the entire migration rolls back, preventing the database from staying in a broken half-migrated state.
+- **Why this way:** Dynamic retrieval of database credentials via `Settings` in `env.py` prevents hardcoding connection strings or passwords in `alembic.ini`, ensuring safe configuration across local, CI, and production environments.
+- **Possible defense question:** How does Alembic track which migrations have already been applied to the database?
+  - **Answer:** Alembic creates a dedicated table named `alembic_version` in the database containing a single row with the `version_num` (e.g. `'0001'`). When `upgrade head` is run, Alembic inspects this table, compares it with revision dependency graph in code, and applies only missing migrations in sequential order.
+
 ### T1.1 - SQLAlchemy domain models with relationships and cascade rules
 - **What was built:** Defined typed SQLAlchemy 2.0 models using `Mapped[...]` and `mapped_column()`: `User`, `Project`, `ProjectMember` (with `ProjectRole` enum), and `Document`. Configured foreign keys with `ondelete="CASCADE"`, table unique constraints (`uq_project_members_project_user`, `users.login`, `documents.stored_filename`), and comprehensive unit tests.
 - **Key concept:** Difference between database-level cascade (`ForeignKey(..., ondelete="CASCADE")`) and ORM-level cascade (`relationship(..., cascade="all, delete-orphan", passive_deletes=True)`). `passive_deletes=True` signals SQLAlchemy to rely on the database engine to handle cascades, reducing extra SELECT and DELETE queries from Python.
