@@ -21,7 +21,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 - [x] **T1.1 [BUILD]** SQLAlchemy models: `User`, `Project`, `ProjectMember` (role: owner |
       participant), `Document`. Think: unique constraints, foreign keys, `ON DELETE CASCADE`.
 - [x] **T1.2 [BUILD]** Alembic setup + migration `0001` from the models.
-- [ ] **T1.3 [BUILD]** `schema.sql`: the same schema written by hand in plain SQL
+- [x] **T1.3 [BUILD]** `schema.sql`: the same schema written by hand in plain SQL
       (the "without ORM" version). Check it produces the same tables as the migration.
 - [ ] **T1.4 [BUILD]** Test fixtures: temporary schema/DB, per-test rollback, factories.
 - Done when: `alembic upgrade head` and `psql -f schema.sql` give equivalent schemas.

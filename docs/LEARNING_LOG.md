@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T1.3 - Plain SQL schema.sql and structural equivalence verification
+- **What was built:** Authored hand-written plain SQL DDL script `schema.sql` (creating `users`, `projects`, `documents`, and `project_members` with indexes and foreign keys). Built automated integration test `tests/integration/test_schema_equivalence.py` that spins up isolated PostgreSQL schemas, applies Alembic migrations in one and `schema.sql` in the other, and asserts 100% equivalence of table names, columns, and foreign key definitions.
+- **Key concept:** DDL equivalence and database abstraction: ORM abstractions (SQLAlchemy + Alembic) and raw relational DDL are two ways to describe the exact same underlying relational model. Writing `schema.sql` proves deep understanding of relational database constraints (`REFERENCES ... ON DELETE CASCADE`, `TIMESTAMPTZ`, `CHECK` constraints) without reliance on ORM magic.
+- **Why this way:** Using PostgreSQL schema isolation (`search_path`) in integration tests allows side-by-side comparison inside a single test database without needing two distinct database instances.
+- **Possible defense question:** How do you guarantee that hand-written `schema.sql` does not diverge from SQLAlchemy models and Alembic migrations as the project evolves?
+  - **Answer:** We have an automated integration test (`test_schema_equivalence.py`) running in the test suite and CI pipeline. It applies both schemas and asserts structural equality across tables, columns, constraints, and foreign keys, instantly failing the build if either schema drifts.
+
 ### T1.2 - Alembic configuration and initial migration 0001
 - **What was built:** Configured Alembic with `alembic.ini` and `src/app/db/migrations/env.py`, connecting dynamically to `Settings.database_url`. Generated initial migration `0001_initial_schema.py` covering all models, foreign keys, unique constraints, and indexes. Added integration test `tests/integration/test_migrations.py` validating upgrade to `head` and downgrade to `base`.
 - **Key concept:** Transactional DDL in PostgreSQL: Alembic wraps schema migrations (`upgrade` and `downgrade`) inside an atomic database transaction (`with context.begin_transaction()`). If any DDL statement fails, the entire migration rolls back, preventing the database from staying in a broken half-migrated state.
