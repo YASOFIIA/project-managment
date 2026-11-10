@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Lint, Typecheck & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pm_user
+          POSTGRES_PASSWORD: pm_password
+          POSTGRES_DB: pm_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      ENVIRONMENT: test
+      DATABASE_URL: postgresql+psycopg://pm_user:pm_password@localhost:5432/pm_test_db
+      TEST_DATABASE_URL: postgresql+psycopg://pm_user:pm_password@localhost:5432/pm_test_db
+      JWT_SECRET_KEY: ci-secret-key-for-testing-only-1234567890
+      LAMBDA_CALLBACK_SECRET: ci-lambda-secret-for-testing-only-12345
+      STORAGE_BACKEND: local
+      LOCAL_STORAGE_DIR: ./data/test_storage
+      PROJECT_SIZE_LIMIT_BYTES: 52428800
+      MAX_FILE_SIZE_BYTES: 52428800
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Lint and format check with ruff
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Typecheck with mypy
+        run: uv run mypy src lambdas tests
+
+      - name: Run test suite with coverage gate (>= 85%)
+        run: uv run pytest
+
+      - name: Build distribution package
+        run: uv build

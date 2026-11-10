@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T8.1 - GitHub Actions CI workflow with PostgreSQL service and uv caching
+- **What was built:** Created `.github/workflows/ci.yml` triggering on push to `main` and pull requests. The workflow provisions a `postgres:16-alpine` service container with `pg_isready` healthcheck, sets up `uv` via `astral-sh/setup-uv@v5` with caching, installs Python 3.12, runs `ruff check` and `ruff format --check`, runs strict `mypy`, executes the `pytest` test suite with automated coverage gate enforcement (`--cov-fail-under=85`), and builds the distribution package via `uv build`.
+- **Key concept:** Continuous Integration pipelines and reproducible testing environments:
+  - CI ensures every commit and pull request is automatically verified against an identical PostgreSQL database and Python version before merging.
+  - Using `setup-uv` with `enable-cache: true` caches downloaded wheels and virtual environments across CI runs, reducing build times from minutes to seconds.
+  - Incorporating a real PostgreSQL service container in GitHub Actions tests against actual PostgreSQL dialect behavior rather than in-memory SQLite mocks.
+- **Why this way:** Prevents regression, guarantees cross-platform consistency, and enforces code quality gates automatically on GitHub.
+- **Possible defense question:** Why is it preferable to test with a real PostgreSQL service container in CI rather than SQLite?
+  - **Answer:** Although SQLite is fast and lightweight, it behaves differently from PostgreSQL in critical areas: SQLite does not support native `JSONB`, handles custom `ENUM` types differently, lacks PostgreSQL-specific concurrency semantics (e.g. table/row-level locking), and has different foreign key constraint execution rules. Running tests against a real PostgreSQL container ensures that database queries, Alembic migrations, and transactional isolation are verified under exact production conditions.
+
 ### T7.2 - Docker Compose with PostgreSQL and startup migrations
 - **What was built:** Created `docker-entrypoint.sh` executing `alembic upgrade head` before launching Uvicorn. Updated `Dockerfile` with the entrypoint. Created `docker-compose.yml` orchestrating `api` and `postgres:16-alpine` with healthchecks (`pg_isready`), named persistent volumes (`postgres_data`, `storage_data`), dependency conditions (`condition: service_healthy`), and non-conflicting port mapping (`5433:5432` for host DB). Tested full lifecycle (`docker compose up -d --build`, verified migrations in logs, healthcheck 200, and `docker compose down -v`).
 - **Key concept:** Microservice orchestration, startup dependency management, and automated migration:
