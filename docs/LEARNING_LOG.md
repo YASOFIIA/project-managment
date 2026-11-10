@@ -14,6 +14,17 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T6.1 - Unified error format and request-ID logging middleware without sensitive data
+- **What was built:** Added `src/app/core/logging.py`, `src/app/core/middleware.py`, and `src/app/core/errors.py`. Registered `RequestIDLoggingMiddleware` and custom error handlers for `StarletteHTTPException` (including 404 and 405), `RequestValidationError` (422), and general `Exception` (500) in `src/app/main.py`. Added unit tests in `tests/unit/test_errors_and_middleware.py`.
+- **Key concept:** Observability, correlation IDs, and unified API error contracts:
+  - Every HTTP request receives an `X-Request-ID` header (either preserving client tracing headers or generating a new UUIDv4) propagated to response headers and logging contexts via Python `contextvars`.
+  - Logging records latency, method, path, and HTTP status code while masking sensitive query parameters (passwords, tokens, keys) and preventing secret leaks.
+  - All errors adhere to a standard JSON schema: `{"detail": ..., "status_code": ..., "error_code": ..., "request_id": ...}`, keeping backwards-compatibility with FastAPI's `detail` field while providing clear error codes and trace IDs for frontend debugging.
+  - Unhandled 500 exceptions log the full traceback on the server but return a safe generic message to the client, preventing internal infrastructure leakage.
+- **Why this way:** Standardizes client-facing error handling and provides production-grade request correlation across distributed logs without leaking passwords or sensitive secrets.
+- **Possible defense question:** How does the service protect against leaking credentials or sensitive data in server logs?
+  - **Answer:** We implemented a query parameter sanitizer (`sanitize_query_string`) that inspects query parameter names against a blocklist of sensitive keys (`password`, `token`, `secret`, `authorization`, etc.) and replaces their values with masks (`******`). Furthermore, request bodies are not dumped to plain text logs, and unhandled 500 exceptions sanitize error responses so raw internal database tracebacks or environment secrets are never returned to the API caller.
+
 ### T5.2 - Comprehensive end-to-end multi-user collaboration scenario test
 - **What was built:** Created `tests/integration/test_collaboration_scenario.py` verifying the full Phase 5 multi-user collaboration lifecycle: registration & login of Users A & B -> project creation -> document upload & quota increment -> member invitation -> project & document discovery by participant -> binary download -> document replacement with quota & storage update -> metadata modification by participant -> permission denial on unauthorized actions (delete, invite) -> project deletion by owner with foreign key cascade in DB and physical file deletion in `StorageBackend` -> subsequent 404 on all endpoints.
 - **Key concept:** End-to-end multi-user collaboration and resource isolation:

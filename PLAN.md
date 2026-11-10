@@ -75,7 +75,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 ## Phase 6 - Quality and packaging  (about 1 day)
 
-- [ ] **T6.1 [BUILD]** One error format for all errors (including 422 and 404/405), request-ID
+- [x] **T6.1 [BUILD]** One error format for all errors (including 422 and 404/405), request-ID
       logging middleware without sensitive data.
 - [ ] **T6.2 [BUILD]** Coverage gate (`--cov-fail-under=85`), `pre-commit` (ruff, mypy).
 - [ ] **T6.3 [BUILD]** Packaging polish: `pyproject.toml` metadata, `tox` (or `uv run` scripts,
