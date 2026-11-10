@@ -80,7 +80,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 - [x] **T6.2 [BUILD]** Coverage gate (`--cov-fail-under=85`), `pre-commit` (ruff, mypy).
 - [x] **T6.3 [BUILD]** Packaging polish: `pyproject.toml` metadata, `tox` (or `uv run` scripts,
       per mentor's answer), build the package (`uv build`) and check it installs.
-- [ ] **T6.4 [BUILD]** README: overview, setup, env vars, API list, permission matrix.
+- [x] **T6.4 [BUILD]** README: overview, setup, env vars, API list, permission matrix.
 
 ## Phase 7 - Docker  (about 1 day)
 

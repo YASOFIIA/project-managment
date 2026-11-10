@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T6.4 - Comprehensive project documentation in README.md
+- **What was built:** Authored complete production-grade `README.md` containing architectural overview, tech stack, permission & access matrix, environment variables catalog, API endpoints catalog, unified error format & observability, local setup & development quickstart, testing and quality gates instructions, and packaging instructions.
+- **Key concept:** Production documentation as an architectural artifact:
+  - Clearly explains defensive security mechanisms: 404 information hiding, binary magic-byte inspection, dual-write cleanup on database transaction rollbacks.
+  - Documents the complete environment variable contract so developers and operators know mandatory secrets vs. optional defaults before deployment.
+  - Details the permission matrix, providing clarity on owner vs. participant capabilities.
+- **Why this way:** The README serves as the primary onboarding guide for new team members, operators, and mentors evaluating the project during technical defense.
+- **Possible defense question:** Why does the documentation emphasize returning 404 instead of 403 for non-members trying to view private projects?
+  - **Answer:** If the API returned 403 Forbidden for existing projects that a user cannot access, an attacker could iterate through integer IDs (e.g., `/project/1`, `/project/2`) and distinguish between existing projects (403) and nonexistent projects (404), thereby enumerating valid project IDs and analyzing company activity. Returning 404 uniformly for both nonexistent projects and unpermitted requests conceals the presence of private resources.
+
 ### T6.3 - Package metadata polish, tox configuration, and build verification
 - **What was built:** Polished PEP 621 package metadata in `pyproject.toml` (license MIT, author, keywords, classifiers, repository and documentation URLs, and `tox` dependency). Created `tox.ini` with test, lint, and typecheck environments. Built source distribution (`.tar.gz`) and binary wheel (`.whl`) via `uv build`, and verified installation via `uv pip install --dry-run`.
 - **Key concept:** Standardized Python distribution packaging (PEP 517 / PEP 621):
