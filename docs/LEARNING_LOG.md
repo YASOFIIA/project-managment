@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T10.2 - Internal API endpoint for Lambda callback with secret verification
+- **What was built:** Implemented secure internal endpoint `POST /internal/lambda/quota-alert` in `src/app/api/internal.py` with schema validation in `src/app/schemas/internal.py` (`LambdaQuotaCallbackRequest` and `LambdaQuotaCallbackResponse`). Added FastAPI security dependency `require_lambda_secret` in `src/app/api/deps.py` verifying header `X-Lambda-Secret` via constant-time comparison (`hmac.compare_digest`). If `status == "rejected"`, purges the offending `Document` row from PostgreSQL (matching the S3 deletion performed by Lambda) and synchronizes `project.total_size_bytes`. If `status == "accepted"`, synchronizes `project.total_size_bytes`. Covered with integration tests in `tests/integration/test_internal_lambda_api.py`.
+- **Key concept:** Microservice / Serverless Webhook Security and Constant-Time Comparison:
+  - Internal administrative / serverless endpoints must be completely isolated from regular user authentication: passing a valid user JWT without the shared secret header returns `403 Forbidden`.
+  - Comparing security tokens with `hmac.compare_digest` prevents timing attacks where attackers measure microsecond differences in string comparisons to deduce secret tokens.
+  - Asynchronous state reconciliation: When Lambda purges an invalid S3 object, calling the webhook reconciles the database state, preventing "phantom" database records pointing to deleted S3 files.
+- **Why this way:** Preserves database and object storage consistency while securing serverless webhook ingress against unauthorized invocation.
+- **Possible defense question:** Why use a dedicated shared secret header (`X-Lambda-Secret`) instead of authenticating the Lambda callback with a standard user JWT?
+  - **Answer:** The Lambda function is an automated infrastructure component triggered asynchronously by cloud events (S3 `ObjectCreated`), not on behalf of an active HTTP user session. Generating or refreshing short-lived user JWTs inside Lambda creates tight coupling, token expiration failure modes, and security boundary violations (a user token has permissions to access/modify that user's resources, whereas an internal webhook needs system-level permissions to purge rejected records and adjust project quotas). A dedicated pre-shared secret header evaluated with `hmac.compare_digest` strictly separates external user traffic from internal infrastructure webhooks.
+
 ### T10.1 - Lambda size limit handler with mocked S3 unit tests
 - **What was built:** Implemented AWS Lambda serverless function in `lambdas/size_limit/handler.py` triggered by S3 `ObjectCreated` events. Key features:
   - Regex-based key parsing for `projects/<project_id>/<document_id>/<filename>` with URL unquoting (`unquote_plus`).

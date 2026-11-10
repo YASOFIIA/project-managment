@@ -1,9 +1,11 @@
+import hmac
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.config import Settings, get_settings
 from app.core.security import InvalidTokenError, TokenExpiredError, decode_access_token
 from app.db.session import get_db
 from app.models.user import User
@@ -67,3 +69,27 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_lambda_secret(
+    x_lambda_secret: Annotated[str | None, Header(alias="X-Lambda-Secret")] = None,
+    settings: Annotated[Settings, Depends(get_settings)] = None,  # type: ignore[assignment]
+) -> str:
+    """FastAPI dependency to verify incoming internal webhook requests carry the secret header.
+
+    Raises:
+        HTTPException(403): If the secret header is missing or does not match.
+    """
+    if settings is None:
+        settings = get_settings()
+
+    if not x_lambda_secret or not hmac.compare_digest(
+        x_lambda_secret.encode("utf-8"),
+        settings.lambda_callback_secret.encode("utf-8"),
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: invalid or missing Lambda callback secret",
+        )
+
+    return x_lambda_secret
