@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T9.2 - LocalStack orchestration in Docker Compose and S3 integration tests
+- **What was built:** Added `localstack` service (`localstack/localstack:3.8`) to `docker-compose.yml` with S3 and Lambda services enabled and persistent volume storage. Created `scripts/init-localstack.sh` initialization hook mounted to `/etc/localstack/init/ready.d/` to automatically create S3 bucket `s3://pm-documents` on container startup. Implemented integration test suite `tests/integration/test_s3_storage_integration.py` validating `S3Storage` against real S3 API responses (mocked / LocalStack endpoint compatible): verifying object lifecycle (`save`, `exists`, `get`, `delete`, duplicate updates, large payload streaming), hierarchical key generation, and factory dependency injection.
+- **Key concept:** Cloud emulation in integration testing:
+  - LocalStack enables running real AWS API operations (S3, Lambda) locally inside Docker containers without incurring cloud infrastructure costs, needing real AWS credentials, or facing network latency.
+  - S3 endpoint overriding: Passing `endpoint_url="http://localhost:4566"` (or Docker internal hostname) to `boto3.client("s3")` redirects requests from AWS data centers to the local emulator transparently.
+  - Ready hook initialization: Mounting shell scripts into `/etc/localstack/init/ready.d/` runs initialization commands (like `awslocal s3 mb s3://pm-documents`) immediately after LocalStack finishes its internal boot process.
+- **Why this way:** Avoids slow, costly, and flaky cloud test suites while providing high fidelity and confidence in AWS SDK interactions, making local development completely self-contained.
+- **Possible defense question:** How does `boto3` know to send S3 API requests to LocalStack instead of actual AWS endpoints?
+  - **Answer:** The `boto3.client('s3', endpoint_url=...)` parameter explicitly overrides the default AWS endpoint URL (`https://s3.<region>.amazonaws.com`). When `endpoint_url` is configured (e.g., from `Settings.s3_endpoint_url`), all S3 API operations (`put_object`, `get_object`, `head_object`, `delete_object`) are dispatched to the specified LocalStack URL. When `endpoint_url` is left empty or `None`, `boto3` targets standard public AWS infrastructure without any code modifications.
+
 ### T9.1 - S3Storage backend implementation with boto3
 - **What was built:** Added `boto3` and `boto3-stubs[s3]`. Implemented `S3Storage(StorageBackend)` in `src/app/storage/s3.py` with `save` (via `put_object`), `get` (returning streaming `Body`), `delete` (safe existence check + `delete_object`), `exists` (via metadata-only `head_object`), and helper `format_s3_key` (`projects/<project_id>/<document_id>/<name>`). Updated `get_storage()` factory in `src/app/storage/__init__.py` to instantiate `S3Storage` when `STORAGE_BACKEND=s3`. Added unit test suite `tests/unit/test_s3_storage.py` and updated factory tests in `tests/unit/test_storage.py`.
 - **Key concept:** Storage abstraction and AWS SDK integration:

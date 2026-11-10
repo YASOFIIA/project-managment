@@ -35,6 +35,11 @@ services:
       LAMBDA_CALLBACK_SECRET: ${LAMBDA_CALLBACK_SECRET:-compose-lambda-secret-replace-in-production}
       STORAGE_BACKEND: local
       LOCAL_STORAGE_DIR: /app/data/storage
+      AWS_REGION: eu-central-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      S3_BUCKET_NAME: pm-documents
       PROJECT_SIZE_LIMIT_BYTES: 52428800
       MAX_FILE_SIZE_BYTES: 52428800
     ports:
@@ -48,6 +53,28 @@ services:
       retries: 3
       start_period: 5s
 
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: pm-service-localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,lambda
+      - AWS_DEFAULT_REGION=eu-central-1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./scripts/init-localstack.sh:/etc/localstack/init/ready.d/init-localstack.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   postgres_data:
   storage_data:
+  localstack_data:
