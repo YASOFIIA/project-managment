@@ -3,8 +3,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
+from app.models.document import Document
 from app.models.project import Project, ProjectMember, ProjectRole
-from tests.factories import create_project, create_project_member, create_user
+from app.storage import get_storage
+from tests.factories import create_document, create_project, create_project_member, create_user
 
 
 def test_create_project_success(client: TestClient, db_session: Session) -> None:
@@ -291,3 +293,56 @@ def test_delete_project_unauthenticated_returns_401(client: TestClient) -> None:
     """Verify that unauthenticated DELETE /project/<id> returns 401."""
     response = client.delete("/project/1")
     assert response.status_code == 401
+
+
+def test_delete_project_removes_physical_files_from_storage(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    """Verify that deleting a project removes attached document files from storage backend."""
+    owner = create_user(db_session, login="owner_cleaner")
+    project = create_project(db_session, name="Project with files")
+    create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
+
+    storage = get_storage()
+    file1_key = "proj_doc_1.pdf"
+    file2_key = "proj_doc_2.docx"
+    storage.save(file1_key, b"%PDF-1.4 file 1 content")
+    storage.save(file2_key, b"PK\x03\x04 file 2 content")
+
+    doc1 = create_document(
+        db_session,
+        project_id=project.id,
+        filename="doc1.pdf",
+        stored_filename=file1_key,
+    )
+    doc2 = create_document(
+        db_session,
+        project_id=project.id,
+        filename="doc2.docx",
+        stored_filename=file2_key,
+    )
+    doc1_id = doc1.id
+    doc2_id = doc2.id
+    project_id = project.id
+
+    assert storage.exists(file1_key) is True
+    assert storage.exists(file2_key) is True
+
+    token = create_access_token(user_id=owner.id, login=owner.login)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.delete(f"/project/{project_id}", headers=headers)
+    assert response.status_code == 204
+
+    # Expire identity map so SQLAlchemy fetches cascaded DB state
+    db_session.expire_all()
+
+    # Verify project and documents are removed from DB
+    assert db_session.get(Project, project_id) is None
+    assert db_session.get(Document, doc1_id) is None
+    assert db_session.get(Document, doc2_id) is None
+
+    # Verify physical files are cleaned up from storage
+    assert storage.exists(file1_key) is False
+    assert storage.exists(file2_key) is False

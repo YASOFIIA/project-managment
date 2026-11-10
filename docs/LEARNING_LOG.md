@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T4.5 - Physical file cleanup on project deletion across storage backend
+- **What was built:** Updated `delete_project` in `src/app/services/projects.py` and the `DELETE /project/{project_id}` endpoint in `src/app/api/projects.py` to inject `StorageBackend`. Before the database cascade removes `Document` rows, the service queries all `stored_filename` identifiers belonging to the project. After the project row is deleted and committed in PostgreSQL, all associated physical files are deleted from `StorageBackend`. Added integration test `test_delete_project_removes_physical_files_from_storage` in `tests/integration/test_projects_api.py`.
+- **Key concept:** Safe lifecycle cleanup in hybrid architectures (RDBMS + Blob Storage):
+  - In a relational database with `ON DELETE CASCADE`, deleting a parent entity (`projects`) automatically deletes children records (`documents`).
+  - However, the database cannot know about or clean up external binary assets residing on disk or in AWS S3 buckets.
+  - To prevent storage leakage, the service retrieves all referenced `stored_filename`s before issuing `db.delete(project)` and cleans up the binary objects from storage immediately after the transaction commits.
+- **Why this way:** Preserves disk space and prevents cloud storage cost accumulation while maintaining referential integrity.
+- **Possible defense question:** Why must stored filenames be queried before calling `db.delete(project)` and `db.commit()`?
+  - **Answer:** Because PostgreSQL has `ON DELETE CASCADE` configured on the foreign keys, once `db.delete(project)` commits, all corresponding rows in the `documents` table are deleted instantly by the database engine. If we didn't collect the `stored_filename` keys beforehand, we would have no way of knowing which file keys to remove from the `StorageBackend`, resulting in orphaned binary files left permanently in storage.
+
 ### T4.4 - Document download, replace, and deletion with quota synchronization
 - **What was built:** Added `get_document_for_download`, `replace_document`, and `delete_document` to `src/app/services/documents.py`. Added endpoints `GET /document/{document_id}` (streaming file content with RFC 5987 encoded `Content-Disposition`), `PUT /document/{document_id}` (replacing document binary and metadata with quota delta check), and `DELETE /document/{document_id}` (removing database record, storage object, and decrementing project size) in `src/app/api/documents.py`. Added comprehensive integration tests in `tests/integration/test_document_operations_api.py`.
 - **Key concept:** Safe state mutations and resource streaming:

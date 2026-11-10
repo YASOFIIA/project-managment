@@ -18,10 +18,13 @@ from app.services.projects import (
     list_user_projects,
     update_project_info,
 )
+from app.storage import get_storage
+from app.storage.base import StorageBackend
 
 router = APIRouter(tags=["Projects"])
 
 DbSession = Annotated[Session, Depends(get_db)]
+StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 
 
 @router.post(
@@ -110,6 +113,12 @@ def delete_existing_project(
     project_id: int,
     current_user: CurrentUser,
     db: DbSession,
+    storage: StorageDep,
 ) -> None:
     """Delete project endpoint (owner only)."""
-    delete_project(db=db, project_id=project_id, user_id=current_user.id)
+    delete_project(
+        db=db,
+        storage=storage,
+        project_id=project_id,
+        user_id=current_user.id,
+    )

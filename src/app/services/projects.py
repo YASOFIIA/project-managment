@@ -1,12 +1,16 @@
+import contextlib
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.raw_queries import get_user_projects_with_documents_raw
+from app.models.document import Document
 from app.models.project import Project, ProjectMember, ProjectRole
 from app.models.user import User
 from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
 from app.services.access import require_project_access, require_project_owner
+from app.storage.base import StorageBackend
 
 
 def create_project(
@@ -81,13 +85,14 @@ def update_project_info(
 
 def delete_project(
     db: Session,
+    storage: StorageBackend,
     project_id: int,
     user_id: int,
 ) -> None:
-    """Delete a project and all associated data, permitted for the owner only.
+    """Delete a project, all its database records, and all attached files from storage.
 
     Associated database records (documents, memberships) are removed via foreign key cascades.
-    Stored file deletion will be wired in Phase 4 when storage backend is introduced.
+    Physical files attached to project documents are removed from the storage backend.
 
     Raises:
         HTTPException(404): if project does not exist OR user is not a member.
@@ -95,5 +100,28 @@ def delete_project(
     """
     project, _ = require_project_owner(db, project_id=project_id, user_id=user_id)
 
+    # Collect stored document filenames before cascading deletion removes DB rows
+    stored_filenames = list(
+        db.scalars(select(Document.stored_filename).where(Document.project_id == project_id)).all()
+    )
+
+    # Collect stored document filenames before cascading deletion removes DB rows
+    stored_filenames = list(
+        db.scalars(
+            select(Document.stored_filename).where(Document.project_id == project_id)
+        ).all()
+    )
+
     db.delete(project)
     db.commit()
+
+    # Clean up physical files from storage backend
+    for stored_file in stored_filenames:
+        with contextlib.suppress(Exception):
+            storage.delete(stored_file)
+
+    # Clean up physical files from storage backend
+    for stored_file in stored_filenames:
+        with contextlib.suppress(Exception):
+            storage.delete(stored_file)
+

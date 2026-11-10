@@ -60,7 +60,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
       `GET /project/<id>/documents`.
 - [x] **T4.4 [BUILD]** `GET /document/<id>` (download), `PUT /document/<id>` (replace),
       `DELETE /document/<id>`.
-- [ ] **T4.5 [BUILD]** Project delete removes files from storage. Tests incl. bad type,
+- [x] **T4.5 [BUILD]** Project delete removes files from storage. Tests incl. bad type,
       too large, no access.
 
 ## Phase 5 - Sharing  (about 0.5 day)
