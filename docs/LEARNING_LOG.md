@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T3.6 - Comprehensive API status codes suite and collaboration lifecycle tests
+- **What was built:** Created `tests/integration/test_status_codes_and_access.py` covering the complete two-user collaboration lifecycle (the Phase 3 "Done when" criterion: two users, project isolation, participant 403 on delete, owner 204 delete) as well as an explicit HTTP status code matrix test verifying all required status codes (200, 201, 204, 401, 403, 404, 422).
+- **Key concept:** Verification of end-to-end multi-tenant isolation and complete REST status semantics across the API surface. Endpoints strictly enforce the principle of least privilege, preventing project leakage through 404 responses while clearly indicating authorization refusal via 403.
+- **Why this way:** Consolidating the full status code matrix and multi-user lifecycle into an automated end-to-end integration test gives a regression safety net before advancing into file upload and storage in Phase 4.
+- **Possible defense question:** How do you test that PostgreSQL foreign keys and constraints actually prevent data corruption?
+  - **Answer:** We test against a real PostgreSQL test database (`pm_test_db`) inside per-test transactional fixtures. In the test suite, attempting to create a membership for a non-existent user raises `psycopg.errors.ForeignKeyViolation`, proving that constraints are enforced at the database engine level, not just in application code.
+
 ### T3.5 - Project deletion endpoint with owner-only access enforcement
 - **What was built:** Added `delete_project` service function in `src/app/services/projects.py` using `require_project_owner`. Exposed `DELETE /project/{project_id}` returning `204 No Content` in `src/app/api/projects.py`. Added comprehensive integration tests in `tests/integration/test_projects_api.py` verifying owner deletion, cascade removal of memberships, 403 Forbidden for participants, 404 Not Found for non-members, 404 for missing projects, and 401 for unauthenticated calls.
 - **Key concept:** Distinction between authorization failure (403 Forbidden) and non-existence / enumeration masking (404 Not Found). Participants receive 403 because they are recognized members who lack delete privileges. Non-members receive 404 to avoid leaking whether the project exists.

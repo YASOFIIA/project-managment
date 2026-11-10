@@ -47,7 +47,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
       `docs/DB_DESIGN.md`.
 - [x] **T3.5 [BUILD]** `DELETE /project/<id>` (owner only; documents deleted too, including
       stored files - wire in after Phase 4).
-- [ ] **T3.6 [BUILD]** API tests for every status code (200/201/204/401/403/404/422).
+- [x] **T3.6 [BUILD]** API tests for every status code (200/201/204/401/403/404/422).
 - Done when: two users, projects visible only to members, participant gets 403 on delete.
 
 ## Phase 4 - Documents (local storage)  (about 2 days)
