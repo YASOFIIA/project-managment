@@ -84,7 +84,7 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column(
             "role",
-            sa.Enum("OWNER", "PARTICIPANT", name="projectrole", native_enum=False, length=32),
+            sa.Enum("owner", "participant", name="projectrole", native_enum=False, length=32),
             nullable=False,
         ),
         sa.Column(

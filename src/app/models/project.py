@@ -79,7 +79,12 @@ class ProjectMember(Base):
         index=True,
     )
     role: Mapped[ProjectRole] = mapped_column(
-        Enum(ProjectRole, native_enum=False, length=32),
+        Enum(
+            ProjectRole,
+            native_enum=False,
+            length=32,
+            values_callable=lambda x: [e.value for e in x],
+        ),
         nullable=False,
         default=ProjectRole.PARTICIPANT,
     )

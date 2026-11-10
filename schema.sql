@@ -63,7 +63,7 @@ CREATE TABLE project_members (
     id SERIAL PRIMARY KEY,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(32) NOT NULL CHECK (role IN ('owner', 'participant', 'OWNER', 'PARTICIPANT')),
+    role VARCHAR(32) NOT NULL CHECK (role IN ('owner', 'participant')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_project_members_project_user UNIQUE (project_id, user_id)
 );
