@@ -64,6 +64,10 @@ def test_create_project_empty_name_returns_422(client: TestClient, db_session: S
     response = client.post("/projects", json={"name": ""}, headers=headers)
     assert response.status_code == 422
 
+    # Whitespace-only string name (stripped before min_length check)
+    response_whitespace = client.post("/projects", json={"name": "   "}, headers=headers)
+    assert response_whitespace.status_code == 422
+
     # Missing name field
     response_missing = client.post("/projects", json={"description": "No name"}, headers=headers)
     assert response_missing.status_code == 422
@@ -187,6 +191,14 @@ def test_update_project_info_empty_name_returns_422(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
+
+    # Whitespace-only name
+    response_whitespace = client.put(
+        f"/project/{project.id}/info",
+        json={"name": "   "},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response_whitespace.status_code == 422
 
 
 def test_delete_project_success_by_owner(client: TestClient, db_session: Session) -> None:

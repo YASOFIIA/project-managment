@@ -1,21 +1,27 @@
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.schemas.document import DocumentResponse
+
+ProjectName = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=255),
+]
 
 
 class ProjectCreateRequest(BaseModel):
     """Payload for creating a new project via POST /projects."""
 
-    name: str = Field(..., min_length=1, max_length=255, description="Project title")
+    name: ProjectName = Field(..., description="Project title")
     description: str | None = Field(default=None, description="Optional project description")
 
 
 class ProjectUpdateRequest(BaseModel):
     """Payload for updating project details via PUT /project/<id>/info."""
 
-    name: str = Field(..., min_length=1, max_length=255, description="Updated project title")
+    name: ProjectName = Field(..., description="Updated project title")
     description: str | None = Field(default=None, description="Updated project description")
 
 
