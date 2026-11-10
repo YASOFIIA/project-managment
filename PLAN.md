@@ -116,7 +116,7 @@ to mark the document as rejected, otherwise reports the new total to the API (st
 - [x] **T10.1 [BUILD]** `lambdas/size_limit/handler.py` + unit tests with mocked S3 events.
 - [x] **T10.2 [BUILD]** Internal API endpoint for the Lambda callback (shared secret header,
       not accessible with a user JWT).
-- [ ] **T10.3 [BUILD]** Run it end to end on LocalStack (deploy script, event notification).
+- [x] **T10.3 [BUILD]** Run it end to end on LocalStack (deploy script, event notification).
 - [ ] **T10.4 [optional]** Image resize Lambda (Pillow) writing a thumbnail next to the original.
 
 ## Phase 11 - Normalization and documentation  (about 0.5 day)

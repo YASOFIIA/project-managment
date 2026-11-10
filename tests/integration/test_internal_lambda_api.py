@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.security import create_access_token
 from app.models.document import Document
-from app.models.project import Project, ProjectMember, ProjectRole
-from app.models.user import User
+from app.models.project import ProjectRole
 from tests.factories import create_document, create_project, create_project_member, create_user
 
 
@@ -20,7 +19,9 @@ def test_lambda_callback_success_accepted(
     settings = get_settings()
     user = create_user(db_session)
     project = create_project(db_session, total_size_bytes=1000)
-    create_project_member(db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER)
+    create_project_member(
+        db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER
+    )
     doc = create_document(db_session, project_id=project.id, file_size_bytes=5000)
 
     headers = {"X-Lambda-Secret": settings.lambda_callback_secret}
@@ -57,7 +58,9 @@ def test_lambda_callback_success_rejected_purges_document(
     settings = get_settings()
     user = create_user(db_session)
     project = create_project(db_session, total_size_bytes=50_000_000)
-    create_project_member(db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER)
+    create_project_member(
+        db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER
+    )
     doc = create_document(db_session, project_id=project.id, file_size_bytes=10_000_000)
 
     headers = {"X-Lambda-Secret": settings.lambda_callback_secret}
@@ -74,7 +77,7 @@ def test_lambda_callback_success_rejected_purges_document(
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "rejected"
-    assert "purged from DB" in data["message"]
+    assert "purged" in data["message"]
 
     # Verify document was deleted from DB
     purged_doc = db_session.get(Document, doc.id)

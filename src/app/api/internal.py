@@ -66,7 +66,7 @@ def handle_lambda_quota_callback(
 
         return LambdaQuotaCallbackResponse(
             status="rejected",
-            message=f"Document {payload.document_id} rejected due to quota limit and purged from DB",
+            message=f"Document {payload.document_id} rejected due to quota limit and purged",
             project_id=payload.project_id,
             document_id=payload.document_id,
             total_size_bytes=project.total_size_bytes,

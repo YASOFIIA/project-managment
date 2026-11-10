@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T10.3 - LocalStack Lambda deployment script and end-to-end wiring
+- **What was built:** Created automated deploy script `scripts/deploy-lambda-localstack.sh` and updated `scripts/init-localstack.sh` (with volume mount `./lambdas:/opt/lambdas:ro` in `docker-compose.yml`) to package and deploy `lambdas/size_limit/handler.py` to LocalStack. Configured S3 bucket notification on `pm-documents` (`s3api put-bucket-notification-configuration`) wiring `s3:ObjectCreated:*` events to the Lambda ARN. Implemented comprehensive end-to-end integration tests in `tests/integration/test_lambda_localstack_e2e.py` covering zip archive packaging integrity, deploy script executability, and full lifecycle simulation (upload under limit -> Lambda accept -> DB sync; upload over 50 MB limit -> Lambda delete from S3 -> API callback purge from DB).
+- **Key concept:** Cloud event notification pipeline and Infrastructure-as-Code automation:
+  - S3 bucket notifications act as the event bridge, capturing `ObjectCreated` lifecycle events and dispatching event payloads to Lambda.
+  - Packaging automation: zip packaging must preserve flat structure (`handler.py` at root) so Python Lambda runtime can locate `handler.lambda_handler`.
+  - Self-healing orchestration: When LocalStack containers restart, the ready hook (`/etc/localstack/init/ready.d/init-localstack.sh`) automatically re-packages, creates/updates the Lambda function, and rebinds the notification configuration.
+- **Why this way:** Enables completely automated, reproducible local serverless event simulation without manual AWS console configuration or paying for cloud resources.
+- **Possible defense question:** How are S3 events routed to Lambda in AWS/LocalStack, and what happens if the Lambda fails to process an event?
+  - **Answer:** S3 bucket notifications (`put-bucket-notification-configuration`) define rules matching event types (e.g. `s3:ObjectCreated:*`) and target ARNs. When an object is uploaded, S3 asynchronously pushes the event JSON to Lambda. If the Lambda handler raises an unhandled exception, AWS Lambda retries execution twice by default before discarding the event or routing it to an optional Dead Letter Queue (DLQ) / SQS queue for inspection. Our handler captures errors defensively and logs them, ensuring resilient execution.
+
 ### T10.2 - Internal API endpoint for Lambda callback with secret verification
 - **What was built:** Implemented secure internal endpoint `POST /internal/lambda/quota-alert` in `src/app/api/internal.py` with schema validation in `src/app/schemas/internal.py` (`LambdaQuotaCallbackRequest` and `LambdaQuotaCallbackResponse`). Added FastAPI security dependency `require_lambda_secret` in `src/app/api/deps.py` verifying header `X-Lambda-Secret` via constant-time comparison (`hmac.compare_digest`). If `status == "rejected"`, purges the offending `Document` row from PostgreSQL (matching the S3 deletion performed by Lambda) and synchronizes `project.total_size_bytes`. If `status == "accepted"`, synchronizes `project.total_size_bytes`. Covered with integration tests in `tests/integration/test_internal_lambda_api.py`.
 - **Key concept:** Microservice / Serverless Webhook Security and Constant-Time Comparison:
