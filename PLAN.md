@@ -11,7 +11,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 - [x] **T0.1 [BUILD]** Git repo, `uv init`, `pyproject.toml` (deps, ruff, mypy, pytest config),
       folder layout from `AGENTS.md`, `.gitignore`, `.env.example`.
-- [ ] **T0.2 [BUILD]** `core/config.py` (pydantic-settings), `create_app()`, `GET /health`,
+- [x] **T0.2 [BUILD]** `core/config.py` (pydantic-settings), `create_app()`, `GET /health`,
       first test for `/health`.
 - [ ] **T0.3 [BUILD]** Local PostgreSQL (docker run or installed), `DATABASE_URL`, test DB.
 - Done when: `uv run uvicorn app.main:app` starts, `/docs` opens, `pytest` is green.

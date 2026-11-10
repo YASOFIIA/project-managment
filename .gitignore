@@ -57,3 +57,4 @@ Thumbs.db
 
 # LocalStack / Docker temporary data
 .localstack/
+
