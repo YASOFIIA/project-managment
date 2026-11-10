@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
@@ -11,7 +12,7 @@ def register_user(db: Session, data: UserRegisterRequest) -> User:
     """Register a new user with unique login and Argon2-hashed password.
 
     Raises:
-        HTTPException(409): if the login is already taken.
+        HTTPException(409): if the login is already taken (pre-checked or on concurrent commit).
     """
     existing_user = db.scalar(select(User).where(User.login == data.login))
     if existing_user is not None:
@@ -26,7 +27,15 @@ def register_user(db: Session, data: UserRegisterRequest) -> User:
         hashed_password=hashed_pw,
     )
     db.add(new_user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as err:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Login {data.login!r} is already taken",
+        ) from err
+
     db.refresh(new_user)
     return new_user
 

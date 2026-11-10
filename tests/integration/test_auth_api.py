@@ -1,6 +1,14 @@
+from unittest.mock import patch
+
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
+from app.schemas.auth import UserRegisterRequest
+from app.services.auth import register_user
+from tests.factories import create_user
 
 
 def test_register_user_success(client: TestClient) -> None:
@@ -52,6 +60,24 @@ def test_register_duplicate_login_returns_409(client: TestClient) -> None:
     resp2 = client.post("/auth", json=payload)
     assert resp2.status_code == 409
     assert "already taken" in resp2.json()["detail"]
+
+
+def test_register_user_catches_integrity_error_on_race_condition(
+    db_session: Session,
+) -> None:
+    """Verify register_user catches database IntegrityError on race condition and returns 409."""
+    create_user(db_session, login="concurrent_login")
+    data = UserRegisterRequest(
+        login="concurrent_login",
+        password="ValidPassword123!",
+        repeat_password="ValidPassword123!",
+    )
+    # Simulate race condition: SELECT found no user, but INSERT hits UNIQUE constraint
+    with patch.object(db_session, "scalar", return_value=None):
+        with pytest.raises(HTTPException) as exc_info:
+            register_user(db_session, data)
+        assert exc_info.value.status_code == 409
+        assert "concurrent_login" in exc_info.value.detail
 
 
 def test_login_success_returns_jwt_token(client: TestClient) -> None:
