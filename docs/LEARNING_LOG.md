@@ -14,6 +14,17 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T7.2 - Docker Compose with PostgreSQL and startup migrations
+- **What was built:** Created `docker-entrypoint.sh` executing `alembic upgrade head` before launching Uvicorn. Updated `Dockerfile` with the entrypoint. Created `docker-compose.yml` orchestrating `api` and `postgres:16-alpine` with healthchecks (`pg_isready`), named persistent volumes (`postgres_data`, `storage_data`), dependency conditions (`condition: service_healthy`), and non-conflicting port mapping (`5433:5432` for host DB). Tested full lifecycle (`docker compose up -d --build`, verified migrations in logs, healthcheck 200, and `docker compose down -v`).
+- **Key concept:** Microservice orchestration, startup dependency management, and automated migration:
+  - Docker Compose handles declarative multi-container topologies with isolated bridge networks.
+  - Using `condition: service_healthy` on PostgreSQL ensures the database engine is fully initialized and accepting socket connections before the web application container attempts to connect.
+  - Automatically running migrations (`alembic upgrade head`) in the entrypoint script eliminates manual operational steps when spinning up new environments from a clean clone.
+  - Named volumes decouple stateful data (database records, binary document files) from container lifecycles, enabling container destruction and recreation without data loss.
+- **Why this way:** Delivers a reproducible single-command development and staging environment (`docker compose up`) matching production infrastructure requirements.
+- **Possible defense question:** Why should `depends_on` include `condition: service_healthy` instead of just referencing the service name?
+  - **Answer:** Referencing only `depends_on: postgres` merely ensures that the PostgreSQL container process has started, but does not guarantee the database engine is ready to accept incoming TCP connections (PostgreSQL typically performs internal WAL checks and initialization for a few seconds). Without `condition: service_healthy` with `pg_isready`, the application container starts immediately and crashes with a database connection failure during startup migrations.
+
 ### T7.1 - Multi-stage Dockerfile and dockerignore configuration
 - **What was built:** Created `.dockerignore` excluding build artifacts, caches, and secrets while retaining `README.md` for packaging. Implemented production-grade multi-stage `Dockerfile` with `python:3.12-slim`:
   - Builder stage uses `uv` with cache mounts for fast deterministic dependency installation into `/app/.venv`.
