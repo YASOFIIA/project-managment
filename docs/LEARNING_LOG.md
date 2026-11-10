@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T9.3 - Explain-back: storage interface abstraction and zero-change switching
+- **What was built:** Architectural explain-back documenting the core design decisions for file storage: why storage operations are decoupled behind the abstract base class `StorageBackend`, and what exact modifications occur in business code when switching between local disk storage and AWS S3.
+- **Key concept:** Dependency Inversion Principle (DIP) and Polymorphic Storage:
+  - **Interface Decoupling:** High-level business logic (`src/app/services/documents.py`, `src/app/services/projects.py`, API endpoints) does not depend on low-level storage details (POSIX `pathlib.Path`, filesystem I/O vs. AWS SDK `boto3.client('s3')`, `put_object`, `head_object`). Both high-level services and low-level drivers depend on the abstract abstraction: `StorageBackend` (`save`, `get`, `delete`, `exists`).
+  - **Zero Business Code Changes:** Switching between `STORAGE_BACKEND=local` and `STORAGE_BACKEND=s3` requires **zero modifications** in business logic, domain services, or FastAPI routers. Dependency injection (`Depends(get_storage)`) dynamically supplies the appropriate concrete class (`LocalStorage` or `S3Storage`) at runtime based solely on environment variables.
+  - **Uniform Path/Key Sanitization:** Storage keys are unified across implementations (relative paths in `LocalStorage` and `projects/<project_id>/<document_id>/<name>` in `S3Storage`), completely isolating file naming and preventing path traversal attacks (`../`).
+- **Why this way:** Prevents vendor lock-in, enables blazing-fast local unit testing without cloud dependencies or network overhead, and simplifies testing via dependency overrides (`app.dependency_overrides[get_storage]`).
+- **Possible defense question:** Exactly what code in `src/app/services/` or `src/app/api/` changes when the service is deployed to production with AWS S3 instead of local disk storage?
+  - **Answer:** **None.** Not a single line of business code, service logic, or API routing changes. The FastAPI routers declare `storage: StorageBackend = Depends(get_storage)`. The factory function `get_storage()` reads `STORAGE_BACKEND` from `Settings`: if `"local"`, it instantiates `LocalStorage`; if `"s3"`, it instantiates `S3Storage`. Because both implement the identical abstract interface with identical signatures and exception contracts, the entire system switches transparently through configuration.
+
 ### T9.2 - LocalStack orchestration in Docker Compose and S3 integration tests
 - **What was built:** Added `localstack` service (`localstack/localstack:3.8`) to `docker-compose.yml` with S3 and Lambda services enabled and persistent volume storage. Created `scripts/init-localstack.sh` initialization hook mounted to `/etc/localstack/init/ready.d/` to automatically create S3 bucket `s3://pm-documents` on container startup. Implemented integration test suite `tests/integration/test_s3_storage_integration.py` validating `S3Storage` against real S3 API responses (mocked / LocalStack endpoint compatible): verifying object lifecycle (`save`, `exists`, `get`, `delete`, duplicate updates, large payload streaming), hierarchical key generation, and factory dependency injection.
 - **Key concept:** Cloud emulation in integration testing:
