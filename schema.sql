@@ -70,3 +70,4 @@ CREATE TABLE project_members (
 
 CREATE INDEX ix_project_members_project_id ON project_members (project_id);
 CREATE INDEX ix_project_members_user_id ON project_members (user_id);
+

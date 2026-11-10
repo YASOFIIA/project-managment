@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T2.1 - Password hashing with Argon2 and JWT creation and verification
+- **What was built:** Implemented `src/app/core/security.py` with Argon2id password hashing via `pwdlib` (`hash_password`, `verify_password`) and JWT token issuing/decoding with PyJWT (`create_access_token`, `decode_access_token`). Custom exception hierarchy (`TokenExpiredError`, `InvalidTokenError`). Wrote unit tests in `tests/unit/test_security.py` verifying hashing, claim verification, 1-hour expiration enforcement, and rejection of tampered tokens.
+- **Key concept:** JWT tokens are digitally signed, not encrypted. Claims (such as `sub`, `login`, and `exp`) can be read by anyone inspecting the payload, but any tampering with the payload invalidates the cryptographic HMAC-SHA256 signature, causing the server to reject the token.
+- **Why this way:** Argon2id is the winner of the Password Hashing Competition (PHC), providing superior resistance to both GPU cracking and side-channel attacks compared to older algorithms like bcrypt or PBKDF2.
+- **Possible defense question:** Why use Argon2id instead of bcrypt or SHA-256 for storing user passwords?
+  - **Answer:** Fast cryptographic hash functions like SHA-256 are designed for speed and are vulnerable to brute-force attacks (billions of guesses per second on modern GPUs). Argon2id is a memory-hard and time-hard algorithm specifically engineered for passwords, requiring configurable memory and compute that make hardware-accelerated attacks prohibitively expensive.
+
 ### T1.4 - Test fixtures, per-test transaction rollback, and model factories
 - **What was built:** Created `tests/conftest.py` with session-scoped database migration setup (`setup_test_database`), per-test transaction rollback fixture (`db_session`), and client dependency injection override (`client`). Created entity factories in `tests/factories.py` (`create_user`, `create_project`, `create_project_member`, `create_document`). Added integration tests in `tests/integration/test_fixtures.py` verifying transaction rollback isolation.
 - **Key concept:** Transactional testing pattern (`connection.begin()` / `transaction.rollback()`): instead of running slow DDL drops/creates or truncation between tests, each test runs inside an open transaction that is aborted upon completion. Changes are invisible to other tests and leave zero garbage in the database.
