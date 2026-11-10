@@ -31,7 +31,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 - [x] **T2.1 [BUILD]** Password hashing (argon2) + JWT create/verify (1 hour expiry).
 - [x] **T2.2 [BUILD]** `POST /auth` (login, password, repeat_password; passwords must match,
       login unique -> 409) and `POST /login` (returns access token).
-- [ ] **T2.3 [BUILD]** `get_current_user` dependency (Bearer token -> user, 401 otherwise).
+- [x] **T2.3 [BUILD]** `get_current_user` dependency (Bearer token -> user, 401 otherwise).
 - [ ] **T2.4 [BUILD]** Tests: register, duplicate login, wrong password, expired token,
       tampered token.
 - Done when: you can register, log in, and call a protected test endpoint with the token.

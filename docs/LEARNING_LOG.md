@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T2.3 - get_current_user authentication dependency and token validation
+- **What was built:** Implemented `src/app/api/deps.py` with `bearer_scheme = HTTPBearer(auto_error=False)` and `get_current_user` dependency (aliased as `CurrentUser = Annotated[User, Depends(get_current_user)]`). Added protected `GET /auth/me` endpoint. Added integration tests in `tests/integration/test_get_current_user.py` verifying header parsing, token decoding, user lookup in DB, and 401 handling for missing, expired, tampered, or nonexistent user credentials.
+- **Key concept:** FastAPI Dependency Injection with `HTTPBearer(auto_error=False)`: allows custom handling of missing or malformed headers with standardized RFC-compliant error responses and `WWW-Authenticate: Bearer` headers instead of generic framework errors.
+- **Why this way:** Resolving and fetching the full `User` model inside `get_current_user` ensures downstream routers receive an active, verified database entity, preventing operations on accounts that have been deleted or deactivated after token issuance.
+- **Possible defense question:** Why should `get_current_user` check the database for the user instead of trusting the claims inside the JWT token alone?
+  - **Answer:** Stateless JWT verification only proves the token was signed with the correct secret key in the past. If a user is deleted, suspended, or blocked after logging in, their token would still remain cryptographically valid until expiration (up to 1 hour). Fetching the user from the database ensures access is immediately revoked if the user record no longer exists.
+
 ### T2.2 - User registration and login endpoints with conflict and credential validation
 - **What was built:** Defined Pydantic v2 schemas in `src/app/schemas/auth.py` (`UserRegisterRequest` with `@model_validator` password match check, `UserLoginRequest`, `TokenResponse`, `UserResponse`). Built service functions in `src/app/services/auth.py` (`register_user`, `authenticate_user`) and FastAPI router in `src/app/api/auth.py` exposing `POST /auth` (201) and `POST /login` (200). Added integration tests in `tests/integration/test_auth_api.py`.
 - **Key concept:** Pydantic v2 cross-field validation (`@model_validator(mode="after")`): validates business constraints across multiple payload fields (e.g. `password == repeat_password`) before the request ever reaches the service or database layer, instantly returning standard HTTP 422 errors.

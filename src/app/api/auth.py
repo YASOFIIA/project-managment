@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from app.api.deps import CurrentUser
 from app.db.session import get_db
 from app.schemas.auth import (
     TokenResponse,
@@ -47,3 +48,17 @@ def login(
     """Login into service endpoint."""
     token = authenticate_user(db=db, data=data)
     return TokenResponse(access_token=token, token_type="bearer")
+
+
+@router.get(
+    "/auth/me",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get current user profile",
+    description="Retrieve the profile of the currently authenticated user.",
+)
+def get_current_user_profile(
+    current_user: CurrentUser,
+) -> UserResponse:
+    """Retrieve profile of authenticated user."""
+    return UserResponse.model_validate(current_user)
