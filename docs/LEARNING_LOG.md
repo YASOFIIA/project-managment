@@ -14,6 +14,19 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T7.1 - Multi-stage Dockerfile and dockerignore configuration
+- **What was built:** Created `.dockerignore` excluding build artifacts, caches, and secrets while retaining `README.md` for packaging. Implemented production-grade multi-stage `Dockerfile` with `python:3.12-slim`:
+  - Builder stage uses `uv` with cache mounts for fast deterministic dependency installation into `/app/.venv`.
+  - Runtime stage copies only pre-built dependencies, runs under an unprivileged user (`appuser`, UID 10001), exposes port 8000, provides a writeable storage directory (`/app/data/storage`), and configures a `HEALTHCHECK` probe against `/health`.
+  - Successfully built and tested container image (`pm-service:test`).
+- **Key concept:** Container security and multi-stage image optimization:
+  - Multi-stage builds separate compilation tools (`gcc`, build headers, `uv` cache) from the final runtime image, drastically reducing image attack surface and artifact size.
+  - Running as a dedicated non-root user (`appuser`) follows the principle of least privilege: even if an application vulnerability exists, the process cannot modify system libraries or escape container namespaces via root privileges.
+  - Adding `HEALTHCHECK` enables Docker engine and container orchestrators (ECS, Kubernetes) to monitor process health beyond simple process existence checks.
+- **Why this way:** Standard industry best practice for production Python/FastAPI deployments.
+- **Possible defense question:** Why is running as a non-root user inside a Docker container crucial for security?
+  - **Answer:** By default, containers run as `root` (UID 0), which matches UID 0 on the host Linux kernel. If an attacker manages to achieve remote code execution inside the container and exploit a Linux kernel vulnerability or misconfigured volume mount, running as root grants them root access on the host system. Dropping privileges to a dedicated non-root user (e.g., `appuser` with UID 10001) mitigates container breakout risks and confines file system access exclusively to designated application directories.
+
 ### T6.4 - Comprehensive project documentation in README.md
 - **What was built:** Authored complete production-grade `README.md` containing architectural overview, tech stack, permission & access matrix, environment variables catalog, API endpoints catalog, unified error format & observability, local setup & development quickstart, testing and quality gates instructions, and packaging instructions.
 - **Key concept:** Production documentation as an architectural artifact:

@@ -1,0 +1,49 @@
+# Version control
+.git/
+.gitignore
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Secrets and local configurations
+.env
+.env*.local
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Local data storage
+data/
+uploads/
+storage_root/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Project planning documents (keep README.md for package build)
+docs/
+AGENTS.md
+PLAN.md
+PROMPTS.md
+TASK.md
+REFERENCE_NOTES.md
+

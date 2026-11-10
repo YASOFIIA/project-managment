@@ -84,7 +84,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 ## Phase 7 - Docker  (about 1 day)
 
-- [ ] **T7.1 [BUILD]** Multi-stage `Dockerfile` (python:3.12-slim, non-root, HEALTHCHECK),
+- [x] **T7.1 [BUILD]** Multi-stage `Dockerfile` (python:3.12-slim, non-root, HEALTHCHECK),
       `.dockerignore`.
 - [ ] **T7.2 [BUILD]** `docker-compose.yml`: `api` + `postgres` (+ `localstack` later), volumes,
       migrations on startup. Check `docker compose up` works from a clean clone.
