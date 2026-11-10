@@ -13,6 +13,7 @@ from app.schemas.project import (
 )
 from app.services.projects import (
     create_project,
+    delete_project,
     get_project_info,
     list_user_projects,
     update_project_info,
@@ -96,3 +97,19 @@ def update_info(
         data=data,
     )
     return ProjectResponse.model_validate(project)
+
+
+@router.delete(
+    "/project/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete project",
+    description="Delete project and all its associated documents and members. "
+    "Permitted for owner only.",
+)
+def delete_existing_project(
+    project_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+) -> None:
+    """Delete project endpoint (owner only)."""
+    delete_project(db=db, project_id=project_id, user_id=current_user.id)

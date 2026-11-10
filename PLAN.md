@@ -45,7 +45,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 - [x] **T3.4 [BUILD]** `GET /projects`: **raw SQL** with JOIN (projects + documents of every
       project the user can access). Compare with an ORM version and note the difference in
       `docs/DB_DESIGN.md`.
-- [ ] **T3.5 [BUILD]** `DELETE /project/<id>` (owner only; documents deleted too, including
+- [x] **T3.5 [BUILD]** `DELETE /project/<id>` (owner only; documents deleted too, including
       stored files - wire in after Phase 4).
 - [ ] **T3.6 [BUILD]** API tests for every status code (200/201/204/401/403/404/422).
 - Done when: two users, projects visible only to members, participant gets 403 on delete.

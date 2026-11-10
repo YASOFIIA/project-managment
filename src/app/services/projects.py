@@ -6,7 +6,7 @@ from app.db.raw_queries import get_user_projects_with_documents_raw
 from app.models.project import Project, ProjectMember, ProjectRole
 from app.models.user import User
 from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
-from app.services.access import require_project_access
+from app.services.access import require_project_access, require_project_owner
 
 
 def create_project(
@@ -77,3 +77,23 @@ def update_project_info(
     db.commit()
     db.refresh(project)
     return project
+
+
+def delete_project(
+    db: Session,
+    project_id: int,
+    user_id: int,
+) -> None:
+    """Delete a project and all associated data, permitted for the owner only.
+
+    Associated database records (documents, memberships) are removed via foreign key cascades.
+    Stored file deletion will be wired in Phase 4 when storage backend is introduced.
+
+    Raises:
+        HTTPException(404): if project does not exist OR user is not a member.
+        HTTPException(403): if user is a member but not the owner.
+    """
+    project, _ = require_project_owner(db, project_id=project_id, user_id=user_id)
+
+    db.delete(project)
+    db.commit()

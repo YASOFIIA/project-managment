@@ -187,3 +187,95 @@ def test_update_project_info_empty_name_returns_422(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 422
+
+
+def test_delete_project_success_by_owner(client: TestClient, db_session: Session) -> None:
+    """Verify that project owner can delete project, cascading members from database."""
+    owner = create_user(db_session, login="owner_deleter")
+    participant = create_user(db_session, login="part_in_deleted")
+    project = create_project(db_session, name="To Be Deleted")
+
+    create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
+    create_project_member(db_session, project.id, participant.id, role=ProjectRole.PARTICIPANT)
+
+    token = create_access_token(user_id=owner.id, login=owner.login)
+    response = client.delete(
+        f"/project/{project.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 204
+    assert response.text == ""
+
+    # Verify project is deleted in DB
+    assert db_session.get(Project, project.id) is None
+
+    # Verify members are cascade-deleted
+    members = db_session.scalars(
+        select(ProjectMember).where(ProjectMember.project_id == project.id)
+    ).all()
+    assert len(members) == 0
+
+
+def test_delete_project_by_participant_returns_403(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    """Verify that participants cannot delete a project and receive 403 Forbidden."""
+    owner = create_user(db_session, login="owner_safe")
+    participant = create_user(db_session, login="part_forbidden_del")
+    project = create_project(db_session, name="Safe Project")
+
+    create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
+    create_project_member(db_session, project.id, participant.id, role=ProjectRole.PARTICIPANT)
+
+    token = create_access_token(user_id=participant.id, login=participant.login)
+    response = client.delete(
+        f"/project/{project.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+    assert "Only project owner can perform this operation" in response.json()["detail"]
+
+    # Verify project still exists
+    assert db_session.get(Project, project.id) is not None
+
+
+def test_delete_project_by_non_member_returns_404(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    """Verify that non-members receive 404 when attempting to delete a project."""
+    stranger = create_user(db_session, login="stranger_deleter")
+    project = create_project(db_session, name="Hidden Project")
+
+    token = create_access_token(user_id=stranger.id, login=stranger.login)
+    response = client.delete(
+        f"/project/{project.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 404
+    assert db_session.get(Project, project.id) is not None
+
+
+def test_delete_project_nonexistent_returns_404(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    """Verify that deleting a non-existent project returns 404."""
+    user = create_user(db_session, login="random_user_del")
+    token = create_access_token(user_id=user.id, login=user.login)
+
+    response = client.delete(
+        "/project/99999",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 404
+
+
+def test_delete_project_unauthenticated_returns_401(client: TestClient) -> None:
+    """Verify that unauthenticated DELETE /project/<id> returns 401."""
+    response = client.delete("/project/1")
+    assert response.status_code == 401

@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T3.5 - Project deletion endpoint with owner-only access enforcement
+- **What was built:** Added `delete_project` service function in `src/app/services/projects.py` using `require_project_owner`. Exposed `DELETE /project/{project_id}` returning `204 No Content` in `src/app/api/projects.py`. Added comprehensive integration tests in `tests/integration/test_projects_api.py` verifying owner deletion, cascade removal of memberships, 403 Forbidden for participants, 404 Not Found for non-members, 404 for missing projects, and 401 for unauthenticated calls.
+- **Key concept:** Distinction between authorization failure (403 Forbidden) and non-existence / enumeration masking (404 Not Found). Participants receive 403 because they are recognized members who lack delete privileges. Non-members receive 404 to avoid leaking whether the project exists.
+- **Why this way:** Cascading foreign key deletes (`ondelete="CASCADE"` and `passive_deletes=True`) handle database cleanup of documents and member associations automatically and atomically on the database side without requiring multiple manual `DELETE` statements.
+- **Possible defense question:** Why does a project participant get HTTP 403 on DELETE, while a non-member gets HTTP 404?
+  - **Answer:** A participant is already a member of the project and knows it exists, so returning 403 correctly informs them of insufficient permissions without security risk. In contrast, returning 403 to a non-member would confirm that a project with that ID exists, exposing the service to ID enumeration attacks; hence non-members receive 404.
+
 ### T3.4 - Raw SQL GET /projects with JOIN and DB_DESIGN analysis
 - **What was built:** Created `src/app/schemas/document.py` (`DocumentResponse`) and updated `src/app/schemas/project.py` (`ProjectDetailResponse`). Created `src/app/db/raw_queries.py` containing parameterized raw SQL with `LEFT JOIN` (`get_user_projects_with_documents_raw`) and an equivalent ORM query (`get_user_projects_with_documents_orm`). Exposed `GET /projects` in `src/app/api/projects.py`. Authored `docs/DB_DESIGN.md` analyzing N+1 query prevention, roundtrip efficiency, and trade-offs. Wrote integration tests in `tests/integration/test_projects_list_api.py`.
 - **Key concept:** Raw SQL query execution with bound parameters via `db.execute(text(...), {"user_id": user_id})`: guarantees 100% protection against SQL injection while avoiding the N+1 query problem by combining three relational tables (`projects`, `project_members`, `documents`) into a single network roundtrip.
