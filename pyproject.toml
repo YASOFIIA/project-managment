@@ -66,6 +66,7 @@ strict = true
 pretty = true
 mypy_path = "src"
 packages = ["app"]
+plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"

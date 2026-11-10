@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     test_database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/pm_test_db"
 
     # Security & JWT (lifetime exactly 1 hour = 60 minutes)
-    jwt_secret_key: str = "replace-with-a-secure-random-secret-key-at-least-32-chars"
+    jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
 
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     s3_bucket_name: str = "pm-documents"
 
     # Lambda Integration & Limits
-    lambda_callback_secret: str = "replace-with-internal-callback-secret"
+    lambda_callback_secret: str
     project_size_limit_bytes: int = 52428800  # 50 MB
 
 
