@@ -14,6 +14,21 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T3.7 - Security and validation hardening across schema, database, secrets, and auth
+- **What was built:**
+  1. Configured `Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]` for project names in `src/app/schemas/project.py`. Whitespace-only strings like `"   "` strip to `""` before `min_length` check, rejecting with HTTP 422 on `POST /projects` and `PUT /project/<id>/info`.
+  2. Configured `values_callable=lambda x: [e.value for e in x]` for `Enum(ProjectRole)` in `src/app/models/project.py`, ensuring roles are stored strictly as lowercase `'owner'` and `'participant'` in the database. Updated migration `0001_initial_schema.py` and `schema.sql` CHECK constraints; verified `test_schema_equivalence` and `alembic check`.
+  3. Removed default values for `jwt_secret_key` and `lambda_callback_secret` in `src/app/core/config.py`. The application fails to start if critical secrets are omitted from the environment. Enabled `pydantic.mypy` plugin in `pyproject.toml`.
+  4. Wrapped `db.commit()` in `register_user` to catch `IntegrityError` on concurrent registrations colliding on the UNIQUE `login` constraint, returning HTTP 409 Conflict rather than unhandled 500.
+- **Key concept:** Defense-in-depth security:
+  - Input normalization must happen *prior* to length constraints to prevent blank titles.
+  - Database enums should store canonical lowercase representations to match REST and JSON conventions.
+  - Hardcoded fallback secrets in source code violate the 12-Factor App methodology and represent critical security risks; configuration must strictly require secrets from the runtime environment.
+  - Application-level uniqueness checks (`SELECT WHERE login = ...`) suffer from race conditions under high concurrency; the database UNIQUE constraint is the authoritative source of truth, and collisions must be caught as `IntegrityError` and mapped to HTTP 409.
+- **Why this way:** Eliminates edge-case bugs, prevents security degradation in production, and guarantees consistent database contracts.
+- **Possible defense question:** Why is `SELECT User WHERE login = data.login` not sufficient to prevent duplicate user registrations?
+  - **Answer:** Under concurrent load, two requests with the same login can execute the `SELECT` query at the exact same millisecond. Both queries find no existing user, both proceed to `INSERT`, and the first to commit succeeds while the second triggers a database unique constraint violation (`IntegrityError`). Without catching `IntegrityError`, the second request crashes with a 500 Internal Server Error. Catching `IntegrityError` and translating it to HTTP 409 Conflict guarantees race-condition safety.
+
 ### T3.6 - Comprehensive API status codes suite and collaboration lifecycle tests
 - **What was built:** Created `tests/integration/test_status_codes_and_access.py` covering the complete two-user collaboration lifecycle (the Phase 3 "Done when" criterion: two users, project isolation, participant 403 on delete, owner 204 delete) as well as an explicit HTTP status code matrix test verifying all required status codes (200, 201, 204, 401, 403, 404, 422).
 - **Key concept:** Verification of end-to-end multi-tenant isolation and complete REST status semantics across the API surface. Endpoints strictly enforce the principle of least privilege, preventing project leakage through 404 responses while clearly indicating authorization refusal via 403.
