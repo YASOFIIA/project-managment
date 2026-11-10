@@ -121,7 +121,7 @@ to mark the document as rejected, otherwise reports the new total to the API (st
 
 ## Phase 11 - Normalization and documentation  (about 0.5 day)
 
-- [ ] **T11.1 [BUILD]** `docs/DB_DESIGN.md`: ER diagram, show the schema is in 3NF, list every
+- [x] **T11.1 [BUILD]** `docs/DB_DESIGN.md`: ER diagram, show the schema is in 3NF, list every
       deliberate denormalization (`total_size_bytes`, maybe `documents_count`) with the reason
       and the trade-off (faster reads vs. risk of inconsistency + how you keep it correct),
       and which queries are ORM vs. raw SQL and why.

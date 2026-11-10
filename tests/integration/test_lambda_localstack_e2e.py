@@ -11,13 +11,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from lambdas.size_limit.handler import lambda_handler
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models.document import Document
-from app.models.project import Project, ProjectMember, ProjectRole
-from app.storage.s3 import S3Storage, format_s3_key
-from lambdas.size_limit.handler import lambda_handler
+from app.models.project import ProjectRole
+from app.storage.s3 import format_s3_key
 from tests.factories import create_document, create_project, create_project_member, create_user
 
 
@@ -65,8 +65,12 @@ def test_end_to_end_s3_upload_within_limit_syncs_db(
     settings = get_settings()
     user = create_user(db_session)
     project = create_project(db_session, total_size_bytes=1000)
-    create_project_member(db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER)
-    doc = create_document(db_session, project_id=project.id, filename="spec.pdf", file_size_bytes=4000)
+    create_project_member(
+        db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER
+    )
+    doc = create_document(
+        db_session, project_id=project.id, filename="spec.pdf", file_size_bytes=4000
+    )
 
     bucket = "pm-documents"
     key = format_s3_key(project.id, doc.id, doc.filename)
@@ -74,9 +78,7 @@ def test_end_to_end_s3_upload_within_limit_syncs_db(
     mock_s3 = MagicMock()
     # Paginator returns files totaling 5000 bytes (1000 + 4000)
     mock_paginator = MagicMock()
-    mock_paginator.paginate.return_value = [
-        {"Contents": [{"Key": key, "Size": 5000}]}
-    ]
+    mock_paginator.paginate.return_value = [{"Contents": [{"Key": key, "Size": 5000}]}]
     mock_s3.get_paginator.return_value = mock_paginator
 
     # Wire mock callback to invoke TestClient /internal/lambda/quota-alert directly
@@ -136,9 +138,13 @@ def test_end_to_end_s3_upload_exceeding_limit_purges_s3_and_db(
     user = create_user(db_session)
     # Existing project already near limit
     project = create_project(db_session, total_size_bytes=50_000_000)
-    create_project_member(db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER)
+    create_project_member(
+        db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER
+    )
     # New document pushes total to 60 MB
-    doc = create_document(db_session, project_id=project.id, filename="huge_video.mp4", file_size_bytes=10_000_000)
+    doc = create_document(
+        db_session, project_id=project.id, filename="huge_video.mp4", file_size_bytes=10_000_000
+    )
 
     bucket = "pm-documents"
     key = format_s3_key(project.id, doc.id, doc.filename)
@@ -146,7 +152,12 @@ def test_end_to_end_s3_upload_exceeding_limit_purges_s3_and_db(
     mock_s3 = MagicMock()
     mock_paginator = MagicMock()
     mock_paginator.paginate.return_value = [
-        {"Contents": [{"Key": "existing.pdf", "Size": 50_000_000}, {"Key": key, "Size": 10_000_000}]}
+        {
+            "Contents": [
+                {"Key": "existing.pdf", "Size": 50_000_000},
+                {"Key": key, "Size": 10_000_000},
+            ]
+        }
     ]
     mock_s3.get_paginator.return_value = mock_paginator
 

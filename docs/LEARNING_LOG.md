@@ -14,6 +14,20 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T11.1 - Database design documentation, 3NF proof, and denormalization analysis
+- **What was built:** Authored exhaustive relational database design architecture documentation in `docs/DB_DESIGN.md`:
+  - Detailed Mermaid Entity-Relationship (ER) diagram representing `users`, `projects`, `documents`, and `project_members`, including primary keys, candidate keys, foreign key constraints with `ON DELETE CASCADE`, and B-Tree indexes.
+  - Formal mathematical proof of Third Normal Form (3NF): step-by-step verification of 1NF (atomic scalar attributes, no repeating groups), 2NF (elimination of partial functional dependencies on composite candidate keys), and 3NF (elimination of transitive non-prime functional dependencies).
+  - Detailed architectural trade-off analysis of the deliberate denormalization `projects.total_size_bytes`: constant-time $O(1)$ read performance vs. risk of data drift, backed by our two-tier consistency guarantee (synchronous transactional updates in API workers + asynchronous serverless audit reconciliation via AWS Lambda).
+  - Explicit ORM vs. Raw SQL query catalog explaining exactly which operations use SQLAlchemy ORM vs. hand-written SQL queries in `src/app/db/raw_queries.py` and `schema.sql`.
+- **Key concept:** Relational Database Normalization and Controlled Denormalization:
+  - Normalization minimizes data redundancy and prevents insertion, update, and deletion anomalies.
+  - Controlled denormalization (such as precalculating aggregate sizes) is an intentional engineering compromise to meet strict latency SLAs on high-frequency read operations ($O(1)$ lookup vs. $O(M)$ disk aggregation over millions of documents).
+  - Whenever data is denormalized, an explicit synchronization mechanism (atomic transactions + event-driven audit reconciliation) must be defined and documented.
+- **Why this way:** Provides the foundational theoretical and practical evidence required for academic/mentor defense, demonstrating rigorous database architecture knowledge beyond blind ORM usage.
+- **Possible defense question:** Prove that your database schema is in 3NF, and explain why `total_size_bytes` is stored on `projects` instead of dynamically computing `SUM(file_size_bytes)`.
+  - **Answer:** The schema satisfies 1NF because all attributes contain scalar atomic values. It satisfies 2NF because `role` and `created_at` in `project_members` depend fully on the complete candidate key `(project_id, user_id)` rather than a subset. It satisfies 3NF because no non-key attribute is transitively dependent on another non-key attribute. `total_size_bytes` is a deliberate denormalization: computing `SUM(file_size_bytes)` on every `GET /project/{id}/info` scales at $O(M)$ disk I/O, which degrades under millions of files. Storing the cached sum provides $O(1)$ reads. Consistency is guaranteed at the write path via atomic database transactions and audited asynchronously by the event-driven Lambda function.
+
 ### T10.3 - LocalStack Lambda deployment script and end-to-end wiring
 - **What was built:** Created automated deploy script `scripts/deploy-lambda-localstack.sh` and updated `scripts/init-localstack.sh` (with volume mount `./lambdas:/opt/lambdas:ro` in `docker-compose.yml`) to package and deploy `lambdas/size_limit/handler.py` to LocalStack. Configured S3 bucket notification on `pm-documents` (`s3api put-bucket-notification-configuration`) wiring `s3:ObjectCreated:*` events to the Lambda ARN. Implemented comprehensive end-to-end integration tests in `tests/integration/test_lambda_localstack_e2e.py` covering zip archive packaging integrity, deploy script executability, and full lifecycle simulation (upload under limit -> Lambda accept -> DB sync; upload over 50 MB limit -> Lambda delete from S3 -> API callback purge from DB).
 - **Key concept:** Cloud event notification pipeline and Infrastructure-as-Code automation:
