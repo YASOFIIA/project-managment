@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T6.3 - Package metadata polish, tox configuration, and build verification
+- **What was built:** Polished PEP 621 package metadata in `pyproject.toml` (license MIT, author, keywords, classifiers, repository and documentation URLs, and `tox` dependency). Created `tox.ini` with test, lint, and typecheck environments. Built source distribution (`.tar.gz`) and binary wheel (`.whl`) via `uv build`, and verified installation via `uv pip install --dry-run`.
+- **Key concept:** Standardized Python distribution packaging (PEP 517 / PEP 621):
+  - `pyproject.toml` acts as the single source of truth for build requirements, metadata, dependencies, and tool settings.
+  - `uv build` builds modern binary wheels and source distributions compliant with PyPI and wheel standards using `hatchling` as build backend.
+  - `tox.ini` allows multi-environment matrix testing across multiple Python versions in isolated virtual environments.
+- **Why this way:** Adheres to modern packaging best practices, preparing the repository for continuous integration, distribution, and containerization.
+- **Possible defense question:** What is the difference between a source distribution (sdist) and a built wheel distribution?
+  - **Answer:** An sdist (`.tar.gz`) contains the uncompiled project source tree and requires build tooling (e.g., `hatchling`) to interpret `pyproject.toml` during installation. A wheel (`.whl`) is a built distribution format (`zip` archive with specific directory layout and metadata) that pip/uv can unpack directly into `site-packages` without running any build step, making installation faster and reproducible.
+
 ### T6.2 - Coverage gate enforcement and pre-commit configuration
 - **What was built:** Configured automated test coverage threshold enforcement in `pyproject.toml` (`--cov-fail-under=85`). Configured `.pre-commit-config.yaml` containing essential hygiene hooks (`trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-added-large-files`), code linting and formatting via `ruff`, and strict static typing via `mypy`. Added `# noqa: SIM115` on `LocalStorage.get` returning raw binary stream.
 - **Key concept:** Continuous quality gates and pre-commit prevention:

@@ -27,6 +27,7 @@ ENV/
 
 # Testing and Type Checking
 .pytest_cache/
+.tox/
 .coverage
 .coverage.*
 htmlcov/

@@ -78,7 +78,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 - [x] **T6.1 [BUILD]** One error format for all errors (including 422 and 404/405), request-ID
       logging middleware without sensitive data.
 - [x] **T6.2 [BUILD]** Coverage gate (`--cov-fail-under=85`), `pre-commit` (ruff, mypy).
-- [ ] **T6.3 [BUILD]** Packaging polish: `pyproject.toml` metadata, `tox` (or `uv run` scripts,
+- [x] **T6.3 [BUILD]** Packaging polish: `pyproject.toml` metadata, `tox` (or `uv run` scripts,
       per mentor's answer), build the package (`uv build`) and check it installs.
 - [ ] **T6.4 [BUILD]** README: overview, setup, env vars, API list, permission matrix.
 
