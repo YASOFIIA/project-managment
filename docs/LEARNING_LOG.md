@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T3.2 - Project creation endpoint with atomic owner assignment
+- **What was built:** Defined Pydantic v2 schemas in `src/app/schemas/project.py` (`ProjectCreateRequest`, `ProjectResponse`, `ProjectUpdateRequest`), service logic in `src/app/services/projects.py` (`create_project`), and endpoint `POST /projects` in `src/app/api/projects.py`. Added integration tests in `tests/integration/test_projects_api.py` verifying atomic transaction handling, owner assignment, 401 unauthenticated rejection, and 422 payload validation.
+- **Key concept:** Transaction atomicity across related tables: when creating a multi-tenant resource (a project and its initial owner membership), both the `Project` insert and the `ProjectMember` insert occur within a single database transaction. If either insert fails, the transaction rolls back, guaranteeing that a project can never exist without an owner.
+- **Why this way:** Using `db.flush()` generates the auto-incrementing `project.id` needed for the `ProjectMember` foreign key before issuing the final `db.commit()`, keeping the entire operation within a single atomic database roundtrip.
+- **Possible defense question:** What would happen if the project was committed before the membership was added, and the server crashed between the two operations?
+  - **Answer:** The database would be left in an inconsistent state: an orphaned project would exist with no members and no owner, making it inaccessible to all users and impossible to manage or delete. Using a single atomic transaction guarantees that either both records are saved or neither is.
+
 ### T3.1 - Centralized permission matrix and access control service
 - **What was built:** Created `src/app/services/access.py` containing a comprehensive markdown docstring permission matrix and centralized authorization functions: `get_project_membership`, `require_project_access`, `require_project_owner`, and `require_document_access`. Wrote unit tests in `tests/unit/test_access.py` covering owners, participants, non-members, and non-existent resources.
 - **Key concept:** Information leakage prevention through consistent 404 responses: when an unauthorized user requests an entity they do not have access to, the server always returns HTTP 404 Not Found rather than HTTP 403 Forbidden. This prevents attackers from enumerating valid project or document IDs.

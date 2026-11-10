@@ -40,7 +40,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 
 - [x] **T3.1 [BUILD]** `services/access.py`: permission matrix (owner / participant / no
       access). Write it as a table in the docstring first.
-- [ ] **T3.2 [BUILD]** `POST /projects` (creator becomes owner, in one transaction).
+- [x] **T3.2 [BUILD]** `POST /projects` (creator becomes owner, in one transaction).
 - [ ] **T3.3 [BUILD]** `GET /project/<id>/info`, `PUT /project/<id>/info`.
 - [ ] **T3.4 [BUILD]** `GET /projects`: **raw SQL** with JOIN (projects + documents of every
       project the user can access). Compare with an ORM version and note the difference in
