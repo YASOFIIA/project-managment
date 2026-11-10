@@ -14,6 +14,16 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T4.3 - Document upload and listing endpoints with atomic quota enforcement
+- **What was built:** Implemented `upload_documents` and `list_project_documents` in `src/app/services/documents.py`. Created API endpoints `POST /project/{project_id}/documents` (supporting single or batch multipart uploads) and `GET /project/{project_id}/documents` in `src/app/api/documents.py`. Registered `documents_router` in `src/app/main.py`. Added comprehensive integration tests in `tests/integration/test_documents_api.py`.
+- **Key concept:** Transactional integrity with dual-write systems (Database + Storage Backend):
+  - When saving files to disk and persisting metadata to PostgreSQL, operations can fail asynchronously (e.g. database disconnect).
+  - To prevent orphaned binary garbage on disk/S3, `upload_documents` tracks saved storage keys: if database commit fails or an exception occurs, all written files in that batch are cleaned up via `storage.delete(key)` before re-raising the error.
+  - Project quota check (`project.total_size_bytes + new_bytes <= 52_428_800`) is verified before writing to disk, failing fast with HTTP 413 Content Too Large.
+- **Why this way:** Both project owners and participants have upload and viewing privileges according to the permission matrix. Atomic size increment (`project.total_size_bytes += total_new_bytes`) keeps the project aggregate cache strictly in sync.
+- **Possible defense question:** How does the service ensure that a failed database transaction does not leave orphaned files in the storage backend?
+  - **Answer:** We use an undo/compensation pattern: all storage keys written during the upload batch are appended to a `saved_storage_keys` tracking list. The database commit happens inside a `try` block. If `db.commit()` raises an exception, the `except` block rolls back the database transaction (`db.rollback()`) and iterates through `saved_storage_keys` to delete each orphaned file from the `StorageBackend`.
+
 ### T4.2 - File upload validation, MIME detection, magic bytes verification, and safe stored names
 - **What was built:** Created `src/app/services/file_validation.py` containing `FileTypeSpec` mapping allowed file types (PDF, DOCX, PNG, JPG/JPEG) to their canonical MIME types and magic byte signatures (`b"%PDF-"`, `b"PK\x03\x04"`, `b"\x89PNG\r\n\x1a\n"`, `b"\xff\xd8\xff"`). Added `sanitize_filename` (normalizing path separators and whitespace), `generate_safe_stored_filename` (generating random UUID keys preserving sanitized extensions), and `validate_file_upload` (enforcing non-emptiness, size limits via HTTP 413, allowed extensions, and binary signature matching via HTTP 400). Wrote unit tests in `tests/unit/test_file_validation.py`.
 - **Key concept:** Deep content inspection vs. client-supplied headers:

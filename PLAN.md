@@ -56,7 +56,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 - [x] **T4.1 [BUILD]** `StorageBackend` interface + `LocalStorage`.
 - [x] **T4.2 [BUILD]** Upload validation: allowed types (pdf, docx; images optional), magic
       bytes, max size, safe stored file name.
-- [ ] **T4.3 [BUILD]** `POST /project/<id>/documents` (one or many files),
+- [x] **T4.3 [BUILD]** `POST /project/<id>/documents` (one or many files),
       `GET /project/<id>/documents`.
 - [ ] **T4.4 [BUILD]** `GET /document/<id>` (download), `PUT /document/<id>` (replace),
       `DELETE /document/<id>`.
