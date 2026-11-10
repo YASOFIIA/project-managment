@@ -54,7 +54,7 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 ## Phase 4 - Documents (local storage)  (about 2 days)
 
 - [x] **T4.1 [BUILD]** `StorageBackend` interface + `LocalStorage`.
-- [ ] **T4.2 [BUILD]** Upload validation: allowed types (pdf, docx; images optional), magic
+- [x] **T4.2 [BUILD]** Upload validation: allowed types (pdf, docx; images optional), magic
       bytes, max size, safe stored file name.
 - [ ] **T4.3 [BUILD]** `POST /project/<id>/documents` (one or many files),
       `GET /project/<id>/documents`.

@@ -14,6 +14,15 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T4.2 - File upload validation, MIME detection, magic bytes verification, and safe stored names
+- **What was built:** Created `src/app/services/file_validation.py` containing `FileTypeSpec` mapping allowed file types (PDF, DOCX, PNG, JPG/JPEG) to their canonical MIME types and magic byte signatures (`b"%PDF-"`, `b"PK\x03\x04"`, `b"\x89PNG\r\n\x1a\n"`, `b"\xff\xd8\xff"`). Added `sanitize_filename` (normalizing path separators and whitespace), `generate_safe_stored_filename` (generating random UUID keys preserving sanitized extensions), and `validate_file_upload` (enforcing non-emptiness, size limits via HTTP 413, allowed extensions, and binary signature matching via HTTP 400). Wrote unit tests in `tests/unit/test_file_validation.py`.
+- **Key concept:** Deep content inspection vs. client-supplied headers:
+  - Malicious files often spoof file extensions or `Content-Type` headers (e.g. naming an executable script `invoice.pdf`).
+  - Relying exclusively on extensions or HTTP headers leaves the system vulnerable to malware upload. Magic bytes inspection checks the immutable byte header of the actual binary content before accepting the upload.
+- **Why this way:** Generating random UUID storage keys (`{uuid.uuid4().hex}{extension}`) ensures zero filesystem collisions and completely neutralizes path injection vulnerabilities, while storing the user-friendly original name separately in PostgreSQL metadata.
+- **Possible defense question:** Why is inspecting magic bytes necessary when the browser already sends the `Content-Type` header?
+  - **Answer:** The client-provided `Content-Type` header is completely untrusted user input; an attacker can easily send an arbitrary MIME type like `application/pdf` in curl or Postman while uploading an executable `.exe` or shell script. Magic bytes verification inspects the actual first bytes of the binary payload on the server, guaranteeing that the file content matches the declared file specification.
+
 ### T4.1 - StorageBackend abstraction and LocalStorage with Path Traversal protection
 - **What was built:** Created abstract interface `StorageBackend` in `src/app/storage/base.py` (`save`, `get`, `delete`, `exists`). Implemented `LocalStorage` in `src/app/storage/local.py` supporting both raw `bytes` and chunked binary streams (`BinaryIO`), directory auto-creation, and strict path normalization with traversal mitigation (`is_relative_to`). Exposed singleton factory `get_storage()` in `src/app/storage/__init__.py`. Added comprehensive unit tests in `tests/unit/test_storage.py`.
 - **Key concept:** Dependency Inversion Principle (DIP) and security sandboxing:
