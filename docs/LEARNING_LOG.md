@@ -14,6 +14,13 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T1.4 - Test fixtures, per-test transaction rollback, and model factories
+- **What was built:** Created `tests/conftest.py` with session-scoped database migration setup (`setup_test_database`), per-test transaction rollback fixture (`db_session`), and client dependency injection override (`client`). Created entity factories in `tests/factories.py` (`create_user`, `create_project`, `create_project_member`, `create_document`). Added integration tests in `tests/integration/test_fixtures.py` verifying transaction rollback isolation.
+- **Key concept:** Transactional testing pattern (`connection.begin()` / `transaction.rollback()`): instead of running slow DDL drops/creates or truncation between tests, each test runs inside an open transaction that is aborted upon completion. Changes are invisible to other tests and leave zero garbage in the database.
+- **Why this way:** Model factories (`tests/factories.py`) provide sensible defaults with `**kwargs` overrides and auto-flushing, eliminating boilerplate in subsequent API and service tests while keeping test setup DRY.
+- **Possible defense question:** Why use transaction rollbacks for testing instead of recreating the database or truncating tables before each test?
+  - **Answer:** Truncating tables or dropping/recreating the schema issues multiple DDL/DML statements per test, which scales poorly ($O(N)$ with hundreds of tests taking minutes). Rolling back an in-memory/in-flight transaction takes mere milliseconds, guarantees 100% test isolation, and keeps test execution blazing fast.
+
 ### T1.3 - Plain SQL schema.sql and structural equivalence verification
 - **What was built:** Authored hand-written plain SQL DDL script `schema.sql` (creating `users`, `projects`, `documents`, and `project_members` with indexes and foreign keys). Built automated integration test `tests/integration/test_schema_equivalence.py` that spins up isolated PostgreSQL schemas, applies Alembic migrations in one and `schema.sql` in the other, and asserts 100% equivalence of table names, columns, and foreign key definitions.
 - **Key concept:** DDL equivalence and database abstraction: ORM abstractions (SQLAlchemy + Alembic) and raw relational DDL are two ways to describe the exact same underlying relational model. Writing `schema.sql` proves deep understanding of relational database constraints (`REFERENCES ... ON DELETE CASCADE`, `TIMESTAMPTZ`, `CHECK` constraints) without reliance on ORM magic.
