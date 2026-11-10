@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from app.models.project import ProjectRole
 from app.schemas.document import DocumentResponse
 
 ProjectName = Annotated[
@@ -42,3 +43,15 @@ class ProjectDetailResponse(ProjectResponse):
     """Detailed project model including attached documents list for GET /projects."""
 
     documents: list[DocumentResponse] = Field(default_factory=list)
+
+
+class ProjectMemberResponse(BaseModel):
+    """Membership details returned upon project member invitation."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    project_id: int
+    user_id: int
+    role: ProjectRole
+    created_at: datetime

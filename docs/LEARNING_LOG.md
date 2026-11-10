@@ -14,6 +14,17 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### T5.1 - Project member invitation endpoint with owner-only access control
+- **What was built:** Added `ProjectMemberResponse` schema in `src/app/schemas/project.py`. Implemented `invite_member` in `src/app/services/projects.py` and endpoint `POST /project/{project_id}/invite?user=<login>` in `src/app/api/projects.py`. Created comprehensive integration test suite in `tests/integration/test_sharing_api.py`.
+- **Key concept:** Role-based access control and state validation in resource sharing:
+  - Only the project `OWNER` has permissions to invite new collaborators (`PARTICIPANT`). Attempts by a participant return `403 Forbidden`.
+  - Non-members receive `404 Not Found` to prevent project enumeration (information hiding).
+  - Validating target invitee existence returns `404 Not Found` if the requested username is not registered.
+  - Duplicate membership attempts (inviting existing participant or project owner) are prevented with `409 Conflict`.
+- **Why this way:** Query parameter `?user=<login>` adheres strictly to the project specification, and role assignment is restricted to `participant` upon invite.
+- **Possible defense question:** Why do we check both existing membership in Python and catch `IntegrityError` upon commit when inviting a member?
+  - **Answer:** Checking `get_project_membership` upfront provides clear and immediate user feedback with `409 Conflict`. However, in high-concurrency environments, two concurrent invite requests for the same user could pass the application-level check simultaneously. The database unique constraint `uq_project_members_project_user` enforces uniqueness at the storage engine level; catching `IntegrityError` guarantees race conditions are gracefully handled and still return HTTP 409 instead of an unhandled HTTP 500 error.
+
 ### T4.5 - Physical file cleanup on project deletion across storage backend
 - **What was built:** Updated `delete_project` in `src/app/services/projects.py` and the `DELETE /project/{project_id}` endpoint in `src/app/api/projects.py` to inject `StorageBackend`. Before the database cascade removes `Document` rows, the service queries all `stored_filename` identifiers belonging to the project. After the project row is deleted and committed in PostgreSQL, all associated physical files are deleted from `StorageBackend`. Added integration test `test_delete_project_removes_physical_files_from_storage` in `tests/integration/test_projects_api.py`.
 - **Key concept:** Safe lifecycle cleanup in hybrid architectures (RDBMS + Blob Storage):

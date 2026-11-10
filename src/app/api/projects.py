@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.schemas.project import (
     ProjectCreateRequest,
     ProjectDetailResponse,
+    ProjectMemberResponse,
     ProjectResponse,
     ProjectUpdateRequest,
 )
@@ -15,6 +16,7 @@ from app.services.projects import (
     create_project,
     delete_project,
     get_project_info,
+    invite_member,
     list_user_projects,
     update_project_info,
 )
@@ -122,3 +124,26 @@ def delete_existing_project(
         project_id=project_id,
         user_id=current_user.id,
     )
+
+
+@router.post(
+    "/project/{project_id}/invite",
+    response_model=ProjectMemberResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Invite user to project",
+    description="Invite a user to the project as a participant. Permitted for owner only.",
+)
+def invite_user_to_project(
+    project_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+    user: str = Query(..., min_length=1, description="Username of user to invite"),
+) -> ProjectMemberResponse:
+    """Invite user endpoint (owner only)."""
+    membership = invite_member(
+        db=db,
+        project_id=project_id,
+        owner_id=current_user.id,
+        invitee_login=user,
+    )
+    return ProjectMemberResponse.model_validate(membership)

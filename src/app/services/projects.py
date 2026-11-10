@@ -1,7 +1,9 @@
 import contextlib
 from typing import Any
 
+from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.raw_queries import get_user_projects_with_documents_raw
@@ -9,7 +11,11 @@ from app.models.document import Document
 from app.models.project import Project, ProjectMember, ProjectRole
 from app.models.user import User
 from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
-from app.services.access import require_project_access, require_project_owner
+from app.services.access import (
+    get_project_membership,
+    require_project_access,
+    require_project_owner,
+)
 from app.storage.base import StorageBackend
 
 
@@ -105,13 +111,6 @@ def delete_project(
         db.scalars(select(Document.stored_filename).where(Document.project_id == project_id)).all()
     )
 
-    # Collect stored document filenames before cascading deletion removes DB rows
-    stored_filenames = list(
-        db.scalars(
-            select(Document.stored_filename).where(Document.project_id == project_id)
-        ).all()
-    )
-
     db.delete(project)
     db.commit()
 
@@ -120,8 +119,56 @@ def delete_project(
         with contextlib.suppress(Exception):
             storage.delete(stored_file)
 
-    # Clean up physical files from storage backend
-    for stored_file in stored_filenames:
-        with contextlib.suppress(Exception):
-            storage.delete(stored_file)
 
+def invite_member(
+    db: Session,
+    project_id: int,
+    owner_id: int,
+    invitee_login: str,
+) -> ProjectMember:
+    """Invite a user to a project as a participant.
+
+    Permitted only for the project OWNER.
+
+    Raises:
+        HTTPException(404): if project does not exist OR current user is not a member.
+        HTTPException(403): if current user is a participant (not the owner).
+        HTTPException(404): if user with invitee_login does not exist.
+        HTTPException(409): if user is already a member of the project (owner or participant).
+    """
+    # 1. Access check: owner only (raises 404 if project/membership missing, 403 if participant)
+    require_project_owner(db, project_id=project_id, user_id=owner_id)
+
+    # 2. Check that target invitee exists
+    invitee = db.scalar(select(User).where(User.login == invitee_login))
+    if invitee is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User '{invitee_login}' not found",
+        )
+
+    # 3. Check if invitee is already a member
+    existing = get_project_membership(db, project_id=project_id, user_id=invitee.id)
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"User '{invitee_login}' is already a member of this project",
+        )
+
+    # 4. Create membership as PARTICIPANT
+    membership = ProjectMember(
+        project_id=project_id,
+        user_id=invitee.id,
+        role=ProjectRole.PARTICIPANT,
+    )
+    db.add(membership)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"User '{invitee_login}' is already a member of this project",
+        ) from None
+    db.refresh(membership)
+    return membership
