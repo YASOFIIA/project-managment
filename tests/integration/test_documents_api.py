@@ -1,5 +1,6 @@
 import io
 from pathlib import Path
+from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -221,3 +222,97 @@ def test_upload_exceeding_project_size_limit_returns_413(
     )
     assert response.status_code == 413
     assert "limit" in response.json()["detail"]
+
+
+def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
+    """Verify that row locking with with_for_update prevents race conditions."""
+    import concurrent.futures
+    import threading
+    import uuid
+
+    from fastapi import HTTPException, UploadFile
+    from sqlalchemy import create_engine
+    from starlette.datastructures import Headers
+
+    from app.core.config import get_settings
+    from app.models.document import Document
+    from app.models.project import Project
+    from app.models.user import User
+    from app.services.documents import upload_documents
+    from app.storage import get_storage
+
+    settings = get_settings()
+    engine = create_engine(settings.test_database_url, pool_pre_ping=True)
+
+    with Session(engine) as init_session:
+        user = create_user(init_session, login=f"race_user_{uuid.uuid4().hex[:6]}")
+        project = create_project(
+            init_session, name="Race Project", total_size_bytes=52_428_700
+        )  # 100 bytes left
+        create_project_member(
+            init_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER
+        )
+        init_session.commit()
+        project_id = project.id
+        user_id = user.id
+
+    barrier = threading.Barrier(2)
+    results: list[tuple[str, Any]] = []
+
+    def attempt_upload(worker_id: int) -> None:
+        file_bytes = b"%PDF-" + b"A" * 70  # 75 bytes: 75 <= 100, but 75 + 75 = 150 > 100
+        file_obj = io.BytesIO(file_bytes)
+        upload_file = UploadFile(
+            file=file_obj,
+            filename=f"race_{worker_id}.pdf",
+            headers=Headers({"content-type": "application/pdf"}),
+        )
+        storage = get_storage()
+        with Session(engine) as session:
+            try:
+                barrier.wait(timeout=5)
+                docs = upload_documents(
+                    db=session,
+                    storage=storage,
+                    project_id=project_id,
+                    user_id=user_id,
+                    files=[upload_file],
+                )
+                results.append(("success", docs))
+            except HTTPException as exc:
+                results.append(("error", exc.status_code))
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        f1 = executor.submit(attempt_upload, 1)
+        f2 = executor.submit(attempt_upload, 2)
+        f1.result()
+        f2.result()
+
+    statuses = [r[0] for r in results]
+    assert "success" in statuses
+    assert "error" in statuses
+
+    error_code = [r[1] for r in results if r[0] == "error"][0]
+    assert error_code == 413
+
+    # Verify database state in a fresh session
+    with Session(engine) as verify_session:
+        proj = verify_session.get(Project, project_id)
+        assert proj is not None
+        assert proj.total_size_bytes <= settings.project_size_limit_bytes
+
+        # Only exactly 1 document was recorded
+        docs_count = (
+            verify_session.query(Document).filter(Document.project_id == project_id).count()
+        )
+        assert docs_count == 1
+
+        # Clean up test rows
+        verify_session.delete(proj)
+        usr = verify_session.get(User, user_id)
+        if usr:
+            verify_session.delete(usr)
+        verify_session.commit()
+
+    engine.dispose()
+

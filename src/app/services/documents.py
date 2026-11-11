@@ -33,7 +33,13 @@ def upload_documents(
         HTTPException(400): if no files provided, empty file, invalid type, or spoofed bytes.
         HTTPException(413): if upload would exceed the project size limit.
     """
-    project, _ = require_project_access(db, project_id=project_id, user_id=user_id)
+    require_project_access(db, project_id=project_id, user_id=user_id)
+    project = db.scalar(select(Project).where(Project.id == project_id).with_for_update())
+    if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
 
     if not files:
         raise HTTPException(
@@ -178,7 +184,7 @@ def replace_document(
         HTTPException(413): if replaced file exceeds the project size limit.
     """
     doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
-    project = db.get(Project, doc.project_id)
+    project = db.scalar(select(Project).where(Project.id == doc.project_id).with_for_update())
     if project is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -256,7 +262,7 @@ def delete_document(
         HTTPException(404): if document does not exist OR user lacks access.
     """
     doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
-    project = db.get(Project, doc.project_id)
+    project = db.scalar(select(Project).where(Project.id == doc.project_id).with_for_update())
     stored_key = doc.stored_filename
     doc_size = doc.file_size_bytes
 
