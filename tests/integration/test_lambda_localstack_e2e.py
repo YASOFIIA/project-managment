@@ -206,3 +206,154 @@ def test_end_to_end_s3_upload_exceeding_limit_purges_s3_and_db(
     # Project size preserved at 50 MB
     db_session.refresh(project)
     assert project.total_size_bytes == 50_000_000
+
+
+def test_api_upload_with_s3_storage_and_lambda_lifecycle(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify upload via API with S3Storage.
+
+    Under limit -> Lambda accepts; exceeding -> Lambda rejects.
+    """
+    from app.core.security import create_access_token
+    from app.main import app
+    from app.storage import get_storage as orig_get_storage
+    from app.storage.s3 import S3Storage
+    from tests.integration.test_s3_storage_integration import _build_mock_s3_client
+
+    mock_client, in_memory_s3 = _build_mock_s3_client()
+    s3_storage = S3Storage(bucket_name="pm-documents", s3_client=mock_client)
+    app.dependency_overrides[orig_get_storage] = lambda: s3_storage
+
+    settings = get_settings()
+    monkeypatch.setenv("API_CALLBACK_URL", "http://testserver/internal/lambda/quota-alert")
+    monkeypatch.setenv("LAMBDA_CALLBACK_SECRET", settings.lambda_callback_secret)
+
+    def fake_send_callback(
+        url: str, secret: str, payload: dict[str, Any], timeout_seconds: float = 5.0
+    ) -> bool:
+        resp = client.post(
+            "/internal/lambda/quota-alert", json=payload, headers={"X-Lambda-Secret": secret}
+        )
+        return bool(resp.status_code == 200)
+
+    try:
+        user = create_user(db_session, login="s3_api_user")
+        token = create_access_token(user_id=user.id, login=user.login)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        project = create_project(db_session, name="S3 API Lambda Project")
+        create_project_member(
+            db_session, project_id=project.id, user_id=user.id, role=ProjectRole.OWNER
+        )
+
+        pdf_bytes = b"%PDF-1.4 Initial Valid Cloud Spec"
+
+        # 1. Upload file through API
+        resp = client.post(
+            f"/project/{project.id}/documents",
+            files=[("files", ("spec.pdf", pdf_bytes, "application/pdf"))],
+            headers=headers,
+        )
+        assert resp.status_code == 201
+        doc_id = resp.json()[0]["id"]
+
+        # Check canonical S3 key
+        expected_key = format_s3_key(project.id, doc_id, "spec.pdf")
+        assert f"pm-documents/{expected_key}" in in_memory_s3
+        assert s3_storage.exists(expected_key) is True
+
+        # S3 triggers Lambda event for created object
+        s3_event = {
+            "Records": [
+                {
+                    "eventSource": "aws:s3",
+                    "eventName": "ObjectCreated:Put",
+                    "s3": {
+                        "bucket": {"name": "pm-documents"},
+                        "object": {"key": expected_key, "size": len(pdf_bytes)},
+                    },
+                }
+            ]
+        }
+
+        # Mock list_objects_v2 in Lambda to return current S3 objects
+        mock_lambda_s3 = MagicMock()
+        mock_paginator = MagicMock()
+        mock_paginator.paginate.return_value = [
+            {"Contents": [{"Key": expected_key, "Size": len(pdf_bytes)}]}
+        ]
+        mock_lambda_s3.get_paginator.return_value = mock_paginator
+
+        with (
+            patch("lambdas.size_limit.handler.get_s3_client", return_value=mock_lambda_s3),
+            patch("lambdas.size_limit.handler.send_api_callback", side_effect=fake_send_callback),
+        ):
+            lambda_res = lambda_handler(s3_event)
+
+        assert lambda_res["status"] == "completed"
+        assert lambda_res["results"][0]["status"] == "accepted"
+        mock_lambda_s3.delete_object.assert_not_called()
+        assert s3_storage.exists(expected_key) is True
+
+        # 2. Exceed limit scenario -> Lambda rejects, deletes S3 object, and purges DB row
+        huge_bytes = b"%PDF-1.4 " + b"X" * 1024
+        resp2 = client.post(
+            f"/project/{project.id}/documents",
+            files=[("files", ("huge.pdf", huge_bytes, "application/pdf"))],
+            headers=headers,
+        )
+        assert resp2.status_code == 201
+        huge_doc_id = resp2.json()[0]["id"]
+        huge_key = format_s3_key(project.id, huge_doc_id, "huge.pdf")
+        assert s3_storage.exists(huge_key) is True
+
+        huge_event = {
+            "Records": [
+                {
+                    "eventSource": "aws:s3",
+                    "eventName": "ObjectCreated:Put",
+                    "s3": {
+                        "bucket": {"name": "pm-documents"},
+                        "object": {"key": huge_key, "size": len(huge_bytes)},
+                    },
+                }
+            ]
+        }
+
+        # Configure Lambda limit so that this object exceeds quota
+        monkeypatch.setenv("MAX_PROJECT_SIZE_BYTES", str(len(pdf_bytes)))
+        mock_lambda_s3_reject = MagicMock()
+        mock_paginator_reject = MagicMock()
+        # Sum is len(pdf_bytes) + len(huge_bytes) > MAX_PROJECT_SIZE_BYTES
+        mock_paginator_reject.paginate.return_value = [
+            {
+                "Contents": [
+                    {"Key": expected_key, "Size": len(pdf_bytes)},
+                    {"Key": huge_key, "Size": len(huge_bytes)},
+                ]
+            }
+        ]
+        mock_lambda_s3_reject.get_paginator.return_value = mock_paginator_reject
+
+        with (
+            patch("lambdas.size_limit.handler.get_s3_client", return_value=mock_lambda_s3_reject),
+            patch("lambdas.size_limit.handler.send_api_callback", side_effect=fake_send_callback),
+        ):
+            lambda_res_reject = lambda_handler(huge_event)
+
+        assert lambda_res_reject["status"] == "completed"
+        assert lambda_res_reject["results"][0]["status"] == "rejected"
+        mock_lambda_s3_reject.delete_object.assert_called_once_with(
+            Bucket="pm-documents", Key=huge_key
+        )
+        # Verify DB document was purged by the callback
+        assert db_session.get(Document, huge_doc_id) is None
+        # Original document still exists
+        assert db_session.get(Document, doc_id) is not None
+
+    finally:
+        app.dependency_overrides.pop(orig_get_storage, None)
+
