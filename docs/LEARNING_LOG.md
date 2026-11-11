@@ -72,6 +72,21 @@ Before the defense, read this whole file out loud.
 - **Possible defense question:** Why use an S3 event-driven Lambda to enforce project size limits instead of calculating the total size synchronously inside the upload API endpoint?
   - **Answer:** Calculating total storage size in S3 synchronously on every upload requires issuing `list_objects_v2` calls over potentially thousands of files before returning an HTTP response to the client. This introduces network latency, burns web server CPU/threads, and causes timeouts during concurrent uploads. Offloading this check to an asynchronous event-driven Lambda decouples the upload response from the audit process: files are saved immediately, and if a limit violation occurs, the Lambda cleans up the object and asynchronously alerts the API.
 
+### T9.4 - End-to-end S3 + Lambda integration with canonical keys, row locking, and streaming limits
+- **What was built:**
+  - Implemented canonical storage key layout `projects/<project_id>/<document_id>/<name>` via `format_s3_key`: flushes the `Document` ORM record first to generate the autoincrement integer `id`, saves the file to storage under the structured key, and writes the canonical key to `stored_filename`.
+  - Added pessimistic row locking (`with_for_update()`) on `Project` during document upload, replacement, and deletion to serialize concurrent mutations and strictly prevent bypassing `project.total_size_bytes` quotas.
+  - Enforced bounded file stream reading in `read_upload_file_limited` using `MAX_FILE_SIZE_BYTES` (50 MB) read in 64 KB chunks, immediately raising HTTP 413 without buffering excessive file payloads into RAM.
+  - Mapped missing storage files (`FileNotFoundError`) to HTTP 404 Not Found in both service logic and the global FastAPI exception handler.
+  - Implemented end-to-end integration tests on LocalStack verifying full S3 + Lambda lifecycle (upload -> Lambda acceptance -> quota breach -> Lambda rejection and document purge).
+- **Key concept:** Pessimistic locking and two-phase persistence:
+  - **Pessimistic Concurrency Control:** When two users simultaneously upload files to the same project, reading `project.total_size_bytes` concurrently without locking would create a classic check-then-act race condition where both uploads pass quota validation even though their combined size exceeds the limit. `select(Project).where(...).with_for_update()` places an exclusive row-level lock in PostgreSQL for the duration of the transaction, forcing the second upload to wait until the first commits its updated size.
+  - **Two-phase Key Generation:** S3 objects require a stable hierarchical path containing the database ID (`document_id`). Calling `session.flush()` queries the PostgreSQL sequence and assigns the ID to the model without committing the transaction. If storage write fails, the transaction cleanly rolls back.
+  - **Bounded Stream Reading:** Relying on `file.read()` loads arbitrary payload sizes directly into memory, opening the service to memory exhaustion DoS attacks. Reading in 64 KB chunks while tracking cumulative bytes ensures the server never holds more than `MAX_FILE_SIZE_BYTES` in memory.
+- **Why this way:** Preserves data integrity under high concurrency, eliminates out-of-memory vulnerabilities, and ensures consistent client error contracts (404 instead of 500 when storage objects are absent).
+- **Possible defense question:** Why do we use `with_for_update()` on the `projects` row rather than locking the `documents` table?
+  - **Answer:** The quota invariant (`total_size_bytes <= 52428800`) is tracked at the project level. Locking the `projects` row provides a single synchronization point for all document additions, replacements, and deletions within that project. Locking `documents` would not prevent two concurrent uploads from inserting new rows in parallel and exceeding the aggregate limit.
+
 ### T9.3 - Explain-back: storage interface abstraction and zero-change switching
 - **What was built:** Architectural explain-back documenting the core design decisions for file storage: why storage operations are decoupled behind the abstract base class `StorageBackend`, and what exact modifications occur in business code when switching between local disk storage and AWS S3.
 - **Key concept:** Dependency Inversion Principle (DIP) and Polymorphic Storage:

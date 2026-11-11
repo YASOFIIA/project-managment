@@ -104,6 +104,9 @@ Order matters: later phases depend on earlier ones. Do not skip ahead.
 - [x] **T9.2 [BUILD]** LocalStack in docker-compose, bucket created on startup, integration tests.
 - [x] **T9.3 [USER]** Explain-back: why is the storage behind an interface? What changes in
       business code when switching local -> S3? (answer in `LEARNING_LOG.md`).
+- [x] **T9.4 [BUILD]** End-to-end S3 + Lambda integration: canonical S3 keys with DB flush, project
+      `with_for_update` row locking against concurrent race conditions, chunked streaming bounded by
+      `MAX_FILE_SIZE_BYTES`, and 404 responses for missing storage objects.
 
 ## Phase 10 - Lambda  (about 1.5 days)
 
