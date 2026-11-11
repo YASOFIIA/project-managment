@@ -15,6 +15,28 @@ from app.storage.base import StorageBackend
 from app.storage.s3 import format_s3_key
 
 
+def read_upload_file_limited(file: UploadFile, max_bytes: int) -> bytes:
+    """Read upload file content in chunks up to max_bytes without exceeding memory limits.
+
+    Raises:
+        HTTPException(413): If file content exceeds max_bytes.
+    """
+    chunks: list[bytes] = []
+    total_read = 0
+    chunk_size = 64 * 1024  # 64 KB chunks
+
+    while chunk := file.file.read(chunk_size):
+        chunks.append(chunk)
+        total_read += len(chunk)
+        if total_read > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"File exceeds maximum allowed size of {max_bytes} bytes",
+            )
+
+    return b"".join(chunks)
+
+
 def upload_documents(
     db: Session,
     storage: StorageBackend,
@@ -48,6 +70,7 @@ def upload_documents(
         )
 
     settings = get_settings()
+    max_file_size = settings.max_file_size_bytes
     size_limit = settings.project_size_limit_bytes
 
     # Read and validate all files in memory first
@@ -60,11 +83,11 @@ def upload_documents(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Filename cannot be empty",
             )
-        content = file.file.read()
+        content = read_upload_file_limited(file, max_bytes=max_file_size)
         clean_name, _safe_stored_name, mime_type = validate_file_upload(
             filename=file.filename,
             content=content,
-            max_size_bytes=size_limit,
+            max_size_bytes=max_file_size,
         )
         total_new_bytes += len(content)
         validated_files.append((clean_name, _safe_stored_name, mime_type, content))
@@ -197,14 +220,16 @@ def replace_document(
             detail="Filename cannot be empty",
         )
 
-    content = file.file.read()
     settings = get_settings()
+    max_file_size = settings.max_file_size_bytes
     size_limit = settings.project_size_limit_bytes
+
+    content = read_upload_file_limited(file, max_bytes=max_file_size)
 
     clean_name, _safe_stored_name, mime_type = validate_file_upload(
         filename=file.filename,
         content=content,
-        max_size_bytes=size_limit,
+        max_size_bytes=max_file_size,
     )
 
     size_delta = len(content) - doc.file_size_bytes

@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     # Lambda Integration & Limits
     lambda_callback_secret: str
     project_size_limit_bytes: int = 52428800  # 50 MB
+    max_file_size_bytes: int = 52428800  # 50 MB
 
 
 @lru_cache

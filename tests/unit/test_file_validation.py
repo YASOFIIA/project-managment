@@ -108,3 +108,39 @@ def test_validate_spoofed_magic_bytes_rejected() -> None:
         validate_file_upload("fake.docx", fake_docx)
     assert exc_info.value.status_code == 400
     assert "signature does not match" in exc_info.value.detail
+
+
+def test_read_upload_file_limited_success() -> None:
+    """Verify that read_upload_file_limited reads content within limit."""
+    import io
+
+    from fastapi import UploadFile
+
+    from app.services.documents import read_upload_file_limited
+
+    file = UploadFile(file=io.BytesIO(b"Hello world"), filename="test.txt")
+    data = read_upload_file_limited(file, max_bytes=100)
+    assert data == b"Hello world"
+
+
+def test_read_upload_file_limited_exceeding_stops_reading() -> None:
+    """Verify that read_upload_file_limited aborts immediately when exceeding max_bytes."""
+    from unittest.mock import MagicMock
+
+    from fastapi import HTTPException, UploadFile
+
+    from app.services.documents import read_upload_file_limited
+
+    mock_stream = MagicMock()
+    # 3 chunks of 64 KB
+    mock_stream.read.side_effect = [b"A" * 65536, b"B" * 65536, b"C" * 65536]
+    file = UploadFile(file=mock_stream, filename="large.bin")
+
+    with pytest.raises(HTTPException) as exc_info:
+        read_upload_file_limited(file, max_bytes=70000)
+
+    assert exc_info.value.status_code == 413
+    assert "exceeds maximum allowed size" in exc_info.value.detail
+    # Must have stopped reading after the 2nd chunk, without reading the 3rd chunk
+    assert mock_stream.read.call_count == 2
+
