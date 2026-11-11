@@ -143,4 +143,3 @@ def test_read_upload_file_limited_exceeding_stops_reading() -> None:
     assert "exceeds maximum allowed size" in exc_info.value.detail
     # Must have stopped reading after the 2nd chunk, without reading the 3rd chunk
     assert mock_stream.read.call_count == 2
-

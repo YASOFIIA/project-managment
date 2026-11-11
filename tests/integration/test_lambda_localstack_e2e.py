@@ -356,4 +356,3 @@ def test_api_upload_with_s3_storage_and_lambda_lifecycle(
 
     finally:
         app.dependency_overrides.pop(orig_get_storage, None)
-

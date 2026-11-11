@@ -315,4 +315,3 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
         verify_session.commit()
 
     engine.dispose()
-
