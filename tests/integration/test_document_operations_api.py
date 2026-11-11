@@ -60,6 +60,36 @@ def test_download_document_success(
     assert resp_part.content == pdf_content
 
 
+def test_download_document_missing_from_storage_returns_404(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    """Verify that downloading a document missing from storage returns 404, not 500."""
+    owner = create_user(db_session, login="owner_missing_doc")
+    project = create_project(db_session, name="Missing File Project")
+    create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
+
+    # Document created in DB with a non-existent stored_filename
+    doc = create_document(
+        db_session,
+        project_id=project.id,
+        filename="ghost.pdf",
+        stored_filename="projects/999/999/non_existent_ghost.pdf",
+        file_size_bytes=1024,
+        content_type="application/pdf",
+    )
+
+    owner_token = create_access_token(user_id=owner.id, login=owner.login)
+    headers = {"Authorization": f"Bearer {owner_token}"}
+
+    response = client.get(f"/document/{doc.id}", headers=headers)
+    assert response.status_code == 404
+    data = response.json()
+    assert data["status_code"] == 404
+    assert data["error_code"] == "NOT_FOUND"
+    assert "not found" in data["detail"].lower()
+
+
 def test_replace_document_success(
     client: TestClient,
     db_session: Session,

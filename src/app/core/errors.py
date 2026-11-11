@@ -73,6 +73,26 @@ async def validation_exception_handler(
     )
 
 
+async def file_not_found_exception_handler(
+    request: Request,
+    exc: FileNotFoundError,
+) -> JSONResponse:
+    """Unified handler for missing storage files (404 Not Found)."""
+    request_id = get_request_id(request)
+    logger.warning("File not found on storage: %s", exc)
+
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={
+            "detail": str(exc) or "Requested file not found in storage",
+            "status_code": status.HTTP_404_NOT_FOUND,
+            "error_code": "NOT_FOUND",
+            "request_id": request_id,
+        },
+        headers={"X-Request-ID": request_id},
+    )
+
+
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all handler for unhandled exceptions (500 Internal Server Error)."""
     request_id = get_request_id(request)
@@ -94,4 +114,5 @@ def register_error_handlers(application: FastAPI) -> None:
     """Register all custom exception handlers on the FastAPI application."""
     application.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
     application.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+    application.add_exception_handler(FileNotFoundError, file_not_found_exception_handler)  # type: ignore[arg-type]
     application.add_exception_handler(Exception, unhandled_exception_handler)

@@ -181,10 +181,17 @@ def get_document_for_download(
     Permitted for project owners and participants.
 
     Raises:
-        HTTPException(404): if document does not exist OR user lacks access.
+        HTTPException(404): if document does not exist, user lacks access,
+            or file is missing from storage.
     """
     doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
-    stream = storage.get(doc.stored_filename)
+    try:
+        stream = storage.get(doc.stored_filename)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stored file for document {document_id} not found in storage",
+        ) from exc
     return doc, stream
 
 
