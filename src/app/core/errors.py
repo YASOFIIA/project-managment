@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import get_logger, request_id_ctx
+from app.domain.errors import DomainError
 
 logger = get_logger("app.errors")
 
@@ -93,6 +94,26 @@ async def file_not_found_exception_handler(
     )
 
 
+async def domain_exception_handler(
+    request: Request,
+    exc: DomainError,
+) -> JSONResponse:
+    """Unified handler for domain exceptions translated to HTTP responses."""
+    request_id = get_request_id(request)
+    error_code = get_error_code_name(exc.status_code)
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "status_code": exc.status_code,
+            "error_code": error_code,
+            "request_id": request_id,
+        },
+        headers={"X-Request-ID": request_id},
+    )
+
+
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """Catch-all handler for unhandled exceptions (500 Internal Server Error)."""
     request_id = get_request_id(request)
@@ -115,4 +136,5 @@ def register_error_handlers(application: FastAPI) -> None:
     application.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
     application.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
     application.add_exception_handler(FileNotFoundError, file_not_found_exception_handler)  # type: ignore[arg-type]
+    application.add_exception_handler(DomainError, domain_exception_handler)  # type: ignore[arg-type]
     application.add_exception_handler(Exception, unhandled_exception_handler)

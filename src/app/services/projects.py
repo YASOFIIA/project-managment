@@ -1,12 +1,12 @@
 import contextlib
 from typing import Any
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.raw_queries import get_user_projects_with_documents_raw
+from app.domain.errors import UserAlreadyMember, UserNotFound
 from app.models.document import Document
 from app.models.project import Project, ProjectMember, ProjectRole
 from app.models.user import User
@@ -62,7 +62,7 @@ def get_project_info(
     """Retrieve project details, verifying the user is an owner or participant.
 
     Raises:
-        HTTPException(404): if project does not exist OR user is not a member.
+        ProjectNotFound: if project does not exist OR user is not a member.
     """
     project, _ = require_project_access(db, project_id=project_id, user_id=user_id)
     return project
@@ -77,7 +77,7 @@ def update_project_info(
     """Update project details (name, description), permitted for owners and participants.
 
     Raises:
-        HTTPException(404): if project does not exist OR user is not a member.
+        ProjectNotFound: if project does not exist OR user is not a member.
     """
     project, _ = require_project_access(db, project_id=project_id, user_id=user_id)
 
@@ -101,8 +101,8 @@ def delete_project(
     Physical files attached to project documents are removed from the storage backend.
 
     Raises:
-        HTTPException(404): if project does not exist OR user is not a member.
-        HTTPException(403): if user is a member but not the owner.
+        ProjectNotFound: if project does not exist OR user is not a member.
+        PermissionDenied: if user is a member but not the owner.
     """
     project, _ = require_project_owner(db, project_id=project_id, user_id=user_id)
 
@@ -131,10 +131,10 @@ def invite_member(
     Permitted only for the project OWNER.
 
     Raises:
-        HTTPException(404): if project does not exist OR current user is not a member.
-        HTTPException(403): if current user is a participant (not the owner).
-        HTTPException(404): if user with invitee_login does not exist.
-        HTTPException(409): if user is already a member of the project (owner or participant).
+        ProjectNotFound: if project does not exist OR current user is not a member.
+        PermissionDenied: if current user is a participant (not the owner).
+        UserNotFound: if user with invitee_login does not exist.
+        UserAlreadyMember: if user is already a member of the project (owner or participant).
     """
     # 1. Access check: owner only (raises 404 if project/membership missing, 403 if participant)
     require_project_owner(db, project_id=project_id, user_id=owner_id)
@@ -142,18 +142,12 @@ def invite_member(
     # 2. Check that target invitee exists
     invitee = db.scalar(select(User).where(User.login == invitee_login))
     if invitee is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User '{invitee_login}' not found",
-        )
+        raise UserNotFound(f"User '{invitee_login}' not found")
 
     # 3. Check if invitee is already a member
     existing = get_project_membership(db, project_id=project_id, user_id=invitee.id)
     if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"User '{invitee_login}' is already a member of this project",
-        )
+        raise UserAlreadyMember(f"User '{invitee_login}' is already a member of this project")
 
     # 4. Create membership as PARTICIPANT
     membership = ProjectMember(
@@ -166,9 +160,8 @@ def invite_member(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"User '{invitee_login}' is already a member of this project",
+        raise UserAlreadyMember(
+            f"User '{invitee_login}' is already a member of this project"
         ) from None
     db.refresh(membership)
     return membership

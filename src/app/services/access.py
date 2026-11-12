@@ -21,10 +21,10 @@ without membership MUST always return 404 Not Found, never revealing whether
 the project ID actually exists in the database.
 """
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domain.errors import DocumentNotFound, PermissionDenied, ProjectNotFound
 from app.models.document import Document
 from app.models.project import Project, ProjectMember, ProjectRole
 
@@ -50,21 +50,15 @@ def require_project_access(
     """Verify that user is a member of the project.
 
     Raises:
-        HTTPException(404): if project does not exist OR user is not a member.
+        ProjectNotFound: if project does not exist OR user is not a member.
     """
     membership = get_project_membership(db, project_id=project_id, user_id=user_id)
     if membership is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise ProjectNotFound(f"Project {project_id} not found")
 
     project = db.get(Project, project_id)
     if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise ProjectNotFound(f"Project {project_id} not found")
 
     return project, membership
 
@@ -77,16 +71,13 @@ def require_project_owner(
     """Verify that user is specifically the OWNER of the project.
 
     Raises:
-        HTTPException(404): if project does not exist OR user is not a member.
-        HTTPException(403): if user is a member but does not have the owner role.
+        ProjectNotFound: if project does not exist OR user is not a member.
+        PermissionDenied: if user is a member but does not have the owner role.
     """
     project, membership = require_project_access(db, project_id=project_id, user_id=user_id)
 
     if membership.role != ProjectRole.OWNER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only project owner can perform this operation",
-        )
+        raise PermissionDenied("Only project owner can perform this operation")
 
     return project, membership
 
@@ -99,20 +90,14 @@ def require_document_access(
     """Verify that document exists and the user has access to its enclosing project.
 
     Raises:
-        HTTPException(404): if document does not exist OR user lacks access to project.
+        DocumentNotFound: if document does not exist OR user lacks access to project.
     """
     document = db.get(Document, document_id)
     if document is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document {document_id} not found",
-        )
+        raise DocumentNotFound(f"Document {document_id} not found")
 
     membership = get_project_membership(db, project_id=document.project_id, user_id=user_id)
     if membership is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Document {document_id} not found",
-        )
+        raise DocumentNotFound(f"Document {document_id} not found")
 
     return document, membership

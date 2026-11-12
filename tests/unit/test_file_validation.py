@@ -1,6 +1,6 @@
 import pytest
-from fastapi import HTTPException
 
+from app.domain.errors import DomainError
 from app.services.file_validation import (
     generate_safe_stored_filename,
     sanitize_filename,
@@ -15,7 +15,7 @@ def test_sanitize_filename() -> None:
     assert sanitize_filename("../../etc/passwd.pdf") == "passwd.pdf"
     assert sanitize_filename("C:\\Users\\admin\\file.png") == "file.png"
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(DomainError) as exc_info:
         sanitize_filename("   ")
     assert exc_info.value.status_code == 400
     assert "cannot be empty" in exc_info.value.detail
@@ -66,7 +66,7 @@ def test_validate_valid_images() -> None:
 
 def test_validate_empty_file_rejected() -> None:
     """Verify that empty file uploads return 400 Bad Request."""
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(DomainError) as exc_info:
         validate_file_upload("empty.pdf", b"")
     assert exc_info.value.status_code == 400
     assert "empty" in exc_info.value.detail
@@ -75,7 +75,7 @@ def test_validate_empty_file_rejected() -> None:
 def test_validate_file_size_exceeded_rejected() -> None:
     """Verify that files exceeding the maximum size limit return 413 Payload Too Large."""
     large_pdf = b"%PDF-" + b"0" * 100
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(DomainError) as exc_info:
         validate_file_upload("large.pdf", large_pdf, max_size_bytes=50)
     assert exc_info.value.status_code == 413
     assert "exceeds limit" in exc_info.value.detail
@@ -85,7 +85,7 @@ def test_validate_disallowed_extension_rejected() -> None:
     """Verify that disallowed extensions return 400 Bad Request."""
     bad_extensions = ["malware.exe", "script.sh", "notes.txt", "archive.zip", "test.py"]
     for fname in bad_extensions:
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(DomainError) as exc_info:
             validate_file_upload(fname, b"any dummy content")
         assert exc_info.value.status_code == 400
         assert "not allowed" in exc_info.value.detail
@@ -95,14 +95,14 @@ def test_validate_spoofed_magic_bytes_rejected() -> None:
     """Verify that files with mismatched magic bytes return 400 Bad Request."""
     # Declared as PDF, but actually plain text / executable
     fake_pdf = b"MZ executable content disguised as pdf"
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(DomainError) as exc_info:
         validate_file_upload("malicious.pdf", fake_pdf)
     assert exc_info.value.status_code == 400
     assert "signature does not match" in exc_info.value.detail
 
     # Declared as DOCX, but actually PDF
     fake_docx = b"%PDF-1.5 disguised as docx"
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(DomainError) as exc_info:
         validate_file_upload("fake.docx", fake_docx)
     assert exc_info.value.status_code == 400
     assert "signature does not match" in exc_info.value.detail
@@ -125,8 +125,9 @@ def test_read_upload_file_limited_exceeding_stops_reading() -> None:
     """Verify that read_upload_file_limited aborts immediately when exceeding max_bytes."""
     from unittest.mock import MagicMock
 
-    from fastapi import HTTPException, UploadFile
+    from fastapi import UploadFile
 
+    from app.domain.errors import FileTooLarge
     from app.services.documents import read_upload_file_limited
 
     mock_stream = MagicMock()
@@ -134,7 +135,7 @@ def test_read_upload_file_limited_exceeding_stops_reading() -> None:
     mock_stream.read.side_effect = [b"A" * 65536, b"B" * 65536, b"C" * 65536]
     file = UploadFile(file=mock_stream, filename="large.bin")
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(FileTooLarge) as exc_info:
         read_upload_file_limited(file, max_bytes=70000)
 
     assert exc_info.value.status_code == 413

@@ -1,7 +1,7 @@
 import pytest
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.domain.errors import DocumentNotFound, PermissionDenied, ProjectNotFound
 from app.models.project import ProjectRole
 from app.services.access import (
     require_document_access,
@@ -39,7 +39,7 @@ def test_require_project_access_non_member_returns_404(db_session: Session) -> N
     user = create_user(db_session, login="stranger")
     project = create_project(db_session, name="Secret Project")
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(ProjectNotFound) as exc_info:
         require_project_access(db_session, project.id, user.id)
 
     assert exc_info.value.status_code == 404
@@ -50,7 +50,7 @@ def test_require_project_access_nonexistent_project_returns_404(db_session: Sess
     """Verify that a non-existent project returns 404 Not Found."""
     user = create_user(db_session, login="user_nonexistent_proj")
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(ProjectNotFound) as exc_info:
         require_project_access(db_session, project_id=999999, user_id=user.id)
 
     assert exc_info.value.status_code == 404
@@ -73,7 +73,7 @@ def test_require_project_owner_returns_403_for_participant(db_session: Session) 
     project = create_project(db_session, name="Protected Project")
     create_project_member(db_session, project.id, participant.id, role=ProjectRole.PARTICIPANT)
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(PermissionDenied) as exc_info:
         require_project_owner(db_session, project.id, participant.id)
 
     assert exc_info.value.status_code == 403
@@ -98,7 +98,7 @@ def test_require_document_access_non_member_returns_404(db_session: Session) -> 
     project = create_project(db_session, name="Private Doc Project")
     doc = create_document(db_session, project_id=project.id, filename="confidential.pdf")
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(DocumentNotFound) as exc_info:
         require_document_access(db_session, doc.id, stranger.id)
 
     assert exc_info.value.status_code == 404
@@ -108,7 +108,7 @@ def test_require_document_access_nonexistent_doc_returns_404(db_session: Session
     """Verify that non-existent document ID returns 404 Not Found."""
     user = create_user(db_session, login="user_missing_doc")
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(DocumentNotFound) as exc_info:
         require_document_access(db_session, document_id=999999, user_id=user.id)
 
     assert exc_info.value.status_code == 404

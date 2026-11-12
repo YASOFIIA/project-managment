@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
 import pytest
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
+from app.domain.errors import LoginTaken
 from app.schemas.auth import UserRegisterRequest
 from app.services.auth import register_user
 from tests.factories import create_user
@@ -74,7 +74,7 @@ def test_register_user_catches_integrity_error_on_race_condition(
     )
     # Simulate race condition: SELECT found no user, but INSERT hits UNIQUE constraint
     with patch.object(db_session, "scalar", return_value=None):
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(LoginTaken) as exc_info:
             register_user(db_session, data)
         assert exc_info.value.status_code == 409
         assert "concurrent_login" in exc_info.value.detail

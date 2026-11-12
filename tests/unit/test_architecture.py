@@ -1,0 +1,68 @@
+"""Architecture enforcement tests.
+
+Guarantees clean layer separation:
+- Services/Application and Domain layers must never import HTTPException or fastapi.status.
+"""
+
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+
+def _get_forbidden_imports_in_dir(directory: Path) -> list[str]:
+    """Inspect Python AST in directory and return violations of layer decoupling rules."""
+    violations: list[str] = []
+    if not directory.exists():
+        return violations
+
+    for py_file in directory.rglob("*.py"):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        for node in ast.walk(tree):
+            # 1. from <module> import <name>
+            if isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                for alias in node.names:
+                    # Forbid importing HTTPException
+                    if alias.name == "HTTPException":
+                        violations.append(
+                            f"{py_file.name}:{node.lineno} imports HTTPException from '{module}'"
+                        )
+                    # Forbid importing status from fastapi/starlette
+                    if alias.name == "status" and ("fastapi" in module or "starlette" in module):
+                        violations.append(
+                            f"{py_file.name}:{node.lineno} imports status from '{module}'"
+                        )
+
+            # 2. import <module>
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if "status" in alias.name and (
+                        "fastapi" in alias.name or "starlette" in alias.name
+                    ):
+                        violations.append(f"{py_file.name}:{node.lineno} imports '{alias.name}'")
+
+    return violations
+
+
+def test_services_and_domain_layers_do_not_import_http_exceptions_or_status() -> None:
+    """Verify services, application, and domain layers do not depend on HTTP exceptions."""
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    src_app = repo_root / "src" / "app"
+
+    checked_dirs = [
+        src_app / "services",
+        src_app / "application",
+        src_app / "domain",
+    ]
+
+    all_violations: list[str] = []
+    for directory in checked_dirs:
+        violations = _get_forbidden_imports_in_dir(directory)
+        all_violations.extend(violations)
+
+    msg = (
+        "Clean architecture violation: services/domain layers must not import HTTPException:\n"
+        + "\n".join(all_violations)
+    )
+    assert not all_violations, msg

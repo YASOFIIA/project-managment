@@ -2,11 +2,19 @@ import contextlib
 import uuid
 from typing import BinaryIO
 
-from fastapi import HTTPException, UploadFile, status
+from fastapi import UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.domain.errors import (
+    EmptyFilenameError,
+    FileTooLarge,
+    NoFilesProvidedError,
+    ProjectNotFound,
+    ProjectQuotaExceeded,
+    StorageFileNotFound,
+)
 from app.models.document import Document
 from app.models.project import Project
 from app.services.access import require_document_access, require_project_access
@@ -22,7 +30,7 @@ def read_upload_file_limited(file: UploadFile, max_bytes: int) -> bytes:
     """Read upload file content in chunks up to max_bytes without exceeding memory limits.
 
     Raises:
-        HTTPException(413): If file content exceeds max_bytes.
+        FileTooLarge: If file content exceeds max_bytes.
     """
     chunks: list[bytes] = []
     total_read = 0
@@ -32,10 +40,7 @@ def read_upload_file_limited(file: UploadFile, max_bytes: int) -> bytes:
         chunks.append(chunk)
         total_read += len(chunk)
         if total_read > max_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                detail=f"File exceeds maximum allowed size of {max_bytes} bytes",
-            )
+            raise FileTooLarge(f"File exceeds maximum allowed size of {max_bytes} bytes")
 
     return b"".join(chunks)
 
@@ -54,23 +59,17 @@ def upload_documents(
     saves binary contents to the storage backend, and records metadata in the database.
 
     Raises:
-        HTTPException(404): if project does not exist OR user is not a member.
-        HTTPException(400): if no files provided, empty file, invalid type, or spoofed bytes.
-        HTTPException(413): if upload would exceed the project size limit.
+        ProjectNotFound: if project does not exist OR user is not a member.
+        ValidationError: if no files provided, empty file, invalid type, or spoofed bytes.
+        ProjectQuotaExceeded: if upload would exceed the project size limit.
     """
     require_project_access(db, project_id=project_id, user_id=user_id)
     project = db.scalar(select(Project).where(Project.id == project_id).with_for_update())
     if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {project_id} not found",
-        )
+        raise ProjectNotFound(f"Project {project_id} not found")
 
     if not files:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No files provided for upload",
-        )
+        raise NoFilesProvidedError("No files provided for upload")
 
     settings = get_settings()
     max_file_size = settings.max_file_size_bytes
@@ -82,10 +81,7 @@ def upload_documents(
 
     for file in files:
         if not file.filename:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Filename cannot be empty",
-            )
+            raise EmptyFilenameError("Filename cannot be empty")
         content = read_upload_file_limited(file, max_bytes=max_file_size)
         clean_name, mime_type = validate_file_upload(
             filename=file.filename,
@@ -97,12 +93,9 @@ def upload_documents(
 
     # Check project total size limit
     if project.total_size_bytes + total_new_bytes > size_limit:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=(
-                f"Project size limit of {size_limit} bytes exceeded "
-                f"(current: {project.total_size_bytes}, new upload: {total_new_bytes})"
-            ),
+        raise ProjectQuotaExceeded(
+            f"Project size limit of {size_limit} bytes exceeded "
+            f"(current: {project.total_size_bytes}, new upload: {total_new_bytes})"
         )
 
     # Save files to storage backend and create database records atomically
@@ -162,7 +155,7 @@ def list_project_documents(
     Permitted for project owners and participants.
 
     Raises:
-        HTTPException(404): if project does not exist OR user is not a member.
+        ProjectNotFound: if project does not exist OR user is not a member.
     """
     require_project_access(db, project_id=project_id, user_id=user_id)
 
@@ -185,16 +178,15 @@ def get_document_for_download(
     Permitted for project owners and participants.
 
     Raises:
-        HTTPException(404): if document does not exist, user lacks access,
-            or file is missing from storage.
+        DocumentNotFound: if document does not exist OR user lacks access.
+        StorageFileNotFound: if file is missing from storage.
     """
     doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
     try:
         stream = storage.get(doc.stored_filename)
     except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Stored file for document {document_id} not found in storage",
+        raise StorageFileNotFound(
+            f"Stored file for document {document_id} not found in storage"
         ) from exc
     return doc, stream
 
@@ -213,23 +205,17 @@ def replace_document(
     saves the new file, updates the database, and removes the old file from storage.
 
     Raises:
-        HTTPException(404): if document does not exist OR user lacks access.
-        HTTPException(400): if file is empty, invalid type, or magic bytes mismatch.
-        HTTPException(413): if replaced file exceeds the project size limit.
+        DocumentNotFound: if document does not exist OR user lacks access.
+        ValidationError: if file is empty, invalid type, or magic bytes mismatch.
+        ProjectQuotaExceeded: if replaced file exceeds the project size limit.
     """
     doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
     project = db.scalar(select(Project).where(Project.id == doc.project_id).with_for_update())
     if project is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Project {doc.project_id} not found",
-        )
+        raise ProjectNotFound(f"Project {doc.project_id} not found")
 
     if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Filename cannot be empty",
-        )
+        raise EmptyFilenameError("Filename cannot be empty")
 
     settings = get_settings()
     max_file_size = settings.max_file_size_bytes
@@ -245,12 +231,9 @@ def replace_document(
 
     size_delta = len(content) - doc.file_size_bytes
     if project.total_size_bytes + size_delta > size_limit:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=(
-                f"Project size limit of {size_limit} bytes exceeded "
-                f"(current: {project.total_size_bytes}, delta: {size_delta})"
-            ),
+        raise ProjectQuotaExceeded(
+            f"Project size limit of {size_limit} bytes exceeded "
+            f"(current: {project.total_size_bytes}, delta: {size_delta})"
         )
 
     old_stored_filename = doc.stored_filename
@@ -296,7 +279,7 @@ def delete_document(
     Adjusts the project total_size_bytes accordingly.
 
     Raises:
-        HTTPException(404): if document does not exist OR user lacks access.
+        DocumentNotFound: if document does not exist OR user lacks access.
     """
     doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
     project = db.scalar(select(Project).where(Project.id == doc.project_id).with_for_update())

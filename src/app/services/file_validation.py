@@ -2,7 +2,13 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from fastapi import HTTPException, status
+from app.domain.errors import (
+    EmptyFileError,
+    EmptyFilenameError,
+    FileTooLarge,
+    InvalidFileExtension,
+    InvalidFileSignature,
+)
 
 DEFAULT_MAX_FILE_SIZE_BYTES: int = 52_428_800  # 50 MB
 
@@ -51,15 +57,12 @@ def sanitize_filename(filename: str) -> str:
     Strips directory separators (both POSIX / and Windows \\) and whitespace.
 
     Raises:
-        HTTPException(400): If filename is empty or contains no valid name characters.
+        EmptyFilenameError: If filename is empty or contains no valid name characters.
     """
     normalized = filename.replace("\\", "/").rstrip("/")
     clean_name = normalized.split("/")[-1].strip()
     if not clean_name:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Filename cannot be empty",
-        )
+        raise EmptyFilenameError("Filename cannot be empty")
     return clean_name
 
 
@@ -89,43 +92,35 @@ def validate_file_upload(
         tuple[clean_filename, content_type]
 
     Raises:
-        HTTPException(400): If file is empty, extension is disallowed, or magic bytes mismatch.
-        HTTPException(413): If file size exceeds the allowed limit.
+        ValidationError: If file is empty, extension is disallowed, or magic bytes mismatch.
+        FileTooLarge: If file size exceeds the allowed limit.
     """
     clean_name = sanitize_filename(filename)
 
     # 1. Size validations
     if len(content) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Uploaded file is empty (0 bytes)",
-        )
+        raise EmptyFileError("Uploaded file is empty (0 bytes)")
 
     if len(content) > max_size_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"File size ({len(content)} bytes) exceeds limit ({max_size_bytes} bytes)",
+        raise FileTooLarge(
+            f"File size ({len(content)} bytes) exceeds limit ({max_size_bytes} bytes)"
         )
 
     # 2. Extension validation
     extension = Path(clean_name).suffix.lower()
     if extension not in ALLOWED_FILE_TYPES:
         allowed_list = ", ".join(sorted(ALLOWED_FILE_TYPES.keys()))
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File extension '{extension}' is not allowed. Supported types: {allowed_list}",
+        raise InvalidFileExtension(
+            f"File extension '{extension}' is not allowed. Supported types: {allowed_list}"
         )
 
     type_spec = ALLOWED_FILE_TYPES[extension]
 
     # 3. Magic bytes (file signature) validation
     if not content.startswith(type_spec.magic_bytes):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                f"File content signature does not match declared type '{extension}' "
-                f"({type_spec.mime_type})"
-            ),
+        raise InvalidFileSignature(
+            f"File content signature does not match declared type '{extension}' "
+            f"({type_spec.mime_type})"
         )
 
     return clean_name, type_spec.mime_type
