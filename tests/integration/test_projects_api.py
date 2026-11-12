@@ -1,3 +1,7 @@
+import logging
+from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -230,6 +234,30 @@ def test_delete_project_success_by_owner(client: TestClient, db_session: Session
         select(ProjectMember).where(ProjectMember.project_id == project.id)
     ).all()
     assert len(members) == 0
+
+
+def test_delete_project_storage_failure_logs_warning_and_returns_204(
+    client: TestClient,
+    db_session: Session,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify that if storage backend fails after commit, 204 is returned and warning is logged."""
+    owner = create_user(db_session, login="owner_del_storage_fail")
+    project = create_project(db_session, name="Storage Fail Project")
+    create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
+    create_document(db_session, project_id=project.id, filename="doc_to_delete.pdf")
+
+    token = create_access_token(user_id=owner.id, login=owner.login)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    storage = get_storage()
+    caplog.set_level(logging.WARNING)
+    with patch.object(storage, "delete", side_effect=RuntimeError("S3 connection dropped")):
+        response = client.delete(f"/project/{project.id}", headers=headers)
+
+    assert response.status_code == 204
+    assert db_session.get(Project, project.id) is None
+    assert any("Failed to remove file" in record.message for record in caplog.records)
 
 
 def test_delete_project_by_participant_returns_403(

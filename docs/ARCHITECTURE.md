@@ -21,4 +21,4 @@ The service follows Clean Architecture principles:
 - **Known Compromise**:
   If physical file deletion fails (e.g. S3 transient network failure, timeout) after the DB transaction has already committed, the error is logged at `WARNING` level and the operation returns `204 No Content` rather than raising a `500 Internal Server Error`.
 - **Rationale**:
-  The database transaction cannot be rolled back after commit. Raising a 500 would deceive the client into thinking the project still exists, while its database records have already been permanently purged. Orphaned storage files can be reconciled asynchronously (e.g. via background garbage collection or S3 lifecycle expiration).
+  The database transaction cannot be rolled back after commit. Raising a 500 would deceive the client into thinking the project still exists, while its database records have already been permanently purged. If physical file deletion fails, the files remain in the storage backend as orphaned files, the error is logged as a warning, and cleanup must be performed manually or via a future orphan-scan maintenance script. This is a known architectural compromise.

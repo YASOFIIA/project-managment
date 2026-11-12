@@ -2,11 +2,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.db.raw_queries import (
-    get_user_projects_with_documents_orm,
-    get_user_projects_with_documents_raw,
-)
 from app.domain.roles import ProjectRole
+from app.infrastructure.repositories.project_repository import (
+    SqlAlchemyProjectRepository,
+)
 from tests.factories import (
     create_document,
     create_project,
@@ -83,7 +82,7 @@ def test_get_projects_returns_accessible_projects_with_nested_documents(
 
 
 def test_raw_sql_and_orm_produce_identical_results(db_session: Session) -> None:
-    """Verify that get_user_projects_with_documents_raw matches ORM query results."""
+    """Verify that raw SQL list_for_user_with_documents produces expected results."""
     user = create_user(db_session, login="query_comparator")
     proj = create_project(db_session, name="Comparison Project")
     create_project_member(db_session, proj.id, user.id, role=ProjectRole.OWNER)
@@ -92,21 +91,18 @@ def test_raw_sql_and_orm_produce_identical_results(db_session: Session) -> None:
 
     db_session.flush()
 
-    raw_results = get_user_projects_with_documents_raw(db_session, user.id)
-    orm_results = get_user_projects_with_documents_orm(db_session, user.id)
+    repo = SqlAlchemyProjectRepository(db_session)
+    raw_results = repo.list_for_user_with_documents(user.id)
 
-    assert len(raw_results) == len(orm_results) == 1
+    assert len(raw_results) == 1
 
     raw_proj = raw_results[0]
-    orm_proj = orm_results[0]
+    assert raw_proj.id == proj.id
+    assert raw_proj.name == proj.name
+    assert raw_proj.total_size_bytes == proj.total_size_bytes
 
-    assert raw_proj["id"] == orm_proj.id
-    assert raw_proj["name"] == orm_proj.name
-    assert raw_proj["total_size_bytes"] == orm_proj.total_size_bytes
-
-    raw_doc_ids = {d["id"] for d in raw_proj["documents"]}
-    orm_doc_ids = {d.id for d in orm_proj.documents}
-    assert raw_doc_ids == orm_doc_ids == {doc1.id, doc2.id}
+    raw_doc_ids = {d.id for d in raw_proj.documents}
+    assert raw_doc_ids == {doc1.id, doc2.id}
 
 
 def test_get_projects_unauthenticated_returns_401(client: TestClient) -> None:
