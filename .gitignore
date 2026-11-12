@@ -1,8 +1,13 @@
-# Python
+# ==============================================================================
+# Byte-compiled / optimized / DLL files & Python caches
+# ==============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.Python
+
+# Distribution / packaging
 build/
 develop-eggs/
 dist/
@@ -15,19 +20,24 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual Environments
+# Virtual environments
 .venv/
-env/
 venv/
 ENV/
+env/
+env.bak/
+venv.bak/
 
-# Testing and Type Checking
+# Testing, coverage & linter caches
 .pytest_cache/
 .tox/
+.nox/
 .coverage
 .coverage.*
 htmlcov/
@@ -37,24 +47,76 @@ nosetests.xml
 .dmypy.json
 dmypy.json
 .ruff_cache/
+.hypothesis/
 
-# Environment and Secrets
+# ==============================================================================
+# macOS System Caches & Artifacts
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows / Linux system artifacts
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+
+# ==============================================================================
+# Private Data, Secrets & Credentials
+# ==============================================================================
 .env
-.env*.local
+.env.*
+*.env
 !.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.secret
+*.token
+*credentials*.json
+client_secret*.json
+secrets/
+private/
+.aws/
+.ssh/
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
 
-# Local storage and uploads
+# ==============================================================================
+# IDEs, Editors & Tooling
+# ==============================================================================
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*.swn
+*~
+*.bak
+
+# ==============================================================================
+# Application Storage, Uploads, Logs & LocalStack
+# ==============================================================================
 /data/
 /uploads/
 /storage_root/
-
-# OS and Editor files
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# LocalStack / Docker temporary data
+data/storage/
+*.log
 .localstack/
