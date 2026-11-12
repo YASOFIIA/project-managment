@@ -240,6 +240,7 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
     from starlette.datastructures import Headers
 
     from app.core.config import get_settings
+    from app.infrastructure.repositories.unit_of_work import SqlAlchemyUnitOfWork
     from app.models.document import Document
     from app.models.project import Project
     from app.models.user import User
@@ -276,8 +277,9 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
         with Session(engine) as session:
             try:
                 barrier.wait(timeout=5)
+                uow = SqlAlchemyUnitOfWork(session)
                 docs = upload_documents(
-                    db=session,
+                    uow=uow,
                     storage=storage,
                     project_id=project_id,
                     user_id=user_id,

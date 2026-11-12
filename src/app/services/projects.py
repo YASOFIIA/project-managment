@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import contextlib
+import logging
 
 from app.application.ports.project_repository import ProjectWithDocuments
 from app.application.ports.unit_of_work import UnitOfWork
@@ -15,6 +15,8 @@ from app.services.access import (
     require_project_access,
 )
 from app.storage.base import StorageBackend
+
+logger = logging.getLogger(__name__)
 
 
 def create_project(
@@ -112,8 +114,15 @@ def delete_project(
         uow.commit()
 
     for stored_file in stored_filenames:
-        with contextlib.suppress(Exception):
+        try:
             storage.delete(stored_file)
+        except Exception as exc:
+            logger.warning(
+                "Failed to remove file '%s' from storage after project %d deletion: %s",
+                stored_file,
+                project_id,
+                exc,
+            )
 
 
 def invite_member(

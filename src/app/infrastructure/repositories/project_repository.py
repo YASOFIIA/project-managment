@@ -64,8 +64,12 @@ class SqlAlchemyProjectRepository:
         self._session.add(member)
         try:
             self._session.flush()
-        except IntegrityError:
-            raise UserAlreadyMember("User is already a member of this project") from None
+        except IntegrityError as err:
+            orig = getattr(err, "orig", None)
+            sqlstate = getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)
+            if sqlstate == "23505" or "unique" in str(err).lower():
+                raise UserAlreadyMember("User is already a member of this project") from None
+            raise
 
     def get_membership(self, project_id: int, user_id: int) -> ProjectMember | None:
         """Find project membership for specified user."""

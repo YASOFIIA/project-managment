@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.ports.project_repository import ProjectWithDocuments
@@ -157,3 +158,28 @@ def test_unit_of_work_exit_calls_rollback_on_exception(db_session: Session) -> N
     ):
         raise ValueError("Boom")
     spy_rollback.assert_called_once()
+
+
+def test_project_repository_add_member_fk_violation_raises_integrity_error(
+    db_session: Session,
+) -> None:
+    proj_repo = SqlAlchemyProjectRepository(db_session)
+    non_existent_member = ProjectMember(
+        project_id=999999,
+        user_id=999999,
+        role=ProjectRole.PARTICIPANT,
+    )
+    with pytest.raises(IntegrityError):
+        proj_repo.add_member(non_existent_member)
+
+
+def test_user_repository_non_unique_integrity_error_is_reraised(db_session: Session) -> None:
+    repo = SqlAlchemyUserRepository(db_session)
+    user = User(login="fk_test_user", hashed_password="pwd")
+    mock_orig = Exception("FK violation")
+    mock_orig.sqlstate = "23503"  # type: ignore[attr-defined]
+    mock_orig.pgcode = "23503"  # type: ignore[attr-defined]
+    fake_err = IntegrityError("INSERT failed FK", params=None, orig=mock_orig)
+
+    with patch.object(db_session, "flush", side_effect=fake_err), pytest.raises(IntegrityError):
+        repo.add(user)

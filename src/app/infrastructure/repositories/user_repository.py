@@ -29,4 +29,8 @@ class SqlAlchemyUserRepository:
         try:
             self._session.flush()
         except IntegrityError as err:
-            raise LoginTaken(f"Login {user.login!r} is already taken") from err
+            orig = getattr(err, "orig", None)
+            sqlstate = getattr(orig, "sqlstate", None) or getattr(orig, "pgcode", None)
+            if sqlstate == "23505" or "unique" in str(err).lower():
+                raise LoginTaken(f"Login {user.login!r} is already taken") from err
+            raise

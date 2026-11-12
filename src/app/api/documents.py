@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 from typing import Annotated
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
-from app.db.session import get_db
+from app.api.deps import CurrentUser, get_uow
+from app.application.ports.unit_of_work import UnitOfWork
 from app.schemas.document import DocumentResponse
 from app.services.documents import (
     delete_document,
@@ -20,7 +21,7 @@ from app.storage.base import StorageBackend
 
 router = APIRouter(tags=["Documents"])
 
-DbSession = Annotated[Session, Depends(get_db)]
+UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 
 
@@ -36,12 +37,12 @@ def upload_files(
     project_id: int,
     files: list[UploadFile],
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
     storage: StorageDep,
 ) -> list[DocumentResponse]:
     """Upload documents endpoint."""
     documents = upload_documents(
-        db=db,
+        uow=uow,
         storage=storage,
         project_id=project_id,
         user_id=current_user.id,
@@ -61,11 +62,11 @@ def upload_files(
 def get_documents(
     project_id: int,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
 ) -> list[DocumentResponse]:
     """List documents endpoint."""
     documents = list_project_documents(
-        db=db,
+        uow=uow,
         project_id=project_id,
         user_id=current_user.id,
     )
@@ -82,12 +83,12 @@ def get_documents(
 def download_file(
     document_id: int,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
     storage: StorageDep,
 ) -> StreamingResponse:
     """Download document endpoint."""
     doc, stream = get_document_for_download(
-        db=db,
+        uow=uow,
         storage=storage,
         document_id=document_id,
         user_id=current_user.id,
@@ -113,12 +114,12 @@ def update_file(
     document_id: int,
     file: UploadFile,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
     storage: StorageDep,
 ) -> DocumentResponse:
     """Replace document endpoint."""
     doc = replace_document(
-        db=db,
+        uow=uow,
         storage=storage,
         document_id=document_id,
         user_id=current_user.id,
@@ -137,12 +138,12 @@ def update_file(
 def delete_file(
     document_id: int,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
     storage: StorageDep,
 ) -> None:
     """Delete document endpoint."""
     delete_document(
-        db=db,
+        uow=uow,
         storage=storage,
         document_id=document_id,
         user_id=current_user.id,
