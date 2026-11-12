@@ -19,9 +19,21 @@ bearer_scheme = HTTPBearer(
 )
 
 
+def get_uow(
+    db: Annotated[Session, Depends(get_db)],
+) -> Generator[UnitOfWork, None, None]:
+    """Provide a UnitOfWork bound to the current database session.
+
+    FastAPI caches dependencies per request by default (use_cache=True).
+    Therefore, get_current_user and endpoint route handlers share the exact same
+    UnitOfWork and database session instance within a single HTTP request.
+    """
+    yield SqlAlchemyUnitOfWork(db)
+
+
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
-    db: Annotated[Session, Depends(get_db)],
+    uow: Annotated[UnitOfWork, Depends(get_uow)],
 ) -> User:
     """FastAPI dependency to extract and validate the JWT Bearer token and return the User.
 
@@ -60,7 +72,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user = db.get(User, int(user_id_str))
+    user = uow.users.get_by_id(int(user_id_str))
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -96,10 +108,3 @@ def require_lambda_secret(
         )
 
     return x_lambda_secret
-
-
-def get_uow(
-    db: Annotated[Session, Depends(get_db)],
-) -> Generator[UnitOfWork, None, None]:
-    """Provide a UnitOfWork bound to the current database session."""
-    yield SqlAlchemyUnitOfWork(db)

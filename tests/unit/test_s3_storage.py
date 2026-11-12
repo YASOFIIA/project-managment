@@ -5,9 +5,10 @@ from unittest.mock import MagicMock
 import pytest
 from botocore.exceptions import ClientError
 
+from app.application.ports.storage import format_s3_key
 from app.core.config import get_settings
 from app.storage import get_storage
-from app.storage.s3 import S3Storage, format_s3_key
+from app.storage.s3 import S3Storage
 
 
 def test_format_s3_key() -> None:

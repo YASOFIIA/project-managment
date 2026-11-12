@@ -192,3 +192,35 @@ def test_lambda_callback_validation_error_returns_422(
 
     response = client.post("/internal/lambda/quota-alert", json=payload, headers=headers)
     assert response.status_code == 422
+
+
+def test_lambda_callback_invalid_or_missing_secret_does_not_touch_db(
+    client: TestClient,
+) -> None:
+    """Verify that an invalid or missing Lambda secret returns 403 without accessing DB/UoW."""
+    from unittest.mock import patch
+
+    payload = {
+        "project_id": 1,
+        "document_id": 1,
+        "filename": "file.pdf",
+        "status": "accepted",
+        "total_size_bytes": 1000,
+        "limit_bytes": 50_000_000,
+    }
+
+    # 1. Missing secret header
+    with patch("app.api.deps.get_db") as mock_get_db:
+        res1 = client.post("/internal/lambda/quota-alert", json=payload)
+        assert res1.status_code == 403
+        mock_get_db.assert_not_called()
+
+    # 2. Invalid secret header
+    with patch("app.api.deps.get_db") as mock_get_db:
+        res2 = client.post(
+            "/internal/lambda/quota-alert",
+            json=payload,
+            headers={"X-Lambda-Secret": "wrong_secret"},
+        )
+        assert res2.status_code == 403
+        mock_get_db.assert_not_called()

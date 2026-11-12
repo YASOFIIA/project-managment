@@ -1,7 +1,7 @@
 from functools import lru_cache
 
+from app.application.ports.storage import StorageBackend
 from app.core.config import get_settings
-from app.storage.base import StorageBackend
 from app.storage.local import LocalStorage
 from app.storage.s3 import S3Storage
 

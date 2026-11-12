@@ -4,9 +4,9 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 
-from app.application.ports.storage import StorageBackend, format_s3_key
+from app.application.ports.storage import StorageBackend
 
-__all__ = ["S3Storage", "format_s3_key"]
+__all__ = ["S3Storage"]
 
 
 class S3Storage(StorageBackend):

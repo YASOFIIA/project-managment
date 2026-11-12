@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import BinaryIO
 
-from app.storage.base import StorageBackend
+from app.application.ports.storage import StorageBackend
 
 
 class LocalStorage(StorageBackend):

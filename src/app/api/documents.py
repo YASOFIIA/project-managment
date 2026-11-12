@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import CurrentUser, get_uow
+from app.application.ports.storage import StorageBackend
 from app.application.ports.unit_of_work import UnitOfWork
 from app.schemas.document import DocumentResponse
 from app.services.documents import (
@@ -17,7 +18,6 @@ from app.services.documents import (
     upload_documents,
 )
 from app.storage import get_storage
-from app.storage.base import StorageBackend
 
 router = APIRouter(tags=["Documents"])
 

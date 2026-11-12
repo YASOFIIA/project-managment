@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import CurrentUser, get_uow
+from app.application.ports.storage import StorageBackend
 from app.application.ports.unit_of_work import UnitOfWork
 from app.schemas.project import (
     ProjectCreateRequest,
@@ -22,7 +23,6 @@ from app.services.projects import (
     update_project_info,
 )
 from app.storage import get_storage
-from app.storage.base import StorageBackend
 
 router = APIRouter(tags=["Projects"])
 

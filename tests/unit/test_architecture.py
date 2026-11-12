@@ -127,3 +127,24 @@ def test_api_layer_imports_infrastructure_only_in_deps() -> None:
 
     msg = "Presentation layer violation:\n" + "\n".join(violations)
     assert not violations, msg
+
+
+def test_api_layer_does_not_import_sqlalchemy_except_deps() -> None:
+    """Verify api controllers never import sqlalchemy, except in deps.py for DI wiring."""
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    api_dir = repo_root / "src" / "app" / "api"
+    if not api_dir.exists():
+        return
+
+    violations: list[str] = []
+    for py_file in api_dir.glob("*.py"):
+        if py_file.name == "deps.py":
+            continue
+        for lineno, module, _ in _collect_module_imports(py_file):
+            if module.startswith("sqlalchemy"):
+                violations.append(
+                    f"{py_file.name}:{lineno} imports sqlalchemy '{module}' outside deps.py"
+                )
+
+    msg = "Presentation layer violation (sqlalchemy outside deps.py):\n" + "\n".join(violations)
+    assert not violations, msg

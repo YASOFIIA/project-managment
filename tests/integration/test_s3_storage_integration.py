@@ -7,10 +7,11 @@ from botocore.exceptions import ClientError
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.application.ports.storage import format_s3_key
 from app.core.security import create_access_token
 from app.domain.roles import ProjectRole
 from app.models.document import Document
-from app.storage.s3 import S3Storage, format_s3_key
+from app.storage.s3 import S3Storage
 from tests.factories import create_project, create_project_member, create_user
 
 
