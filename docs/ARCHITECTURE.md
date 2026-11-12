@@ -87,9 +87,9 @@ flowchart TD
    - Reads incoming data in 64 KB chunks via `read_upload_file_limited`, validating MIME types and magic bytes.
    - Locks the project row (`uow.projects.get_by_id_for_update`) to prevent quota bypass from concurrent uploads.
 4. **Infrastructure Layer**:
-   - Saves binary content to `StorageBackend` under a canonical key format `projects/<pid>/<did>/<stored_name>`.
-   - Records metadata rows via `uow.documents.add(doc)`.
-   - Commits the transaction atomically via `uow.commit()`.
+   - Pre-creates metadata records via `uow.documents.add(doc)` (`flush` assigns database document IDs).
+   - Saves binary content to `StorageBackend` under canonical keys `projects/<pid>/<did>/<stored_name>`.
+   - Commits the transaction atomically via `uow.commit()`; if storage writes or database commit fails, the transaction is rolled back via `uow.rollback()` and any written storage objects are deleted.
 5. **Presentation Response**:
    - The route handler validates the created documents against `DocumentResponse` Pydantic schemas and returns `HTTP 201 Created`.
 

@@ -149,6 +149,7 @@ to mark the document as rejected, otherwise reports the new total to the API (st
 - [x] **R4 [BUILD]** `UploadedFile` port, decoupling services from FastAPI, `StorageBackend` port in `application/ports`.
 - [x] **R5 [BUILD]** `api/internal.py` and `get_current_user` switched to `UnitOfWork`, `quota_alerts` service.
 - [x] **R6 [BUILD]** Architecture documentation, live demo script verification, dead code audit.
+- [x] **R7 [BUILD]** CI and pre-commit ruff unification, CI alembic check, architecture lifecycle doc fix, open questions update.
 
 ---
 

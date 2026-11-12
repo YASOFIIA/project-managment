@@ -12,6 +12,7 @@
 | 5 | Как должен работать лимит размера в Lambda: какой лимит, что делать с файлом, который его превысил? | Лимит 50 MB на проект; Lambda удаляет превысивший файл и сообщает API |
 | 6 | Нужно ли optional `share by email` и ресайз картинок? | Не делаем, если не хватит времени |
 | 7 | Какой вариант деплоя ожидается: ECS, EC2 или что-то проще? | Решим после базового проекта |
+| 8 | Может ли участник (`participant`) менять `name` и `description` проекта (`PUT /project/<id>/info`)? В ТЗ явно ограничены только удаление проекта и инвайты. | Разрешено (участник может редактировать метаданные проекта наряду с владельцем) |
 
 ## Готовое сообщение ментору (можно переслать, переведи при необходимости)
 
@@ -26,5 +27,8 @@ Hi! Before I start, a few clarifying questions about the final task:
 4. For the Lambda size limit: is a per-project limit (e.g. 50 MB) fine, and should the Lambda
    delete the file that exceeds it?
 5. For deployment: ECS or EC2, or is something simpler fine?
+6. Can a participant update project info (name/description via PUT /project/<id>/info),
+   or should that also be restricted to the owner (the assignment only explicitly restricts
+   project deletion and inviting new members)?
 Thanks!
 ```

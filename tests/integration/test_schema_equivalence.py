@@ -60,9 +60,9 @@ def test_schema_sql_is_structurally_equivalent_to_alembic_migrations() -> None:
                 col["name"]: str(col["type"]).lower()
                 for col in inspector.get_columns(table_name, schema="test_raw_sql")
             }
-            assert (
-                alembic_cols.keys() == raw_cols.keys()
-            ), f"Columns mismatch for table {table_name}"
+            assert alembic_cols.keys() == raw_cols.keys(), (
+                f"Columns mismatch for table {table_name}"
+            )
 
             # Check foreign keys
             alembic_fks = {

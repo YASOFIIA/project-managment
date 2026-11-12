@@ -14,6 +14,19 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### R7 - CI ruff unification, alembic check in CI, lifecycle docs, and open questions update
+- **What was built:**
+  - Migrated `.pre-commit-config.yaml` from external repository ruff hooks (`astral-sh/ruff-pre-commit` pinned to v0.6.9) to local system hooks running `uv run ruff check --fix` and `uv run ruff format`. Formatted the entire codebase with `uv run ruff format .` to align with the lockfile's ruff v0.17.4 (resolving formatting differences in `tests/integration/test_schema_equivalence.py`).
+  - Added `uv run alembic upgrade head` and `uv run alembic check` steps to `.github/workflows/ci.yml` in the `test` job right after installing dependencies, verifying that migrations apply cleanly to the PostgreSQL service and models remain in complete sync with migration scripts.
+  - Corrected document upload persistence lifecycle ordering in `docs/ARCHITECTURE.md` (Step 4): explicitly documenting `uow.documents.add(doc)` (flushing to obtain autoincrement ID) -> `storage.save` -> `uow.commit()`, with rollback and storage cleanup upon failures.
+  - Added question #8 to `docs/OPEN_QUESTIONS.md` regarding whether participants should be permitted to update project name/description via `PUT /project/<id>/info` (currently permitted, while only delete and invite are restricted to owner).
+- **Key concept:** Single Source of Truth for Tooling & Continuous Schema Verification:
+  - Tool version drift between pre-commit hooks and CI/local lockfiles can cause spurious CI failures on formatting checks. Using local pre-commit hooks executed via `uv run` guarantees that git hooks, local developer CLI runs, and CI pipelines execute the exact same pinned tool versions defined in `uv.lock`.
+  - Automated `alembic check` in CI ensures that developers cannot add or modify SQLAlchemy models without providing corresponding Alembic migrations.
+- **Why this way:** Prevents false CI failures due to ruff version mismatches and ensures database schema regressions are caught automatically during CI.
+- **Possible defense question:** Why should `alembic check` run in CI alongside tests?
+  - **Answer:** Integration tests often create tables via fixtures or metadata binding, which might mask missing migration files. Running `alembic upgrade head` followed by `alembic check` against a real PostgreSQL container verifies two crucial properties: that all migrations apply sequentially without errors, and that `Base.metadata` has zero schema differences compared to the resulting database schema.
+
 ### T12.1 - 5-7 minute defense demo script and automated walkthrough
 - **What was built:** Authored interactive defense walkthrough manual `docs/DEMO_SCRIPT.md` with exact minute-by-minute timetable, Swagger UI clicks, speaking notes, expected HTTP statuses, and defensive security talking points. Created standalone executable bash automation script `scripts/demo.sh` demonstrating the complete live lifecycle via `curl` and `jq`: service health, Alice (owner) registration & login, Bob (participant) registration & login, project creation, binary magic-byte document upload, 404 information hiding against uninvited users, project invitation, participant document download, 403 authorization gate on unauthorized project deletion, and atomic cascading cleanup.
 - **Key concept:** Structured Technical Defense Presentation and Live System Verification:

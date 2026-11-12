@@ -53,6 +53,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
+      - name: Apply database migrations
+        run: uv run alembic upgrade head
+
+      - name: Verify models and migrations are in sync (alembic check)
+        run: uv run alembic check
+
       - name: Lint and format check with ruff
         run: |
           uv run ruff check .
