@@ -37,16 +37,14 @@ def test_validate_valid_pdf_and_docx() -> None:
     """Verify successful validation of PDF and DOCX files."""
     # PDF
     pdf_bytes = b"%PDF-1.7 valid pdf sample content"
-    clean_name, stored_name, mime = validate_file_upload("report.pdf", pdf_bytes)
+    clean_name, mime = validate_file_upload("report.pdf", pdf_bytes)
     assert clean_name == "report.pdf"
-    assert stored_name.endswith(".pdf")
     assert mime == "application/pdf"
 
     # DOCX
     docx_bytes = b"PK\x03\x04\x14\x00 word document package"
-    clean_name, stored_name, mime = validate_file_upload("thesis.docx", docx_bytes)
+    clean_name, mime = validate_file_upload("thesis.docx", docx_bytes)
     assert clean_name == "thesis.docx"
-    assert stored_name.endswith(".docx")
     assert mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
@@ -54,15 +52,15 @@ def test_validate_valid_images() -> None:
     """Verify validation of allowed image formats (PNG, JPG, JPEG)."""
     # PNG
     png_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
-    _, _, mime_png = validate_file_upload("diagram.png", png_bytes)
+    _, mime_png = validate_file_upload("diagram.png", png_bytes)
     assert mime_png == "image/png"
 
     # JPG / JPEG
     jpg_bytes = b"\xff\xd8\xff\xe0\x00\x10JFIF"
-    _, _, mime_jpg = validate_file_upload("photo.jpg", jpg_bytes)
+    _, mime_jpg = validate_file_upload("photo.jpg", jpg_bytes)
     assert mime_jpg == "image/jpeg"
 
-    _, _, mime_jpeg = validate_file_upload("photo.jpeg", jpg_bytes)
+    _, mime_jpeg = validate_file_upload("photo.jpeg", jpg_bytes)
     assert mime_jpeg == "image/jpeg"
 
 

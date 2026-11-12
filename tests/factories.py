@@ -71,14 +71,18 @@ def create_document(
     **kwargs: Any,
 ) -> Document:
     """Factory helper to create and persist a Document entity."""
+    temp_stored = stored_filename or f"pending_{uuid.uuid4().hex}"
     document = Document(
         project_id=project_id,
         filename=filename,
-        stored_filename=stored_filename or f"{uuid.uuid4().hex}_{filename}",
+        stored_filename=temp_stored,
         file_size_bytes=file_size_bytes,
         content_type=content_type,
         **kwargs,
     )
     session.add(document)
     session.flush()
+    if stored_filename is None:
+        document.stored_filename = f"projects/{project_id}/{document.id}/{uuid.uuid4().hex}.pdf"
+        session.flush()
     return document

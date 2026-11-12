@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.models.document import Document
 from app.models.project import ProjectRole
-from app.storage.s3 import format_s3_key
 from tests.factories import create_document, create_project, create_project_member, create_user
 
 
@@ -73,7 +72,7 @@ def test_end_to_end_s3_upload_within_limit_syncs_db(
     )
 
     bucket = "pm-documents"
-    key = format_s3_key(project.id, doc.id, doc.filename)
+    key = doc.stored_filename
 
     mock_s3 = MagicMock()
     # Paginator returns files totaling 5000 bytes (1000 + 4000)
@@ -147,7 +146,7 @@ def test_end_to_end_s3_upload_exceeding_limit_purges_s3_and_db(
     )
 
     bucket = "pm-documents"
-    key = format_s3_key(project.id, doc.id, doc.filename)
+    key = doc.stored_filename
 
     mock_s3 = MagicMock()
     mock_paginator = MagicMock()
@@ -261,7 +260,9 @@ def test_api_upload_with_s3_storage_and_lambda_lifecycle(
         doc_id = resp.json()[0]["id"]
 
         # Check canonical S3 key
-        expected_key = format_s3_key(project.id, doc_id, "spec.pdf")
+        doc_record = db_session.get(Document, doc_id)
+        assert doc_record is not None
+        expected_key = doc_record.stored_filename
         assert f"pm-documents/{expected_key}" in in_memory_s3
         assert s3_storage.exists(expected_key) is True
 
@@ -307,7 +308,9 @@ def test_api_upload_with_s3_storage_and_lambda_lifecycle(
         )
         assert resp2.status_code == 201
         huge_doc_id = resp2.json()[0]["id"]
-        huge_key = format_s3_key(project.id, huge_doc_id, "huge.pdf")
+        huge_doc_record = db_session.get(Document, huge_doc_id)
+        assert huge_doc_record is not None
+        huge_key = huge_doc_record.stored_filename
         assert s3_storage.exists(huge_key) is True
 
         huge_event = {

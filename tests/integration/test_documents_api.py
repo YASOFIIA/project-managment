@@ -1,12 +1,16 @@
 import io
+import re
 from pathlib import Path
 from typing import Any
 
 from fastapi.testclient import TestClient
+from lambdas.size_limit.handler import S3_KEY_PATTERN
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
+from app.models.document import Document
 from app.models.project import ProjectRole
+from app.storage import get_storage
 from tests.factories import create_project, create_project_member, create_user
 
 
@@ -315,3 +319,50 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
         verify_session.commit()
 
     engine.dispose()
+
+
+def test_upload_key_does_not_leak_client_filename_and_matches_lambda_regex(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    """Verify stored key uses UUID filename, does not leak client name, and matches Lambda regex."""
+    owner = create_user(db_session, login="secure_key_owner")
+    project = create_project(db_session, name="Key Security Project")
+    create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
+
+    token = create_access_token(user_id=owner.id, login=owner.login)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    client_filename = "classified_internal_secret_roadmap_2026.pdf"
+    pdf_content = b"%PDF-1.4 Secret Roadmap Content"
+    files = [("files", (client_filename, io.BytesIO(pdf_content), "application/pdf"))]
+
+    resp = client.post(f"/project/{project.id}/documents", files=files, headers=headers)
+    assert resp.status_code == 201
+    doc_id = resp.json()[0]["id"]
+
+    # Verify original name in DB
+    doc_db = db_session.get(Document, doc_id)
+    assert doc_db is not None
+    assert doc_db.filename == client_filename
+
+    # Stored key must NOT contain the client's original filename
+    assert client_filename not in doc_db.stored_filename
+    assert "classified" not in doc_db.stored_filename
+    assert "roadmap" not in doc_db.stored_filename
+
+    # Stored key must match the Lambda key regex: projects/<project_id>/<document_id>/<stored_name>
+    lambda_regex = r"^projects/\d+/\d+/.+"
+    assert re.match(lambda_regex, doc_db.stored_filename) is not None
+
+    # Stored key must match S3_KEY_PATTERN exactly
+    match = S3_KEY_PATTERN.match(doc_db.stored_filename)
+    assert match is not None
+    assert int(match.group("project_id")) == project.id
+    assert int(match.group("document_id")) == doc_id
+    stored_name = match.group("filename")
+    assert re.match(r"^[0-9a-f]{32}\.pdf$", stored_name) is not None
+
+    # Storage backend confirms existence under this key
+    storage = get_storage()
+    assert storage.exists(doc_db.stored_filename) is True

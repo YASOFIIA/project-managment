@@ -11,8 +11,8 @@ from app.storage.s3 import S3Storage, format_s3_key
 
 
 def test_format_s3_key() -> None:
-    """Verify S3 key structure adheres to projects/<project_id>/<document_id>/<name>."""
-    key = format_s3_key(project_id=12, document_id=45, filename="specs.pdf")
+    """Verify S3 key structure adheres to projects/<project_id>/<document_id>/<stored_name>."""
+    key = format_s3_key(project_id=12, document_id=45, stored_name="specs.pdf")
     assert key == "projects/12/45/specs.pdf"
 
 

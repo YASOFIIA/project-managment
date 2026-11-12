@@ -77,7 +77,7 @@ def validate_file_upload(
     filename: str,
     content: bytes,
     max_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES,
-) -> tuple[str, str, str]:
+) -> tuple[str, str]:
     """Validate uploaded file metadata, size, extension, and binary signature.
 
     Args:
@@ -86,7 +86,7 @@ def validate_file_upload(
         max_size_bytes: Maximum allowed byte size (defaults to 50 MB).
 
     Returns:
-        tuple[clean_filename, safe_stored_filename, content_type]
+        tuple[clean_filename, content_type]
 
     Raises:
         HTTPException(400): If file is empty, extension is disallowed, or magic bytes mismatch.
@@ -128,5 +128,4 @@ def validate_file_upload(
             ),
         )
 
-    safe_stored_name = f"{uuid.uuid4().hex}{extension}"
-    return clean_name, safe_stored_name, type_spec.mime_type
+    return clean_name, type_spec.mime_type
