@@ -8,9 +8,34 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import get_logger, request_id_ctx
-from app.domain.errors import DomainError
+from app.domain.errors import (
+    AlreadyExistsError,
+    AuthenticationError,
+    DomainError,
+    InvalidInputError,
+    LimitExceededError,
+    NotFoundError,
+    PermissionDeniedError,
+)
 
 logger = get_logger("app.errors")
+
+DOMAIN_CATEGORY_STATUS_MAP: dict[type[DomainError], int] = {
+    NotFoundError: status.HTTP_404_NOT_FOUND,
+    AlreadyExistsError: status.HTTP_409_CONFLICT,
+    PermissionDeniedError: status.HTTP_403_FORBIDDEN,
+    AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+    LimitExceededError: status.HTTP_413_CONTENT_TOO_LARGE,
+    InvalidInputError: status.HTTP_400_BAD_REQUEST,
+}
+
+
+def get_http_status_for_domain_error(exc: DomainError) -> int:
+    """Resolve HTTP status code for a domain error based on its business category."""
+    for error_category, http_status in DOMAIN_CATEGORY_STATUS_MAP.items():
+        if isinstance(exc, error_category):
+            return http_status
+    return status.HTTP_400_BAD_REQUEST
 
 
 def get_request_id(request: Request) -> str:
@@ -100,13 +125,14 @@ async def domain_exception_handler(
 ) -> JSONResponse:
     """Unified handler for domain exceptions translated to HTTP responses."""
     request_id = get_request_id(request)
-    error_code = get_error_code_name(exc.status_code)
+    http_status = get_http_status_for_domain_error(exc)
+    error_code = get_error_code_name(http_status)
 
     return JSONResponse(
-        status_code=exc.status_code,
+        status_code=http_status,
         content={
             "detail": exc.detail,
-            "status_code": exc.status_code,
+            "status_code": http_status,
             "error_code": error_code,
             "request_id": request_id,
         },

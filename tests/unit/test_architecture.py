@@ -2,6 +2,8 @@
 
 Guarantees clean layer separation:
 - Services/Application and Domain layers must never import HTTPException or fastapi.status.
+- Domain layer must never import web frameworks (FastAPI/Starlette), ORM (SQLAlchemy),
+  or configuration (pydantic-settings).
 """
 
 from __future__ import annotations
@@ -66,3 +68,35 @@ def test_services_and_domain_layers_do_not_import_http_exceptions_or_status() ->
         + "\n".join(all_violations)
     )
     assert not all_violations, msg
+
+
+def test_domain_layer_does_not_import_frameworks_or_orm() -> None:
+    """Verify domain layer has zero dependencies on web frameworks, ORM, or config loaders."""
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    domain_dir = repo_root / "src" / "app" / "domain"
+    if not domain_dir.exists():
+        return
+
+    forbidden_prefixes = ("fastapi", "starlette", "sqlalchemy", "pydantic_settings")
+    violations: list[str] = []
+
+    for py_file in domain_dir.rglob("*.py"):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if any(module.startswith(prefix) for prefix in forbidden_prefixes):
+                    violations.append(
+                        f"{py_file.name}:{node.lineno} imports from forbidden '{module}'"
+                    )
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if any(alias.name.startswith(prefix) for prefix in forbidden_prefixes):
+                        violations.append(
+                            f"{py_file.name}:{node.lineno} imports forbidden '{alias.name}'"
+                        )
+
+    msg = "Domain layer violation: domain must not import frameworks or ORM:\n" + "\n".join(
+        violations
+    )
+    assert not violations, msg

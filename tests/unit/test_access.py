@@ -1,7 +1,13 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from app.domain.errors import DocumentNotFound, PermissionDenied, ProjectNotFound
+from app.domain.errors import (
+    DocumentNotFound,
+    NotFoundError,
+    PermissionDenied,
+    PermissionDeniedError,
+    ProjectNotFound,
+)
 from app.models.project import ProjectRole
 from app.services.access import (
     require_document_access,
@@ -42,7 +48,7 @@ def test_require_project_access_non_member_returns_404(db_session: Session) -> N
     with pytest.raises(ProjectNotFound) as exc_info:
         require_project_access(db_session, project.id, user.id)
 
-    assert exc_info.value.status_code == 404
+    assert isinstance(exc_info.value, NotFoundError)
     assert f"Project {project.id} not found" in exc_info.value.detail
 
 
@@ -53,7 +59,7 @@ def test_require_project_access_nonexistent_project_returns_404(db_session: Sess
     with pytest.raises(ProjectNotFound) as exc_info:
         require_project_access(db_session, project_id=999999, user_id=user.id)
 
-    assert exc_info.value.status_code == 404
+    assert isinstance(exc_info.value, NotFoundError)
 
 
 def test_require_project_owner_succeeds_for_owner(db_session: Session) -> None:
@@ -76,7 +82,7 @@ def test_require_project_owner_returns_403_for_participant(db_session: Session) 
     with pytest.raises(PermissionDenied) as exc_info:
         require_project_owner(db_session, project.id, participant.id)
 
-    assert exc_info.value.status_code == 403
+    assert isinstance(exc_info.value, PermissionDeniedError)
     assert "Only project owner" in exc_info.value.detail
 
 
@@ -101,7 +107,7 @@ def test_require_document_access_non_member_returns_404(db_session: Session) -> 
     with pytest.raises(DocumentNotFound) as exc_info:
         require_document_access(db_session, doc.id, stranger.id)
 
-    assert exc_info.value.status_code == 404
+    assert isinstance(exc_info.value, NotFoundError)
 
 
 def test_require_document_access_nonexistent_doc_returns_404(db_session: Session) -> None:
@@ -111,4 +117,4 @@ def test_require_document_access_nonexistent_doc_returns_404(db_session: Session
     with pytest.raises(DocumentNotFound) as exc_info:
         require_document_access(db_session, document_id=999999, user_id=user.id)
 
-    assert exc_info.value.status_code == 404
+    assert isinstance(exc_info.value, NotFoundError)

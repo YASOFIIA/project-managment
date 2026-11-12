@@ -8,7 +8,7 @@ from lambdas.size_limit.handler import S3_KEY_PATTERN
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.domain.errors import DomainError
+from app.domain.errors import LimitExceededError
 from app.models.document import Document
 from app.models.project import ProjectRole
 from app.storage import get_storage
@@ -235,7 +235,7 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
     import threading
     import uuid
 
-    from fastapi import HTTPException, UploadFile
+    from fastapi import UploadFile
     from sqlalchemy import create_engine
     from starlette.datastructures import Headers
 
@@ -284,8 +284,8 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
                     files=[upload_file],
                 )
                 results.append(("success", docs))
-            except (HTTPException, DomainError) as exc:
-                results.append(("error", exc.status_code))
+            except LimitExceededError:
+                results.append(("error", 413))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         f1 = executor.submit(attempt_upload, 1)

@@ -1,6 +1,11 @@
 import pytest
 
-from app.domain.errors import DomainError
+from app.domain.errors import (
+    DomainError,
+    FileTooLarge,
+    InvalidInputError,
+    LimitExceededError,
+)
 from app.services.file_validation import (
     generate_safe_stored_filename,
     sanitize_filename,
@@ -17,7 +22,7 @@ def test_sanitize_filename() -> None:
 
     with pytest.raises(DomainError) as exc_info:
         sanitize_filename("   ")
-    assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value, InvalidInputError)
     assert "cannot be empty" in exc_info.value.detail
 
 
@@ -68,7 +73,7 @@ def test_validate_empty_file_rejected() -> None:
     """Verify that empty file uploads return 400 Bad Request."""
     with pytest.raises(DomainError) as exc_info:
         validate_file_upload("empty.pdf", b"")
-    assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value, InvalidInputError)
     assert "empty" in exc_info.value.detail
 
 
@@ -77,7 +82,7 @@ def test_validate_file_size_exceeded_rejected() -> None:
     large_pdf = b"%PDF-" + b"0" * 100
     with pytest.raises(DomainError) as exc_info:
         validate_file_upload("large.pdf", large_pdf, max_size_bytes=50)
-    assert exc_info.value.status_code == 413
+    assert isinstance(exc_info.value, LimitExceededError)
     assert "exceeds limit" in exc_info.value.detail
 
 
@@ -87,7 +92,7 @@ def test_validate_disallowed_extension_rejected() -> None:
     for fname in bad_extensions:
         with pytest.raises(DomainError) as exc_info:
             validate_file_upload(fname, b"any dummy content")
-        assert exc_info.value.status_code == 400
+        assert isinstance(exc_info.value, InvalidInputError)
         assert "not allowed" in exc_info.value.detail
 
 
@@ -97,14 +102,14 @@ def test_validate_spoofed_magic_bytes_rejected() -> None:
     fake_pdf = b"MZ executable content disguised as pdf"
     with pytest.raises(DomainError) as exc_info:
         validate_file_upload("malicious.pdf", fake_pdf)
-    assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value, InvalidInputError)
     assert "signature does not match" in exc_info.value.detail
 
     # Declared as DOCX, but actually PDF
     fake_docx = b"%PDF-1.5 disguised as docx"
     with pytest.raises(DomainError) as exc_info:
         validate_file_upload("fake.docx", fake_docx)
-    assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value, InvalidInputError)
     assert "signature does not match" in exc_info.value.detail
 
 
@@ -127,7 +132,6 @@ def test_read_upload_file_limited_exceeding_stops_reading() -> None:
 
     from fastapi import UploadFile
 
-    from app.domain.errors import FileTooLarge
     from app.services.documents import read_upload_file_limited
 
     mock_stream = MagicMock()
@@ -138,7 +142,7 @@ def test_read_upload_file_limited_exceeding_stops_reading() -> None:
     with pytest.raises(FileTooLarge) as exc_info:
         read_upload_file_limited(file, max_bytes=70000)
 
-    assert exc_info.value.status_code == 413
+    assert isinstance(exc_info.value, LimitExceededError)
     assert "exceeds maximum allowed size" in exc_info.value.detail
     # Must have stopped reading after the 2nd chunk, without reading the 3rd chunk
     assert mock_stream.read.call_count == 2
