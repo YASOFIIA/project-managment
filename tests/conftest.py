@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.session import get_db
+from app.infrastructure.repositories.unit_of_work import SqlAlchemyUnitOfWork
 from app.main import app
 
 
@@ -51,3 +52,9 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def uow(db_session: Session) -> Generator[SqlAlchemyUnitOfWork, None, None]:
+    """Provide UnitOfWork tied to test session with rollback isolation."""
+    yield SqlAlchemyUnitOfWork(db_session)

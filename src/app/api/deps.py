@@ -1,13 +1,16 @@
 import hmac
+from collections.abc import Generator
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.application.ports.unit_of_work import UnitOfWork
 from app.core.config import Settings, get_settings
 from app.core.security import InvalidTokenError, TokenExpiredError, decode_access_token
 from app.db.session import get_db
+from app.infrastructure.repositories.unit_of_work import SqlAlchemyUnitOfWork
 from app.models.user import User
 
 bearer_scheme = HTTPBearer(
@@ -93,3 +96,10 @@ def require_lambda_secret(
         )
 
     return x_lambda_secret
+
+
+def get_uow(
+    db: Annotated[Session, Depends(get_db)],
+) -> Generator[UnitOfWork, None, None]:
+    """Provide a UnitOfWork bound to the current database session."""
+    yield SqlAlchemyUnitOfWork(db)
