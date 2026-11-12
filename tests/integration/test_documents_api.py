@@ -239,6 +239,7 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
     from sqlalchemy import create_engine
     from starlette.datastructures import Headers
 
+    from app.api.documents import FastApiUploadedFile
     from app.core.config import get_settings
     from app.infrastructure.repositories.unit_of_work import SqlAlchemyUnitOfWork
     from app.models.document import Document
@@ -283,7 +284,7 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
                     storage=storage,
                     project_id=project_id,
                     user_id=user_id,
-                    files=[upload_file],
+                    files=[FastApiUploadedFile(upload_file)],
                 )
                 results.append(("success", docs))
             except ProjectQuotaExceeded as exc:

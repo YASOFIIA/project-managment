@@ -119,9 +119,10 @@ def test_read_upload_file_limited_success() -> None:
 
     from fastapi import UploadFile
 
+    from app.api.documents import FastApiUploadedFile
     from app.services.documents import read_upload_file_limited
 
-    file = UploadFile(file=io.BytesIO(b"Hello world"), filename="test.txt")
+    file = FastApiUploadedFile(UploadFile(file=io.BytesIO(b"Hello world"), filename="test.txt"))
     data = read_upload_file_limited(file, max_bytes=100)
     assert data == b"Hello world"
 
@@ -132,12 +133,13 @@ def test_read_upload_file_limited_exceeding_stops_reading() -> None:
 
     from fastapi import UploadFile
 
+    from app.api.documents import FastApiUploadedFile
     from app.services.documents import read_upload_file_limited
 
     mock_stream = MagicMock()
     # 3 chunks of 64 KB
     mock_stream.read.side_effect = [b"A" * 65536, b"B" * 65536, b"C" * 65536]
-    file = UploadFile(file=mock_stream, filename="large.bin")
+    file = FastApiUploadedFile(UploadFile(file=mock_stream, filename="large.bin"))
 
     with pytest.raises(FileTooLarge) as exc_info:
         read_upload_file_limited(file, max_bytes=70000)

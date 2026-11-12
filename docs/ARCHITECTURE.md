@@ -3,7 +3,7 @@
 ## Clean Architecture & Layer Decoupling
 The service follows Clean Architecture principles:
 - **Presentation Layer (`src/app/api/`)**: HTTP routing, request parsing/validation via Pydantic, HTTP status codes.
-- **Application Layer (`src/app/application/`, `src/app/services/`)**: Use cases, transaction ownership via `UnitOfWork`, orchestration between repositories and external storage.
+- **Application Layer (`src/app/application/`, `src/app/services/`)**: Use cases, transaction ownership via `UnitOfWork`, orchestration between repositories and external storage. `services/` = шар Application (use cases як функції).
 - **Domain Layer (`src/app/domain/`)**: Pure business logic (access control policies, role matrices, domain exceptions). Zero dependencies on frameworks or ORM.
 - **Infrastructure Layer (`src/app/infrastructure/`, `src/app/db/`, `src/app/storage/`)**: Database repository adapters (SQLAlchemy), file storage adapters (Local/S3).
 

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import contextlib
 import uuid
+from collections.abc import Sequence
 from typing import BinaryIO
 
-from fastapi import UploadFile
-
+from app.application.ports.storage import StorageBackend, format_s3_key
 from app.application.ports.unit_of_work import UnitOfWork
+from app.application.ports.uploaded_file import UploadedFile
 from app.core.config import get_settings
 from app.domain.access_policy import Action
 from app.domain.errors import (
@@ -23,11 +24,9 @@ from app.services.file_validation import (
     generate_safe_stored_filename,
     validate_file_upload,
 )
-from app.storage.base import StorageBackend
-from app.storage.s3 import format_s3_key
 
 
-def read_upload_file_limited(file: UploadFile, max_bytes: int) -> bytes:
+def read_upload_file_limited(file: UploadedFile, max_bytes: int) -> bytes:
     """Read upload file content in chunks up to max_bytes without exceeding memory limits.
 
     Raises:
@@ -37,7 +36,9 @@ def read_upload_file_limited(file: UploadFile, max_bytes: int) -> bytes:
     total_read = 0
     chunk_size = 64 * 1024  # 64 KB chunks
 
-    while chunk := file.file.read(chunk_size):
+    # Support both UploadedFile protocol (.read()) and raw FastAPI UploadFile (.file.read())
+    read_fn = getattr(getattr(file, "file", None), "read", file.read)
+    while chunk := read_fn(chunk_size):
         chunks.append(chunk)
         total_read += len(chunk)
         if total_read > max_bytes:
@@ -51,7 +52,7 @@ def upload_documents(
     storage: StorageBackend,
     project_id: int,
     user_id: int,
-    files: list[UploadFile],
+    files: Sequence[UploadedFile],
 ) -> list[Document]:
     """Upload and attach one or more documents to a project.
 
@@ -191,7 +192,7 @@ def replace_document(
     storage: StorageBackend,
     document_id: int,
     user_id: int,
-    file: UploadFile,
+    file: UploadedFile,
 ) -> Document:
     """Replace a document's file contents with a new upload.
 

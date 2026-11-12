@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from app.application.ports.project_repository import ProjectWithDocuments
+from app.application.ports.storage import StorageBackend
 from app.application.ports.unit_of_work import UnitOfWork
 from app.domain.access_policy import Action
 from app.domain.errors import UserAlreadyMember, UserNotFound
@@ -14,7 +15,6 @@ from app.services.access import (
     get_project_membership,
     require_project_access,
 )
-from app.storage.base import StorageBackend
 
 logger = logging.getLogger(__name__)
 

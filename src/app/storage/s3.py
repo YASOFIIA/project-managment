@@ -4,16 +4,9 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 
-from app.storage.base import StorageBackend
+from app.application.ports.storage import StorageBackend, format_s3_key
 
-
-def format_s3_key(project_id: int, document_id: int, stored_name: str = "", **kwargs: Any) -> str:
-    """Generate canonical S3 object key layout.
-
-    Format: projects/<project_id>/<document_id>/<stored_name>
-    """
-    name = stored_name or kwargs.get("filename", "")
-    return f"projects/{project_id}/{document_id}/{name}"
+__all__ = ["S3Storage", "format_s3_key"]
 
 
 class S3Storage(StorageBackend):

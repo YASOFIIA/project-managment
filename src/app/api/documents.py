@@ -25,6 +25,19 @@ UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 
 
+class FastApiUploadedFile:
+    """Adapter wrapping FastAPI UploadFile into the Application UploadedFile protocol."""
+
+    def __init__(self, upload_file: UploadFile) -> None:
+        self._upload_file = upload_file
+        self.filename = upload_file.filename
+        self.content_type = upload_file.content_type
+        self.file = upload_file.file
+
+    def read(self, size: int = -1) -> bytes:
+        return self._upload_file.file.read(size)
+
+
 @router.post(
     "/project/{project_id}/documents",
     response_model=list[DocumentResponse],
@@ -41,12 +54,13 @@ def upload_files(
     storage: StorageDep,
 ) -> list[DocumentResponse]:
     """Upload documents endpoint."""
+    adapted_files = [FastApiUploadedFile(f) for f in files]
     documents = upload_documents(
         uow=uow,
         storage=storage,
         project_id=project_id,
         user_id=current_user.id,
-        files=files,
+        files=adapted_files,
     )
     return [DocumentResponse.model_validate(doc) for doc in documents]
 
@@ -123,7 +137,7 @@ def update_file(
         storage=storage,
         document_id=document_id,
         user_id=current_user.id,
-        file=file,
+        file=FastApiUploadedFile(file),
     )
     return DocumentResponse.model_validate(doc)
 

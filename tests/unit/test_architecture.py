@@ -59,11 +59,13 @@ def test_services_and_application_layers_do_not_import_frameworks_or_lower_layer
     src_app = repo_root / "src" / "app"
 
     forbidden_prefixes = (
-        "sqlalchemy",
+        "fastapi",
         "starlette",
+        "sqlalchemy",
         "boto3",
         "app.infrastructure",
         "app.api",
+        "app.storage",
     )
     violations: list[str] = []
 
@@ -71,13 +73,8 @@ def test_services_and_application_layers_do_not_import_frameworks_or_lower_layer
         if not directory.exists():
             continue
         for py_file in directory.rglob("*.py"):
-            for lineno, module, names in _collect_module_imports(py_file):
+            for lineno, module, _names in _collect_module_imports(py_file):
                 if any(module.startswith(p) for p in forbidden_prefixes):
-                    violations.append(f"{py_file.name}:{lineno} imports forbidden '{module}'")
-                # fastapi check: only documents.py may import UploadFile until step R4
-                if module.startswith("fastapi"):
-                    if py_file.name == "documents.py" and names == ["UploadFile"]:
-                        continue
                     violations.append(f"{py_file.name}:{lineno} imports forbidden '{module}'")
 
     msg = "Services/Application layer violation:\n" + "\n".join(violations)
