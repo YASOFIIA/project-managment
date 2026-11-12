@@ -148,7 +148,7 @@ Every error response strictly follows a uniform JSON structure:
 ### 2. Environment Setup
 ```bash
 # Clone repository and enter directory
-cd pm-service
+cd project-management
 
 # Create and sync virtual environment with all dependencies
 uv sync
