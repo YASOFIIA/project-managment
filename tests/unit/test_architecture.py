@@ -100,3 +100,40 @@ def test_domain_layer_does_not_import_frameworks_or_orm() -> None:
         violations
     )
     assert not violations, msg
+
+
+def test_services_do_not_import_sqlalchemy_except_temporary_documents() -> None:
+    """Verify services layer (auth, projects, access) does not import sqlalchemy."""
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    services_dir = repo_root / "src" / "app" / "services"
+    if not services_dir.exists():
+        return
+
+    # Temporary exemption list to be removed in step R3.3
+    temporary_exceptions = {"documents.py"}
+    forbidden_prefixes = ("sqlalchemy",)
+    violations: list[str] = []
+
+    for py_file in services_dir.glob("*.py"):
+        if py_file.name in temporary_exceptions:
+            continue
+        tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if any(module.startswith(p) for p in forbidden_prefixes):
+                    violations.append(
+                        f"{py_file.name}:{node.lineno} imports from forbidden '{module}'"
+                    )
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    if any(alias.name.startswith(p) for p in forbidden_prefixes):
+                        violations.append(
+                            f"{py_file.name}:{node.lineno} imports forbidden '{alias.name}'"
+                        )
+
+    msg = (
+        "Clean architecture violation: services must not import sqlalchemy "
+        "(exempted: documents.py until R3.3):\n" + "\n".join(violations)
+    )
+    assert not violations, msg

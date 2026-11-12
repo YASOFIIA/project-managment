@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.application.ports.unit_of_work import UnitOfWork
 from app.core.security import decode_access_token
 from app.domain.errors import AlreadyExistsError, LoginTaken
 from app.schemas.auth import UserRegisterRequest
@@ -63,6 +64,7 @@ def test_register_duplicate_login_returns_409(client: TestClient) -> None:
 
 
 def test_register_user_catches_integrity_error_on_race_condition(
+    uow: UnitOfWork,
     db_session: Session,
 ) -> None:
     """Verify register_user catches database IntegrityError on race condition and returns 409."""
@@ -72,10 +74,10 @@ def test_register_user_catches_integrity_error_on_race_condition(
         password="ValidPassword123!",
         repeat_password="ValidPassword123!",
     )
-    # Simulate race condition: SELECT found no user, but INSERT hits UNIQUE constraint
-    with patch.object(db_session, "scalar", return_value=None):
+    # Simulate race condition: SELECT found no user, but real INSERT hits DB UNIQUE constraint
+    with patch.object(uow.users, "get_by_login", return_value=None):
         with pytest.raises(LoginTaken) as exc_info:
-            register_user(db_session, data)
+            register_user(uow, data)
         assert isinstance(exc_info.value, AlreadyExistsError)
         assert "concurrent_login" in exc_info.value.detail
 

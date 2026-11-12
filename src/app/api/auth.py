@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
-from app.db.session import get_db
+from app.api.deps import CurrentUser, get_uow
+from app.application.ports.unit_of_work import UnitOfWork
 from app.schemas.auth import (
     TokenResponse,
     UserLoginRequest,
@@ -15,7 +16,7 @@ from app.services.auth import authenticate_user, register_user
 
 router = APIRouter(tags=["Authentication"])
 
-DbSession = Annotated[Session, Depends(get_db)]
+UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 
 
 @router.post(
@@ -27,10 +28,10 @@ DbSession = Annotated[Session, Depends(get_db)]
 )
 def register(
     data: UserRegisterRequest,
-    db: DbSession,
+    uow: UowDep,
 ) -> UserResponse:
     """Create user endpoint."""
-    user = register_user(db=db, data=data)
+    user = register_user(uow=uow, data=data)
     return UserResponse.model_validate(user)
 
 
@@ -43,10 +44,10 @@ def register(
 )
 def login(
     data: UserLoginRequest,
-    db: DbSession,
+    uow: UowDep,
 ) -> TokenResponse:
     """Login into service endpoint."""
-    token = authenticate_user(db=db, data=data)
+    token = authenticate_user(uow=uow, data=data)
     return TokenResponse(access_token=token, token_type="bearer")
 
 

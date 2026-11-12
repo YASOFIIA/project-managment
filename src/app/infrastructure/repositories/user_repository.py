@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.domain.errors import LoginTaken
 from app.models.user import User
 
 
@@ -24,4 +26,7 @@ class SqlAlchemyUserRepository:
     def add(self, user: User) -> None:
         """Add and flush user entity."""
         self._session.add(user)
-        self._session.flush()
+        try:
+            self._session.flush()
+        except IntegrityError as err:
+            raise LoginTaken(f"Login {user.login!r} is already taken") from err

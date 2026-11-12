@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
-from app.db.session import get_db
+from app.api.deps import CurrentUser, get_uow
+from app.application.ports.unit_of_work import UnitOfWork
 from app.schemas.project import (
     ProjectCreateRequest,
     ProjectDetailResponse,
@@ -25,7 +26,7 @@ from app.storage.base import StorageBackend
 
 router = APIRouter(tags=["Projects"])
 
-DbSession = Annotated[Session, Depends(get_db)]
+UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 
 
@@ -40,10 +41,10 @@ StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 def create_new_project(
     data: ProjectCreateRequest,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
 ) -> ProjectResponse:
     """Create a new project endpoint."""
-    project = create_project(db=db, user=current_user, data=data)
+    project = create_project(uow=uow, user=current_user, data=data)
     return ProjectResponse.model_validate(project)
 
 
@@ -53,14 +54,14 @@ def create_new_project(
     status_code=status.HTTP_200_OK,
     summary="Get all projects",
     description="Get all projects accessible for the current user, "
-    "returning full info with attached documents using raw SQL.",
+    "returning full info with attached documents.",
 )
 def get_all_projects(
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
 ) -> list[ProjectDetailResponse]:
     """Retrieve all accessible projects with documents."""
-    projects = list_user_projects(db=db, user_id=current_user.id)
+    projects = list_user_projects(uow=uow, user_id=current_user.id)
     return [ProjectDetailResponse.model_validate(p) for p in projects]
 
 
@@ -74,10 +75,10 @@ def get_all_projects(
 def get_info(
     project_id: int,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
 ) -> ProjectResponse:
     """Retrieve project details endpoint."""
-    project = get_project_info(db=db, project_id=project_id, user_id=current_user.id)
+    project = get_project_info(uow=uow, project_id=project_id, user_id=current_user.id)
     return ProjectResponse.model_validate(project)
 
 
@@ -92,11 +93,11 @@ def update_info(
     project_id: int,
     data: ProjectUpdateRequest,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
 ) -> ProjectResponse:
     """Update project details endpoint."""
     project = update_project_info(
-        db=db,
+        uow=uow,
         project_id=project_id,
         user_id=current_user.id,
         data=data,
@@ -114,12 +115,12 @@ def update_info(
 def delete_existing_project(
     project_id: int,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
     storage: StorageDep,
 ) -> None:
     """Delete project endpoint (owner only)."""
     delete_project(
-        db=db,
+        uow=uow,
         storage=storage,
         project_id=project_id,
         user_id=current_user.id,
@@ -136,12 +137,12 @@ def delete_existing_project(
 def invite_user_to_project(
     project_id: int,
     current_user: CurrentUser,
-    db: DbSession,
+    uow: UowDep,
     user: str = Query(..., min_length=1, description="Username of user to invite"),
 ) -> ProjectMemberResponse:
     """Invite user endpoint (owner only)."""
     membership = invite_member(
-        db=db,
+        uow=uow,
         project_id=project_id,
         owner_id=current_user.id,
         invitee_login=user,

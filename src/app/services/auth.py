@@ -1,46 +1,45 @@
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from __future__ import annotations
 
+from app.application.ports.unit_of_work import UnitOfWork
 from app.core.security import create_access_token, hash_password, verify_password
 from app.domain.errors import InvalidCredentials, LoginTaken
 from app.models.user import User
 from app.schemas.auth import UserLoginRequest, UserRegisterRequest
 
 
-def register_user(db: Session, data: UserRegisterRequest) -> User:
+def register_user(uow: UnitOfWork, data: UserRegisterRequest) -> User:
     """Register a new user with unique login and Argon2-hashed password.
 
     Raises:
         LoginTaken: if the login is already taken (pre-checked or on concurrent commit).
     """
-    existing_user = db.scalar(select(User).where(User.login == data.login))
-    if existing_user is not None:
-        raise LoginTaken(f"Login {data.login!r} is already taken")
+    with uow:
+        existing_user = uow.users.get_by_login(data.login)
+        if existing_user is not None:
+            raise LoginTaken(f"Login {data.login!r} is already taken")
 
-    hashed_pw = hash_password(data.password)
-    new_user = User(
-        login=data.login,
-        hashed_password=hashed_pw,
-    )
-    db.add(new_user)
-    try:
-        db.commit()
-    except IntegrityError as err:
-        db.rollback()
-        raise LoginTaken(f"Login {data.login!r} is already taken") from err
+        hashed_pw = hash_password(data.password)
+        new_user = User(
+            login=data.login,
+            hashed_password=hashed_pw,
+        )
+        try:
+            uow.users.add(new_user)
+        except LoginTaken:
+            uow.rollback()
+            raise
 
-    db.refresh(new_user)
-    return new_user
+        uow.commit()
+        return new_user
 
 
-def authenticate_user(db: Session, data: UserLoginRequest) -> str:
+def authenticate_user(uow: UnitOfWork, data: UserLoginRequest) -> str:
     """Authenticate user credentials and issue a signed 1-hour JWT access token.
 
     Raises:
         InvalidCredentials: if the username or password is invalid.
     """
-    user = db.scalar(select(User).where(User.login == data.login))
+    user = uow.users.get_by_login(data.login)
     if user is None or not verify_password(data.password, user.hashed_password):
         raise InvalidCredentials("Invalid login or password")
 

@@ -34,7 +34,11 @@ def db_session(setup_test_database: None) -> Generator[Session, None, None]:
     connection = engine.connect()
     transaction = connection.begin()
 
-    session = Session(bind=connection, expire_on_commit=False)
+    session = Session(
+        bind=connection,
+        join_transaction_mode="create_savepoint",
+        expire_on_commit=False,
+    )
 
     try:
         yield session

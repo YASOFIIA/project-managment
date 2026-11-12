@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from sqlalchemy.orm import Session
 
@@ -138,10 +140,20 @@ def test_unit_of_work_lifecycle_and_rollback(uow: UnitOfWork, db_session: Sessio
 
     assert uow.users.get_by_login("uow_user") is not None
 
-    with pytest.raises(RuntimeError):
-        with uow:
-            user2 = User(login="uow_fail", hashed_password="pwd")
-            uow.users.add(user2)
-            raise RuntimeError("Force failure")
+    with pytest.raises(RuntimeError), uow:
+        user2 = User(login="uow_fail", hashed_password="pwd")
+        uow.users.add(user2)
+        raise RuntimeError("Force failure")
 
     assert uow.users.get_by_login("uow_fail") is None
+
+
+def test_unit_of_work_exit_calls_rollback_on_exception(db_session: Session) -> None:
+    uow = SqlAlchemyUnitOfWork(db_session)
+    with (
+        patch.object(uow, "rollback", wraps=uow.rollback) as spy_rollback,
+        pytest.raises(ValueError),
+        uow,
+    ):
+        raise ValueError("Boom")
+    spy_rollback.assert_called_once()

@@ -21,9 +21,9 @@ without membership MUST always return 404 Not Found, never revealing whether
 the project ID actually exists in the database.
 """
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from __future__ import annotations
 
+from app.application.ports.unit_of_work import UnitOfWork
 from app.domain.access_policy import Action, can_perform
 from app.domain.errors import DocumentNotFound, PermissionDenied, ProjectNotFound
 from app.models.document import Document
@@ -31,20 +31,16 @@ from app.models.project import Project, ProjectMember
 
 
 def get_project_membership(
-    db: Session,
+    uow: UnitOfWork,
     project_id: int,
     user_id: int,
 ) -> ProjectMember | None:
     """Retrieve membership record for a user in a specified project, if one exists."""
-    stmt = select(ProjectMember).where(
-        ProjectMember.project_id == project_id,
-        ProjectMember.user_id == user_id,
-    )
-    return db.scalar(stmt)
+    return uow.projects.get_membership(project_id=project_id, user_id=user_id)
 
 
 def require_project_access(
-    db: Session,
+    uow: UnitOfWork,
     project_id: int,
     user_id: int,
     action: Action,
@@ -55,11 +51,11 @@ def require_project_access(
         ProjectNotFound: if project does not exist OR user is not a member.
         PermissionDenied: if user is a member but role lacks permission for action.
     """
-    membership = get_project_membership(db, project_id=project_id, user_id=user_id)
+    membership = uow.projects.get_membership(project_id=project_id, user_id=user_id)
     if membership is None:
         raise ProjectNotFound(f"Project {project_id} not found")
 
-    project = db.get(Project, project_id)
+    project = uow.projects.get_by_id(project_id)
     if project is None:
         raise ProjectNotFound(f"Project {project_id} not found")
 
@@ -70,7 +66,7 @@ def require_project_access(
 
 
 def require_document_access(
-    db: Session,
+    uow: UnitOfWork,
     document_id: int,
     user_id: int,
     action: Action,
@@ -81,11 +77,11 @@ def require_document_access(
         DocumentNotFound: if document does not exist OR user lacks access to project.
         PermissionDenied: if user is a member but role lacks permission for action.
     """
-    document = db.get(Document, document_id)
+    document = uow.documents.get_by_id(document_id)
     if document is None:
         raise DocumentNotFound(f"Document {document_id} not found")
 
-    membership = get_project_membership(db, project_id=document.project_id, user_id=user_id)
+    membership = uow.projects.get_membership(project_id=document.project_id, user_id=user_id)
     if membership is None:
         raise DocumentNotFound(f"Document {document_id} not found")
 

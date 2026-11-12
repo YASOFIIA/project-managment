@@ -3,12 +3,14 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.ports.project_repository import (
     DocumentSummary,
     ProjectWithDocuments,
 )
+from app.domain.errors import UserAlreadyMember
 from app.models.project import Project, ProjectMember
 
 USER_PROJECTS_WITH_DOCUMENTS_SQL = """
@@ -60,7 +62,10 @@ class SqlAlchemyProjectRepository:
     def add_member(self, member: ProjectMember) -> None:
         """Add and flush project membership entity."""
         self._session.add(member)
-        self._session.flush()
+        try:
+            self._session.flush()
+        except IntegrityError:
+            raise UserAlreadyMember("User is already a member of this project") from None
 
     def get_membership(self, project_id: int, user_id: int) -> ProjectMember | None:
         """Find project membership for specified user."""
@@ -104,6 +109,5 @@ class SqlAlchemyProjectRepository:
                 )
 
         return [
-            ProjectWithDocuments(**data, documents=docs)
-            for data, docs in projects_map.values()
+            ProjectWithDocuments(**data, documents=docs) for data, docs in projects_map.values()
         ]
