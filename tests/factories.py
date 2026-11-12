@@ -3,7 +3,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import Document, Project, ProjectMember, ProjectRole, User
+from app.domain.roles import ProjectRole
+from app.models import Document, Project, ProjectMember, User
 
 
 def create_user(

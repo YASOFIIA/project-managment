@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.models.project import ProjectRole
+from app.domain.roles import ProjectRole
 from tests.factories import create_project_member, create_user
 
 

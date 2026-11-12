@@ -3,7 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from app.models.project import ProjectRole
+from app.domain.roles import ProjectRole
 from app.schemas.document import DocumentResponse
 
 ProjectName = Annotated[

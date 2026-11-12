@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import Base
-from app.models import Document, Project, ProjectMember, ProjectRole, User
+from app.domain.roles import ProjectRole
+from app.models import Document, Project, ProjectMember, User
 
 
 @event.listens_for(Engine, "connect")

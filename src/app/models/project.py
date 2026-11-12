@@ -1,22 +1,15 @@
 from datetime import datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.domain.roles import ProjectRole
 
 if TYPE_CHECKING:
     from app.models.document import Document
     from app.models.user import User
-
-
-class ProjectRole(StrEnum):
-    """Access level roles for project members."""
-
-    OWNER = "owner"
-    PARTICIPANT = "participant"
 
 
 class Project(Base):

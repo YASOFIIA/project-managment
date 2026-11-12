@@ -3,7 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.models.project import ProjectMember, ProjectRole
+from app.domain.roles import ProjectRole
+from app.models.project import ProjectMember
 from tests.factories import create_project, create_project_member, create_user
 
 

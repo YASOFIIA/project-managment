@@ -6,15 +6,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.raw_queries import get_user_projects_with_documents_raw
+from app.domain.access_policy import Action
 from app.domain.errors import UserAlreadyMember, UserNotFound
+from app.domain.roles import ProjectRole
 from app.models.document import Document
-from app.models.project import Project, ProjectMember, ProjectRole
+from app.models.project import Project, ProjectMember
 from app.models.user import User
 from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
 from app.services.access import (
     get_project_membership,
     require_project_access,
-    require_project_owner,
 )
 from app.storage.base import StorageBackend
 
@@ -64,7 +65,9 @@ def get_project_info(
     Raises:
         ProjectNotFound: if project does not exist OR user is not a member.
     """
-    project, _ = require_project_access(db, project_id=project_id, user_id=user_id)
+    project, _ = require_project_access(
+        db, project_id=project_id, user_id=user_id, action=Action.VIEW
+    )
     return project
 
 
@@ -79,7 +82,9 @@ def update_project_info(
     Raises:
         ProjectNotFound: if project does not exist OR user is not a member.
     """
-    project, _ = require_project_access(db, project_id=project_id, user_id=user_id)
+    project, _ = require_project_access(
+        db, project_id=project_id, user_id=user_id, action=Action.EDIT
+    )
 
     project.name = data.name.strip()
     project.description = data.description.strip() if data.description else None
@@ -104,7 +109,9 @@ def delete_project(
         ProjectNotFound: if project does not exist OR user is not a member.
         PermissionDenied: if user is a member but not the owner.
     """
-    project, _ = require_project_owner(db, project_id=project_id, user_id=user_id)
+    project, _ = require_project_access(
+        db, project_id=project_id, user_id=user_id, action=Action.DELETE_PROJECT
+    )
 
     # Collect stored document filenames before cascading deletion removes DB rows
     stored_filenames = list(
@@ -137,7 +144,7 @@ def invite_member(
         UserAlreadyMember: if user is already a member of the project (owner or participant).
     """
     # 1. Access check: owner only (raises 404 if project/membership missing, 403 if participant)
-    require_project_owner(db, project_id=project_id, user_id=owner_id)
+    require_project_access(db, project_id=project_id, user_id=owner_id, action=Action.INVITE_MEMBER)
 
     # 2. Check that target invitee exists
     invitee = db.scalar(select(User).where(User.login == invitee_login))

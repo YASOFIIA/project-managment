@@ -6,7 +6,7 @@ from app.db.raw_queries import (
     get_user_projects_with_documents_orm,
     get_user_projects_with_documents_raw,
 )
-from app.models.project import ProjectRole
+from app.domain.roles import ProjectRole
 from tests.factories import (
     create_document,
     create_project,

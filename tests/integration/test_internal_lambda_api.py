@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import create_access_token
+from app.domain.roles import ProjectRole
 from app.models.document import Document
-from app.models.project import ProjectRole
 from tests.factories import create_document, create_project, create_project_member, create_user
 
 

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.domain.access_policy import Action
 from app.domain.errors import (
     EmptyFilenameError,
     FileTooLarge,
@@ -63,7 +64,9 @@ def upload_documents(
         ValidationError: if no files provided, empty file, invalid type, or spoofed bytes.
         ProjectQuotaExceeded: if upload would exceed the project size limit.
     """
-    require_project_access(db, project_id=project_id, user_id=user_id)
+    require_project_access(
+        db, project_id=project_id, user_id=user_id, action=Action.UPLOAD_DOCUMENT
+    )
     project = db.scalar(select(Project).where(Project.id == project_id).with_for_update())
     if project is None:
         raise ProjectNotFound(f"Project {project_id} not found")
@@ -157,7 +160,7 @@ def list_project_documents(
     Raises:
         ProjectNotFound: if project does not exist OR user is not a member.
     """
-    require_project_access(db, project_id=project_id, user_id=user_id)
+    require_project_access(db, project_id=project_id, user_id=user_id, action=Action.LIST_DOCUMENTS)
 
     stmt = (
         select(Document)
@@ -181,7 +184,9 @@ def get_document_for_download(
         DocumentNotFound: if document does not exist OR user lacks access.
         StorageFileNotFound: if file is missing from storage.
     """
-    doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
+    doc, _ = require_document_access(
+        db, document_id=document_id, user_id=user_id, action=Action.DOWNLOAD_DOCUMENT
+    )
     try:
         stream = storage.get(doc.stored_filename)
     except FileNotFoundError as exc:
@@ -209,7 +214,9 @@ def replace_document(
         ValidationError: if file is empty, invalid type, or magic bytes mismatch.
         ProjectQuotaExceeded: if replaced file exceeds the project size limit.
     """
-    doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
+    doc, _ = require_document_access(
+        db, document_id=document_id, user_id=user_id, action=Action.REPLACE_DOCUMENT
+    )
     project = db.scalar(select(Project).where(Project.id == doc.project_id).with_for_update())
     if project is None:
         raise ProjectNotFound(f"Project {doc.project_id} not found")
@@ -281,7 +288,9 @@ def delete_document(
     Raises:
         DocumentNotFound: if document does not exist OR user lacks access.
     """
-    doc, _ = require_document_access(db, document_id=document_id, user_id=user_id)
+    doc, _ = require_document_access(
+        db, document_id=document_id, user_id=user_id, action=Action.DELETE_DOCUMENT
+    )
     project = db.scalar(select(Project).where(Project.id == doc.project_id).with_for_update())
     stored_key = doc.stored_filename
     doc_size = doc.file_size_bytes

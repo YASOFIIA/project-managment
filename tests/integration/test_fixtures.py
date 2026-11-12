@@ -2,7 +2,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import ProjectRole, User
+from app.domain.roles import ProjectRole
+from app.models import User
 from tests.factories import create_document, create_project, create_project_member, create_user
 
 

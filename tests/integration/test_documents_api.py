@@ -8,9 +8,9 @@ from lambdas.size_limit.handler import S3_KEY_PATTERN
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
-from app.domain.errors import LimitExceededError
+from app.domain.errors import ProjectQuotaExceeded
+from app.domain.roles import ProjectRole
 from app.models.document import Document
-from app.models.project import ProjectRole
 from app.storage import get_storage
 from tests.factories import create_project, create_project_member, create_user
 
@@ -284,8 +284,8 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
                     files=[upload_file],
                 )
                 results.append(("success", docs))
-            except LimitExceededError:
-                results.append(("error", 413))
+            except ProjectQuotaExceeded as exc:
+                results.append(("error", exc))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         f1 = executor.submit(attempt_upload, 1)
@@ -297,8 +297,8 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
     assert "success" in statuses
     assert "error" in statuses
 
-    error_code = [r[1] for r in results if r[0] == "error"][0]
-    assert error_code == 413
+    error_exc = [r[1] for r in results if r[0] == "error"][0]
+    assert isinstance(error_exc, ProjectQuotaExceeded)
 
     # Verify database state in a fresh session
     with Session(engine) as verify_session:
