@@ -21,13 +21,16 @@ echo "==> Deploying Lambda function ${FUNCTION_NAME} to LocalStack..."
 aws --endpoint-url="${ENDPOINT_URL}" --region="${REGION}" lambda delete-function \
     --function-name "${FUNCTION_NAME}" 2>/dev/null || true
 
+CALLBACK_SECRET="${LAMBDA_CALLBACK_SECRET:-compose-lambda-secret-replace-in-production}"
+API_URL="${API_CALLBACK_URL:-http://localhost:8000/internal/lambda/quota-alert}"
+
 aws --endpoint-url="${ENDPOINT_URL}" --region="${REGION}" lambda create-function \
     --function-name "${FUNCTION_NAME}" \
     --runtime python3.12 \
     --handler handler.lambda_handler \
     --role "arn:aws:iam::000000000000:role/lambda-role" \
     --zip-file "fileb://${TMP_ZIP}" \
-    --environment "Variables={API_CALLBACK_URL=http://localhost:8000/internal/lambda/quota-alert,LAMBDA_CALLBACK_SECRET=internal-lambda-secret-key,MAX_PROJECT_SIZE_BYTES=52428800,S3_ENDPOINT_URL=${ENDPOINT_URL}}"
+    --environment "Variables={API_CALLBACK_URL=${API_URL},LAMBDA_CALLBACK_SECRET=${CALLBACK_SECRET},MAX_PROJECT_SIZE_BYTES=52428800,S3_ENDPOINT_URL=${ENDPOINT_URL}}"
 
 LAMBDA_ARN=$(aws --endpoint-url="${ENDPOINT_URL}" --region="${REGION}" lambda get-function \
     --function-name "${FUNCTION_NAME}" --query 'Configuration.FunctionArn' --output text)

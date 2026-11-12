@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 
 from app.application.ports.unit_of_work import UnitOfWork
 from app.domain.errors import ProjectNotFound

@@ -136,6 +136,20 @@ to mark the document as rejected, otherwise reports the new total to the API (st
       `src/app/` be able to say what it does and why. Ask the agent to quiz you
       (see `PROMPTS.md`, "Quiz me").
 
+## Phase R - Architecture Refactoring (Clean Architecture)
+
+- [x] **R0 [BUILD]** Deterministic storage keys, `generate_safe_stored_filename` unification.
+- [x] **R1 [BUILD]** Pure domain errors and centralized exception handling.
+- [x] **R1.1 [BUILD]** Domain error categories without HTTP coupling and AST dependency enforcement.
+- [x] **R2 [BUILD]** Pure domain access policy matrix, domain `ProjectRole`, unified Action-based authorization.
+- [x] **R3.1 [BUILD]** `UnitOfWork` and repository ports in `application/ports` with SQLAlchemy adapters.
+- [x] **R3.2 [BUILD]** Auth, projects, and access services switched to `UnitOfWork`.
+- [x] **R3.3 [BUILD]** Documents service switched to `UnitOfWork`, sqlstate 23505 unique error handling.
+- [x] **R3.4 [BUILD]** Removal of `raw_queries.py`, raw SQL retained in adapter, strict AST layer checks.
+- [x] **R4 [BUILD]** `UploadedFile` port, decoupling services from FastAPI, `StorageBackend` port in `application/ports`.
+- [x] **R5 [BUILD]** `api/internal.py` and `get_current_user` switched to `UnitOfWork`, `quota_alerts` service.
+- [x] **R6 [BUILD]** Architecture documentation, live demo script verification, dead code audit.
+
 ---
 
 ## Phase 13 - Real AWS deployment  (START ONLY AFTER Phases 0-12 WORK LOCALLY)

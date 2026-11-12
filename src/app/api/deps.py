@@ -64,15 +64,21 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
-    user_id_str = payload.get("sub")
-    if not user_id_str or not user_id_str.isdigit():
+    sub = payload.get("sub")
+    try:
+        if sub is None or isinstance(sub, bool):
+            raise ValueError
+        user_id = int(sub)
+        if user_id <= 0:
+            raise ValueError
+    except (ValueError, TypeError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from exc
 
-    user = uow.users.get_by_id(int(user_id_str))
+    user = uow.users.get_by_id(user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

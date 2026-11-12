@@ -29,7 +29,7 @@ curl -s -f "${BASE_URL}/health" | jq . || {
     exit 1
 }
 
-# 2. Register Alice (Project Owner)
+# 2. Register Alice (Project Owner) and Bob (Participant)
 log_step "Step 2: Registering Alice (Owner) and Bob (Participant)"
 TIMESTAMP=$(date +%s)
 ALICE_USER="alice_${TIMESTAMP}"
@@ -37,9 +37,9 @@ BOB_USER="bob_${TIMESTAMP}"
 PASSWORD="SecurePassword123!"
 
 log_info "Registering Alice (${ALICE_USER})..."
-curl -s -X POST "${BASE_URL}/register" \
+curl -s -X POST "${BASE_URL}/auth" \
     -H "Content-Type: application/json" \
-    -d "{\"login\": \"${ALICE_USER}\", \"password\": \"${PASSWORD}\", \"confirm_password\": \"${PASSWORD}\"}" | jq .
+    -d "{\"login\": \"${ALICE_USER}\", \"password\": \"${PASSWORD}\", \"repeat_password\": \"${PASSWORD}\"}" | jq .
 
 log_info "Logging in as Alice to obtain JWT access token..."
 ALICE_TOKEN=$(curl -s -X POST "${BASE_URL}/login" \
@@ -48,9 +48,9 @@ ALICE_TOKEN=$(curl -s -X POST "${BASE_URL}/login" \
 echo "Alice JWT: ${ALICE_TOKEN:0:20}...[truncated]"
 
 log_info "Registering Bob (${BOB_USER})..."
-curl -s -X POST "${BASE_URL}/register" \
+curl -s -X POST "${BASE_URL}/auth" \
     -H "Content-Type: application/json" \
-    -d "{\"login\": \"${BOB_USER}\", \"password\": \"${PASSWORD}\", \"confirm_password\": \"${PASSWORD}\"}" | jq .
+    -d "{\"login\": \"${BOB_USER}\", \"password\": \"${PASSWORD}\", \"repeat_password\": \"${PASSWORD}\"}" | jq .
 
 log_info "Logging in as Bob to obtain JWT access token..."
 BOB_TOKEN=$(curl -s -X POST "${BASE_URL}/login" \
@@ -60,7 +60,7 @@ echo "Bob JWT: ${BOB_TOKEN:0:20}...[truncated]"
 
 # 3. Alice creates a project
 log_step "Step 3: Alice creates a new Project"
-PROJECT_RESP=$(curl -s -X POST "${BASE_URL}/project" \
+PROJECT_RESP=$(curl -s -X POST "${BASE_URL}/projects" \
     -H "Authorization: Bearer ${ALICE_TOKEN}" \
     -H "Content-Type: application/json" \
     -d '{"name": "Alpha Defense Demo", "description": "EPAM Final Project"}')
@@ -70,14 +70,14 @@ log_info "Created Project ID: ${PROJECT_ID}"
 
 # 4. Upload Document
 log_step "Step 4: Alice uploads a project document"
-TMP_DOC="/tmp/demo_report.txt"
-echo "Project Management Service Defense Report - Confidential" > "${TMP_DOC}"
+TMP_DOC="/tmp/demo_report.pdf"
+printf '%%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 3 3]>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000010 00000 n\n0000000053 00000 n\n0000000102 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n149\n%%%%EOF' > "${TMP_DOC}"
 
-DOC_RESP=$(curl -s -X POST "${BASE_URL}/project/${PROJECT_ID}/document" \
+DOC_RESP=$(curl -s -X POST "${BASE_URL}/project/${PROJECT_ID}/documents" \
     -H "Authorization: Bearer ${ALICE_TOKEN}" \
-    -F "file=@${TMP_DOC};type=text/plain")
+    -F "files=@${TMP_DOC};type=application/pdf")
 echo "${DOC_RESP}" | jq .
-DOC_ID=$(echo "${DOC_RESP}" | jq -r .id)
+DOC_ID=$(echo "${DOC_RESP}" | jq -r '.[0].id')
 log_info "Uploaded Document ID: ${DOC_ID}"
 
 # 5. Security Check: Bob attempts to view project before invitation (Must return 404!)
@@ -107,8 +107,8 @@ curl -s -X GET "${BASE_URL}/project/${PROJECT_ID}/info" \
 
 log_info "Bob downloads document content:"
 curl -s -X GET "${BASE_URL}/document/${DOC_ID}" \
-    -H "Authorization: Bearer ${BOB_TOKEN}"
-echo ""
+    -H "Authorization: Bearer ${BOB_TOKEN}" -o /tmp/downloaded_report.pdf
+echo "Downloaded document size: $(wc -c < /tmp/downloaded_report.pdf) bytes"
 
 # 8. Security Check: Bob attempts to delete project (Must return 403 Forbidden!)
 log_step "Step 8: Security Check - Bob attempts to delete project"
@@ -134,4 +134,4 @@ curl -s -X GET "${BASE_URL}/project/${PROJECT_ID}/info" \
     -H "Authorization: Bearer ${ALICE_TOKEN}" | jq .
 
 log_step "DEMO COMPLETED SUCCESSFULLY! All security invariants, RBAC rules, and cascades verified."
-rm -f "${TMP_DOC}" /tmp/bob_probe.json /tmp/bob_del.json
+rm -f "${TMP_DOC}" /tmp/downloaded_report.pdf /tmp/bob_probe.json /tmp/bob_del.json

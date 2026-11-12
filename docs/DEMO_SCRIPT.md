@@ -29,26 +29,26 @@ This guide provides a structured, step-by-step walkthrough for defending the `pm
 
 ### Step 2: User Registration & Authentication (0:45 - 1:45)
 - **Action:**
-  1. `POST /register`: Register user `alice` with password `SecurePassword123!`.
+  1. `POST /auth`: Register user `alice` with `login`, `password: "SecurePassword123!"`, and `repeat_password: "SecurePassword123!"`.
   2. `POST /login`: Log in as `alice` and copy the returned Bearer JWT token.
   3. Click **Authorize** button in Swagger UI and enter `Bearer <token>`.
 - **Speaking Notes:**
   > *"Authentication uses Argon2id, the current OWASP recommendation for password hashing, resistant to GPU/ASIC cracking. Access tokens are stateless JWTs signed with HMAC-SHA256 and configured with an exact 1-hour expiration window. Incoming requests are assigned a unique UUID `X-Request-ID` for end-to-end log correlation."*
 - **Verify:**
-  - `POST /register` -> `HTTP 201 Created`
+  - `POST /auth` -> `HTTP 201 Created`
   - `POST /login` -> `HTTP 200 OK` returning `access_token` and `token_type: "bearer"`.
 
 ---
 
 ### Step 3: Project Creation & Uploading Documents (1:45 - 2:45)
 - **Action:**
-  1. `POST /project`: Create project `Alpha Launch` (`{"name": "Alpha Launch", "description": "Q4 Deliverables"}`). Note `id` (e.g., `1`).
-  2. `POST /project/1/document`: Upload a sample PDF or PNG file.
+  1. `POST /projects`: Create project `Alpha Launch` (`{"name": "Alpha Launch", "description": "Q4 Deliverables"}`). Note `id` (e.g., `1`).
+  2. `POST /project/1/documents`: Upload a sample PDF or PNG file (`files` multipart).
 - **Speaking Notes:**
   > *"When Alice creates a project, she is atomically assigned the `owner` role in the `project_members` junction table. When uploading documents, we validate both the filename extension and the actual binary magic bytes via `python-magic`. Files are stored under unique UUID filenames (`stored_filename`), completely preventing Path Traversal (`../`) attacks."*
 - **Verify:**
-  - `POST /project` -> `HTTP 201 Created` with `total_size_bytes: 0`.
-  - `POST /project/1/document` -> `HTTP 201 Created` returning document details and updated total project size.
+  - `POST /projects` -> `HTTP 201 Created` with `total_size_bytes: 0`.
+  - `POST /project/1/documents` -> `HTTP 201 Created` returning document details and updated total project size.
 
 ---
 
