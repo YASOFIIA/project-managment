@@ -11,7 +11,7 @@ def test_full_collaboration_lifecycle_scenario(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify complete end-to-end multi-user collaboration workflow (T5.2):
+    """Verify complete end-to-end multi-user collaboration workflow:
 
     1. Register User A (Alice) and User B (Bob).
     2. Authenticate User A and User B via /login to obtain JWT tokens.

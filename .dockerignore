@@ -42,7 +42,5 @@ storage_root/
 # Project planning documents (keep README.md for package build)
 docs/
 AGENTS.md
-PLAN.md
 PROMPTS.md
-TASK.md
 REFERENCE_NOTES.md

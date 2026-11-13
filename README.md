@@ -1,6 +1,6 @@
 # Project Management Service (`pm-service`)
 
-A robust, enterprise-grade REST API backend for collaborative project management and secure document handling, built with **Python 3.12+**, **FastAPI**, **PostgreSQL**, **SQLAlchemy 2.0**, and pluggable storage (**Local Filesystem** / **AWS S3**).
+A robust REST API backend for collaborative project management and secure document handling, built with **Python 3.12+**, **FastAPI**, **PostgreSQL**, **SQLAlchemy 2.0**, and pluggable storage (**Local Filesystem** / **AWS S3**).
 
 ---
 
@@ -34,7 +34,7 @@ A robust, enterprise-grade REST API backend for collaborative project management
 
 - **Runtime & Package Manager**: Python 3.12+, `uv`
 - **Web Framework**: FastAPI, Starlette, Uvicorn (ASGI)
-- **Database & Migrations**: PostgreSQL 18, psycopg 3 (native async-capable driver), SQLAlchemy 2.0 (`Mapped[...]`), Alembic
+- **Database & Migrations**: PostgreSQL 16, psycopg 3 (native async-capable driver), SQLAlchemy 2.0 (`Mapped[...]`), Alembic
 - **Validation & Serialization**: Pydantic v2, `pydantic-settings`
 - **Security & Cryptography**: `pwdlib[argon2]` (Argon2id password hashing), PyJWT (HS256)
 - **Quality & Linters**: Ruff (linter & formatter), mypy (strict static typing with `pydantic.mypy`), pytest, pytest-cov (coverage >= 85% enforced)
@@ -148,7 +148,7 @@ Every error response strictly follows a uniform JSON structure:
 ### 2. Environment Setup
 ```bash
 # Clone repository and enter directory
-cd project-management
+cd project-managment
 
 # Create and sync virtual environment with all dependencies
 uv sync

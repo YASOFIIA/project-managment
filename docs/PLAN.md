@@ -134,7 +134,7 @@ to mark the document as rejected, otherwise reports the new total to the API (st
 - [x] **T12.1 [USER]** Demo script (5-7 minutes) using the API docs UI or a small script.
 - [ ] **T12.2 [USER]** Read your whole `docs/LEARNING_LOG.md` out loud; for every file in
       `src/app/` be able to say what it does and why. Ask the agent to quiz you
-      (see `PROMPTS.md`, "Quiz me").
+      (see local `PROMPTS.md`, "Quiz me").
 
 ## Phase R - Architecture Refactoring (Clean Architecture)
 
@@ -150,6 +150,7 @@ to mark the document as rejected, otherwise reports the new total to the API (st
 - [x] **R5 [BUILD]** `api/internal.py` and `get_current_user` switched to `UnitOfWork`, `quota_alerts` service.
 - [x] **R6 [BUILD]** Architecture documentation, live demo script verification, dead code audit.
 - [x] **R7 [BUILD]** CI and pre-commit ruff unification, CI alembic check, architecture lifecycle doc fix, open questions update.
+- [x] **R8 [BUILD]** Repository cleanup: move docs, ignore local notes, conventional commits rule, remove task prefixes.
 
 ---
 
