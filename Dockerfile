@@ -45,8 +45,6 @@ WORKDIR /app
 COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appgroup /app/src /app/src
 COPY --from=builder --chown=appuser:appgroup /app/alembic.ini /app/schema.sql ./
-COPY --chown=appuser:appgroup docker-entrypoint.sh ./
-RUN chmod +x /app/docker-entrypoint.sh
 
 # Place virtual environment on PATH
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -64,5 +62,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD curl -f http://127.0.0.1:8000/health || exit 1
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -28,6 +28,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Apply DB migrations, then start the server
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     environment:
       ENVIRONMENT: production
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pm_user}:${POSTGRES_PASSWORD:-pm_password}@postgres:5432/${POSTGRES_DB:-pm_db}

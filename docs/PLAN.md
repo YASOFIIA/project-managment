@@ -152,6 +152,7 @@ to mark the document as rejected, otherwise reports the new total to the API (st
 - [x] **R7 [BUILD]** CI and pre-commit ruff unification, CI alembic check, architecture lifecycle doc fix, open questions update.
 - [x] **R8 [BUILD]** Repository cleanup: move docs, ignore local notes, conventional commits rule, remove task prefixes.
 - [x] **R9 [BUILD]** Custom OpenAPI schema generation replacing contentMediaType with format: binary for Swagger UI.
+- [x] **D1 [BUILD]** Run migrations via compose command instead of startup script.
 
 ---
 

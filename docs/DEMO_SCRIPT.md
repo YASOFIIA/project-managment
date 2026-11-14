@@ -22,7 +22,7 @@ This guide provides a structured, step-by-step walkthrough for defending the `pm
 ### Step 1: Service Health & Infrastructure (0:00 - 0:45)
 - **Action:** Open browser to `http://localhost:8000/health` or `http://localhost:8000/docs`.
 - **Speaking Notes:**
-  > *"Our service is completely containerized with Docker Compose. It orchestrates PostgreSQL 16, FastAPI running under an unprivileged non-root user (`appuser`), and LocalStack 3.8 emulating AWS S3 and Lambda. Startup migrations run automatically via `docker-entrypoint.sh` before traffic is accepted."*
+  > *"Our service is completely containerized with Docker Compose. It orchestrates PostgreSQL 16, FastAPI running under an unprivileged non-root user (`appuser`), and LocalStack 3.8 emulating AWS S3 and Lambda. Startup migrations run automatically via the api service command in docker-compose.yml before traffic is accepted."*
 - **Verify:** `GET /health` returns `HTTP 200 OK` with `{"status": "ok", "environment": "...", "version": "0.1.0"}`.
 
 ---

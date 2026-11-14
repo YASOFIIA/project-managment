@@ -14,6 +14,15 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### Decoupling database migrations from container image to docker-compose command
+- **What was built:** Removed custom startup script and eliminated image-level startup hooks from `Dockerfile`. The Docker image now only defines `CMD ["uvicorn", "app.main:app", ...]`. Configured service `api` in `docker-compose.yml` to run database migrations prior to server launch via `command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]`.
+- **Key concept:** Single Responsibility Principle in Container Packaging & Process Signal Handling:
+  - Docker images should be single-purpose and environment-agnostic: embedding startup migration scripts into the runtime container image couples packaging with orchestration lifecycle (e.g. in Kubernetes/ECS or autoscaling groups, running migrations in every application replica causes concurrency races).
+  - Using `exec` in shell command strings replaces the subshell process with the Uvicorn process (PID 1), ensuring that OS signals (`SIGTERM`, `SIGINT`) emitted by Docker on `docker compose stop` or restart are received and handled gracefully by Uvicorn rather than swallowed by `/bin/sh`.
+- **Why this way:** Separates the concerns: the Docker image packages the pure web application, while migration execution is controlled explicitly by the deployment orchestration layer.
+- **Possible defense question:** Why is `exec` necessary before `uvicorn` in the docker-compose `command` string?
+  - **Answer:** When running a shell string via `sh -c "alembic upgrade head && uvicorn ..."`, the shell (`/bin/sh`) becomes the root container process (PID 1). Without `exec`, when Docker sends a `SIGTERM` signal to stop the container, `/bin/sh` does not forward signals to child processes by default, causing Uvicorn to hang until Docker issues a forceful `SIGKILL` (10 seconds timeout). `exec uvicorn` replaces the `/bin/sh` process image with Uvicorn, making Uvicorn PID 1 so it handles graceful shutdown immediately.
+
 ### Swagger UI file picker schema compatibility via custom OpenAPI generator
 - **What was built:**
   - Implemented a custom OpenAPI schema generator in `src/app/main.py` that recursively inspects `components.schemas` and replaces nodes having `{"type": "string", "contentMediaType": "application/octet-stream"}` with `{"type": "string", "format": "binary"}`.
@@ -164,11 +173,11 @@ Before the defense, read this whole file out loud.
   - **Answer:** Although SQLite is fast and lightweight, it behaves differently from PostgreSQL in critical areas: SQLite does not support native `JSONB`, handles custom `ENUM` types differently, lacks PostgreSQL-specific concurrency semantics (e.g. table/row-level locking), and has different foreign key constraint execution rules. Running tests against a real PostgreSQL container ensures that database queries, Alembic migrations, and transactional isolation are verified under exact production conditions.
 
 ### T7.2 - Docker Compose with PostgreSQL and startup migrations
-- **What was built:** Created `docker-entrypoint.sh` executing `alembic upgrade head` before launching Uvicorn. Updated `Dockerfile` with the entrypoint. Created `docker-compose.yml` orchestrating `api` and `postgres:16-alpine` with healthchecks (`pg_isready`), named persistent volumes (`postgres_data`, `storage_data`), dependency conditions (`condition: service_healthy`), and non-conflicting port mapping (`5433:5432` for host DB). Tested full lifecycle (`docker compose up -d --build`, verified migrations in logs, healthcheck 200, and `docker compose down -v`).
+- **What was built:** Created startup script executing `alembic upgrade head` before launching Uvicorn. Updated `Dockerfile` with the startup script. Created `docker-compose.yml` orchestrating `api` and `postgres:16-alpine` with healthchecks (`pg_isready`), named persistent volumes (`postgres_data`, `storage_data`), dependency conditions (`condition: service_healthy`), and non-conflicting port mapping (`5433:5432` for host DB). Tested full lifecycle (`docker compose up -d --build`, verified migrations in logs, healthcheck 200, and `docker compose down -v`).
 - **Key concept:** Microservice orchestration, startup dependency management, and automated migration:
   - Docker Compose handles declarative multi-container topologies with isolated bridge networks.
   - Using `condition: service_healthy` on PostgreSQL ensures the database engine is fully initialized and accepting socket connections before the web application container attempts to connect.
-  - Automatically running migrations (`alembic upgrade head`) in the entrypoint script eliminates manual operational steps when spinning up new environments from a clean clone.
+  - Automatically running migrations (`alembic upgrade head`) in the startup script eliminates manual operational steps when spinning up new environments from a clean clone.
   - Named volumes decouple stateful data (database records, binary document files) from container lifecycles, enabling container destruction and recreation without data loss.
 - **Why this way:** Delivers a reproducible single-command development and staging environment (`docker compose up`) matching production infrastructure requirements.
 - **Possible defense question:** Why should `depends_on` include `condition: service_healthy` instead of just referencing the service name?
