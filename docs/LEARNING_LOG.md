@@ -14,6 +14,19 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### Swagger UI file picker schema compatibility via custom OpenAPI generator
+- **What was built:**
+  - Implemented a custom OpenAPI schema generator in `src/app/main.py` that recursively inspects `components.schemas` and replaces nodes having `{"type": "string", "contentMediaType": "application/octet-stream"}` with `{"type": "string", "format": "binary"}`.
+  - Cached the patched schema in `application.openapi_schema` and assigned the custom generator to `application.openapi` with `# type: ignore[method-assign]`.
+  - Added unit test suite in `tests/unit/test_openapi.py` verifying that array file schemas (`Body_upload_files_...`) and single file schemas (`Body_update_file_...`) receive `format: "binary"`, omit `contentMediaType`, and cache properly.
+- **Key concept:** OpenAPI 3.1 Specification vs. Tooling Ecosystem (Swagger UI):
+  - OpenAPI 3.1 aligned with JSON Schema 2020-12 by deprecating `format: binary` in favor of RFC 7303 `contentMediaType: application/octet-stream`.
+  - However, frontend UI renderers like Swagger UI v5 still rely on `format: binary` to detect binary file inputs and render native `<input type="file">` controls instead of plain text string inputs.
+  - Intercepting the schema generation at the framework boundary bridges standard adherence with real-world tooling usability without altering runtime validation or business logic.
+- **Why this way:** Preserves standard FastAPI/Pydantic route signatures while ensuring interactive documentation in Swagger UI renders file upload pickers correctly.
+- **Possible defense question:** Why did Swagger UI render text inputs instead of file pickers for document uploads, and how does your solution resolve it?
+  - **Answer:** FastAPI 0.115+ defaults to OpenAPI 3.1 where file inputs are defined as `{type: string, contentMediaType: application/octet-stream}` rather than the OpenAPI 3.0 standard `{type: string, format: binary}`. Swagger UI requires `format: binary` to display file picker buttons. Our custom `openapi()` interceptor recursively transforms `contentMediaType` into `format: binary` before caching the schema, enabling the file picker widget in `/docs` without changing any backend controllers.
+
 ### R7 - CI ruff unification, alembic check in CI, lifecycle docs, and open questions update
 - **What was built:**
   - Migrated `.pre-commit-config.yaml` from external repository ruff hooks (`astral-sh/ruff-pre-commit` pinned to v0.6.9) to local system hooks running `uv run ruff check --fix` and `uv run ruff format`. Formatted the entire codebase with `uv run ruff format .` to align with the lockfile's ruff v0.17.4 (resolving formatting differences in `tests/integration/test_schema_equivalence.py`).
