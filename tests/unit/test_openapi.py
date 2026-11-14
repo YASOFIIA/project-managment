@@ -26,3 +26,4 @@ def test_openapi_schema_is_cached() -> None:
     schema_first = app.openapi()
     schema_second = app.openapi()
     assert schema_first is schema_second
+
