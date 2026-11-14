@@ -5,10 +5,14 @@ from typing import Self
 from sqlalchemy.orm import Session
 
 from app.application.ports.document_repository import DocumentRepository
+from app.application.ports.invitation_repository import InvitationRepository
 from app.application.ports.project_repository import ProjectRepository
 from app.application.ports.user_repository import UserRepository
 from app.infrastructure.repositories.document_repository import (
     SqlAlchemyDocumentRepository,
+)
+from app.infrastructure.repositories.invitation import (
+    SqlAlchemyInvitationRepository,
 )
 from app.infrastructure.repositories.project_repository import (
     SqlAlchemyProjectRepository,
@@ -26,6 +30,7 @@ class SqlAlchemyUnitOfWork:
         self.users: UserRepository = SqlAlchemyUserRepository(session)
         self.projects: ProjectRepository = SqlAlchemyProjectRepository(session)
         self.documents: DocumentRepository = SqlAlchemyDocumentRepository(session)
+        self.invitations: InvitationRepository = SqlAlchemyInvitationRepository(session)
 
     def __enter__(self) -> Self:
         return self

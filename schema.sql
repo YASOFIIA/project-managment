@@ -5,6 +5,7 @@
 -- =============================================================================
 
 -- Drop existing tables in reverse dependency order for idempotent execution
+DROP TABLE IF EXISTS project_invitations CASCADE;
 DROP TABLE IF EXISTS documents CASCADE;
 DROP TABLE IF EXISTS project_members CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
@@ -70,3 +71,20 @@ CREATE TABLE project_members (
 
 CREATE INDEX ix_project_members_project_id ON project_members (project_id);
 CREATE INDEX ix_project_members_user_id ON project_members (user_id);
+
+-- -----------------------------------------------------------------------------
+-- Table: project_invitations
+-- Email invitations with secure share links and token expiry
+-- -----------------------------------------------------------------------------
+CREATE TABLE project_invitations (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    token VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX ix_project_invitations_project_id ON project_invitations (project_id);
+CREATE UNIQUE INDEX ix_project_invitations_token ON project_invitations (token);

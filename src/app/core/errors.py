@@ -13,6 +13,7 @@ from app.domain.errors import (
     AuthenticationError,
     DomainError,
     InvalidInputError,
+    InvitationExpiredError,
     LimitExceededError,
     NotFoundError,
     PermissionDeniedError,
@@ -32,6 +33,8 @@ DOMAIN_CATEGORY_STATUS_MAP: dict[type[DomainError], int] = {
 
 def get_http_status_for_domain_error(exc: DomainError) -> int:
     """Resolve HTTP status code for a domain error based on its business category."""
+    if isinstance(exc, InvitationExpiredError):
+        return status.HTTP_410_GONE
     for error_category, http_status in DOMAIN_CATEGORY_STATUS_MAP.items():
         if isinstance(exc, error_category):
             return http_status

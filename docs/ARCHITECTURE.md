@@ -29,7 +29,7 @@ flowchart TD
     end
 
     subgraph SharedModels["Entities / Data Models (src/app/models)"]
-        Models["SQLAlchemy Declarative Models<br/>(User, Project, Document, ProjectMember)"]
+        Models["SQLAlchemy Declarative Models<br/>(User, Project, Document, ProjectMember, ProjectInvitation)"]
     end
 
     Routes --> UseCases
@@ -66,6 +66,8 @@ flowchart TD
 | `UserRepository` | `src/app/application/ports/user_repository.py` | `SqlAlchemyUserRepository` | `src/app/infrastructure/repositories/user_repository.py` | User lookup by ID / login, persistence with `23505` uniqueness check. |
 | `ProjectRepository` | `src/app/application/ports/project_repository.py` | `SqlAlchemyProjectRepository` | `src/app/infrastructure/repositories/project_repository.py` | Project CRUD, membership checks, and raw SQL aggregate queries. |
 | `DocumentRepository` | `src/app/application/ports/document_repository.py` | `SqlAlchemyDocumentRepository` | `src/app/infrastructure/repositories/document_repository.py` | Document queries, persistence, and storage key listing. |
+| `InvitationRepository` | `src/app/application/ports/invitation_repository.py` | `SqlAlchemyInvitationRepository` | `src/app/infrastructure/repositories/invitation.py` | Creation and lookup of single-use project invitation tokens. |
+| `EmailSender` | `src/app/application/ports/email_sender.py` | `SmtpEmailSender` | `src/app/infrastructure/email.py` | Asynchronous email delivery via SMTP (MailHog in dev). |
 | `StorageBackend` | `src/app/application/ports/storage.py` | `LocalStorage`<br/>`S3Storage` | `src/app/storage/local.py`<br/>`src/app/storage/s3.py` | Physical binary file persistence (Local disk / AWS S3). |
 | `UploadedFile` | `src/app/application/ports/uploaded_file.py` | `FastApiUploadedFile` | `src/app/api/documents.py` | Framework-agnostic synchronous streaming upload port. |
 

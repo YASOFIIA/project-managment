@@ -1,6 +1,9 @@
 from app.infrastructure.repositories.document_repository import (
     SqlAlchemyDocumentRepository,
 )
+from app.infrastructure.repositories.invitation import (
+    SqlAlchemyInvitationRepository,
+)
 from app.infrastructure.repositories.project_repository import (
     SqlAlchemyProjectRepository,
 )
@@ -11,6 +14,7 @@ from app.infrastructure.repositories.user_repository import (
 
 __all__ = [
     "SqlAlchemyDocumentRepository",
+    "SqlAlchemyInvitationRepository",
     "SqlAlchemyProjectRepository",
     "SqlAlchemyUnitOfWork",
     "SqlAlchemyUserRepository",

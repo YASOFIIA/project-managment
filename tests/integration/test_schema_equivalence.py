@@ -46,7 +46,13 @@ def test_schema_sql_is_structurally_equivalent_to_alembic_migrations() -> None:
 
         raw_sql_tables = set(inspector.get_table_names(schema="test_raw_sql"))
 
-        expected_tables = {"users", "projects", "project_members", "documents"}
+        expected_tables = {
+            "users",
+            "projects",
+            "project_members",
+            "documents",
+            "project_invitations",
+        }
         assert alembic_tables == expected_tables
         assert raw_sql_tables == expected_tables
 

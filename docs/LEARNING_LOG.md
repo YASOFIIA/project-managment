@@ -14,6 +14,20 @@ Before the defense, read this whole file out loud.
 
 ---
 
+### Email invitation via share link and SMTP (MailHog)
+- **What was built:**
+  - Added `GET /project/{id}/share?with=<email>` endpoint (restricted to project owner) that generates a cryptographically random invitation token (`secrets.token_urlsafe(32)`), persists it with a 48-hour expiration in `project_invitations` table, and dispatches an HTML email with a join link.
+  - Implemented `GET /join?token=<token>` endpoint allowing authenticated users to accept the invitation, join as a project `participant`, and invalidate the token (single-use).
+  - Designed port `EmailSender` (`send_invitation(to_email, project_name, join_url)`) and implemented adapter `SmtpEmailSender` using `aiosmtplib` with graceful fallback (logs warning and skips sending if `SMTP_HOST` is empty).
+  - Added `MailHog` container to `docker-compose.yml` (port 1025 for SMTP, port 8025 for Web UI) for local email inspection.
+  - Created Alembic migration `0002_project_invitations.py` and synchronized `schema.sql`.
+- **Key concept:** Ports & Adapters for External Services & Secure Token Lifecycles:
+  - External communication (email delivery) is abstracted behind the `EmailSender` port. Business services know nothing about SMTP, sockets, or third-party mailing APIs (SES, SendGrid, MailHog).
+  - Invitation tokens use 256-bit entropy (`secrets.token_urlsafe(32)`), preventing brute-force enumeration. The database model enforces single-use (`used` flag) and strict time bounds (`expires_at`), returning standard HTTP status codes: 404 for unknown/used tokens, 410 Gone for expired tokens, and 409 Conflict if the accepting user is already a member.
+- **Why this way:** Clean Architecture separates email mechanics from core project membership rules. MailHog provides a lightweight SMTP test double for local development and integration tests without leaking real emails or requiring internet access.
+- **Possible defense question:** Why is `EmailSender` placed behind an interface, and why use MailHog instead of a real SMTP service?
+  - **Answer:** Abstracting `EmailSender` allows swapping the delivery mechanism (e.g. from SMTP to AWS SES or an internal queue) without altering business logic or API handlers. MailHog acts as a local fake SMTP server that intercepts emails in development and automated testing, allowing developers to visually inspect emails at `http://localhost:8025` without configuring external credentials or risking sending emails to real users.
+
 ### Decoupling database migrations from container image to docker-compose command
 - **What was built:** Removed custom startup script and eliminated image-level startup hooks from `Dockerfile`. The Docker image now only defines `CMD ["uvicorn", "app.main:app", ...]`. Configured service `api` in `docker-compose.yml` to run database migrations prior to server launch via `command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]`.
 - **Key concept:** Single Responsibility Principle in Container Packaging & Process Signal Handling:

@@ -57,6 +57,14 @@ class StorageFileNotFound(NotFoundError):
     """File record exists in database, but physical object is missing from storage."""
 
 
+class InvalidInvitationError(NotFoundError):
+    """Invitation token was not found or has already been used."""
+
+
+class InvitationExpiredError(DomainError):
+    """Invitation token has expired."""
+
+
 # Concrete Authorization Errors
 class PermissionDenied(PermissionDeniedError):
     """Authenticated user lacks permission (e.g. not OWNER) to perform action."""

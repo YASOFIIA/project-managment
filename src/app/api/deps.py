@@ -6,10 +6,12 @@ from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.application.ports.email_sender import EmailSender
 from app.application.ports.unit_of_work import UnitOfWork
 from app.core.config import Settings, get_settings
 from app.core.security import InvalidTokenError, TokenExpiredError, decode_access_token
 from app.db.session import get_db
+from app.infrastructure.email import SmtpEmailSender
 from app.infrastructure.repositories.unit_of_work import SqlAlchemyUnitOfWork
 from app.models.user import User
 
@@ -90,6 +92,7 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 
 
 def require_lambda_secret(
@@ -114,3 +117,15 @@ def require_lambda_secret(
         )
 
     return x_lambda_secret
+
+
+def get_email_sender(
+    settings: Annotated[Settings, Depends(get_settings)] = None,  # type: ignore[assignment]
+) -> EmailSender:
+    """Provide EmailSender implementation for transactional emails."""
+    if settings is None:
+        settings = get_settings()
+    return SmtpEmailSender(settings)
+
+
+EmailSenderDep = Annotated[EmailSender, Depends(get_email_sender)]

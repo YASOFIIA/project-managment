@@ -4,16 +4,18 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.deps import CurrentUser, get_uow
+from app.api.deps import CurrentUser, EmailSenderDep, UowDep
 from app.application.ports.storage import StorageBackend
-from app.application.ports.unit_of_work import UnitOfWork
+from app.core.config import Settings, get_settings
 from app.schemas.project import (
+    InvitationResponse,
     ProjectCreateRequest,
     ProjectDetailResponse,
     ProjectMemberResponse,
     ProjectResponse,
     ProjectUpdateRequest,
 )
+from app.services.invitations import create_and_send_invitation
 from app.services.projects import (
     create_project,
     delete_project,
@@ -26,7 +28,6 @@ from app.storage import get_storage
 
 router = APIRouter(tags=["Projects"])
 
-UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 
 
@@ -148,3 +149,33 @@ def invite_user_to_project(
         invitee_login=user,
     )
     return ProjectMemberResponse.model_validate(membership)
+
+
+@router.get(
+    "/project/{project_id}/share",
+    response_model=InvitationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Share project via email invitation",
+    description=(
+        "Generate a secure invitation token and send a share link via email. "
+        "Permitted for owner only."
+    ),
+)
+def share_project_via_email(
+    project_id: int,
+    current_user: CurrentUser,
+    uow: UowDep,
+    email_sender: EmailSenderDep,
+    email: Annotated[str, Query(alias="with", min_length=3, description="Recipient email address")],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> InvitationResponse:
+    """Share project via email endpoint (owner only)."""
+    return create_and_send_invitation(
+        uow=uow,
+        email_sender=email_sender,
+        project_id=project_id,
+        owner_id=current_user.id,
+        email=email,
+        base_url=settings.app_base_url,
+        expire_hours=settings.invitation_expire_hours,
+    )

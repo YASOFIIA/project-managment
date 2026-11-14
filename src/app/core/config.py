@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     project_size_limit_bytes: int = 52428800  # 50 MB
     max_file_size_bytes: int = 52428800  # 50 MB
 
+    # SMTP & Email Notifications
+    smtp_host: str = ""
+    smtp_port: int = 1025
+    smtp_from: str = "pm-service@localhost"
+    app_base_url: str = "http://localhost:8000"
+    invitation_expire_hours: int = 48
+
 
 @lru_cache
 def get_settings() -> Settings:

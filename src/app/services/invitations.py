@@ -1,0 +1,114 @@
+from __future__ import annotations
+
+import secrets
+from datetime import UTC, datetime, timedelta
+
+from app.application.ports.email_sender import EmailSender
+from app.application.ports.unit_of_work import UnitOfWork
+from app.domain.access_policy import Action
+from app.domain.errors import (
+    InvalidInvitationError,
+    InvitationExpiredError,
+    ProjectNotFound,
+    UserAlreadyMember,
+)
+from app.domain.roles import ProjectRole
+from app.models.project import ProjectMember
+from app.schemas.project import InvitationResponse
+from app.services.access import get_project_membership, require_project_access
+
+
+def create_and_send_invitation(
+    uow: UnitOfWork,
+    email_sender: EmailSender,
+    project_id: int,
+    owner_id: int,
+    email: str,
+    base_url: str,
+    expire_hours: int = 48,
+) -> InvitationResponse:
+    """Create a project invitation token, persist it, and dispatch email via EmailSender.
+
+    Permitted only for the project OWNER.
+
+    Raises:
+        ProjectNotFound: if project does not exist OR current user is not a member.
+        PermissionDenied: if current user is not an OWNER.
+    """
+    require_project_access(
+        uow, project_id=project_id, user_id=owner_id, action=Action.INVITE_MEMBER
+    )
+    project = uow.projects.get_by_id(project_id)
+    if project is None:
+        raise ProjectNotFound(f"Project {project_id} not found")
+
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(UTC)
+    expires_at = now + timedelta(hours=expire_hours)
+
+    with uow:
+        uow.invitations.create(
+            project_id=project_id,
+            email=email,
+            token=token,
+            expires_at=expires_at,
+        )
+        uow.commit()
+
+    join_url = f"{base_url.rstrip('/')}/join?token={token}"
+    email_sender.send_invitation(
+        to_email=email,
+        project_name=project.name,
+        join_url=join_url,
+    )
+
+    return InvitationResponse(
+        message="Invitation sent",
+        email=email,
+        expires_in_hours=expire_hours,
+    )
+
+
+def accept_invitation(
+    uow: UnitOfWork,
+    token: str,
+    user_id: int,
+) -> ProjectMember:
+    """Accept an email invitation token and add the current user as a project participant.
+
+    Raises:
+        InvalidInvitationError: if token does not exist or has already been used.
+        InvitationExpiredError: if token expiration date has passed.
+        UserAlreadyMember: if the user is already a member of the project.
+    """
+    invitation = uow.invitations.get_by_token(token)
+    if invitation is None or invitation.used:
+        raise InvalidInvitationError("Invalid or already used invitation token")
+
+    expires_at = invitation.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+
+    if expires_at <= datetime.now(UTC):
+        raise InvitationExpiredError("Invitation token has expired")
+
+    existing = get_project_membership(uow, project_id=invitation.project_id, user_id=user_id)
+    if existing is not None:
+        raise UserAlreadyMember(f"User {user_id} is already a member of this project")
+
+    membership = ProjectMember(
+        project_id=invitation.project_id,
+        user_id=user_id,
+        role=ProjectRole.PARTICIPANT,
+    )
+
+    with uow:
+        invitation.used = True
+        try:
+            uow.projects.add_member(membership)
+            uow.commit()
+        except UserAlreadyMember:
+            uow.rollback()
+            raise
+
+    return membership

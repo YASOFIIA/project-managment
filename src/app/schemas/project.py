@@ -55,3 +55,13 @@ class ProjectMemberResponse(BaseModel):
     user_id: int
     role: ProjectRole
     created_at: datetime
+
+
+class InvitationResponse(BaseModel):
+    """Payload returned when project share invitation is created and dispatched."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    message: str = Field(default="Invitation sent", description="Status message")
+    email: str = Field(description="Invited recipient email address")
+    expires_in_hours: int = Field(default=48, description="Hours until invitation token expires")

@@ -68,6 +68,16 @@ This guide provides a structured, step-by-step walkthrough for defending the `pm
   - Bob views project -> `HTTP 200 OK`
   - Bob attempts project deletion -> `HTTP 403 Forbidden` (`detail: "Only project owner can perform this operation"`)
 
+### Step 4b: Email Invitation via Share Link & MailHog (Optional Feature)
+- **Action:**
+  1. As `alice`, call `GET /project/1/share?with=charlie@example.com`.
+  2. Open MailHog Web UI at `http://localhost:8025`. Show the delivered HTML invitation email with the join button.
+  3. Register/login as `charlie`. Call `GET /join?token=<token>` using the token from the email.
+  4. Verify Charlie is now a `participant` in project 1.
+  5. Try reusing the same token or joining with an expired token to demonstrate 404/410/409 error handling.
+- **Speaking Notes:**
+  > *"We implemented an asynchronous email invitation system via SMTP. The project owner generates a secure cryptographically random token valid for 48 hours. The system sends an HTML email via MailHog (for local testing). When the recipient clicks the join link, their user account is atomically added as a participant, and the token is invalidated (single-use), preventing replay attacks."*
+
 ---
 
 ### Step 5: Document Replacement & Cascading Deletion (4:15 - 5:15)
@@ -102,3 +112,5 @@ This guide provides a structured, step-by-step walkthrough for defending the `pm
    - *Answer:* Zero business code changes. Both implement the abstract `StorageBackend` interface. FastAPI dependency injection injects the appropriate driver at runtime via `STORAGE_BACKEND=local|s3`.
 4. **How do you prevent SQL injection and Path Traversal?**
    - *Answer:* SQL queries use SQLAlchemy parameterized bindings exclusively (both in ORM and raw SQL). Path Traversal is eliminated by assigning random UUID filenames (`stored_filename`) and storing files in isolated subdirectories without trusting client-provided filenames.
+5. **How are invitation tokens secured and tested locally?**
+   - *Answer:* Tokens are generated using `secrets.token_urlsafe(32)` (cryptographically secure 256-bit entropy). They are single-use (`used` flag) with a 48-hour expiration timestamp. Locally, we use MailHog as an SMTP test double (port 1025 for SMTP, port 8025 for Web UI inspection) so no real email credentials or external mail services are needed for automated integration testing and demonstrations.

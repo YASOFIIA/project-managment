@@ -56,6 +56,8 @@ Access control is centrally governed in `src/app/services/access.py`:
 | `PUT /document/{id}` | Allowed (200) | Allowed (200) | **404 Not Found** (Hidden) |
 | `DELETE /document/{id}` | Allowed (204) | Allowed (204) | **404 Not Found** (Hidden) |
 | `POST /project/{id}/invite?user={login}` | Allowed (200) | **403 Forbidden** | **404 Not Found** (Hidden) |
+| `GET /project/{id}/share?with={email}` | Allowed (200) | **403 Forbidden** | **404 Not Found** (Hidden) |
+| `GET /join?token={token}` | Allowed (200) | Allowed (200) | Allowed (200) |
 
 > **Security Rule**: Attempting to access or probe an inaccessible project ID always returns `404 Not Found` to prevent attackers from discovering whether a project ID exists.
 
@@ -83,6 +85,11 @@ Configuration is loaded via Pydantic Settings (`src/app/core/config.py`). The ap
 | `PROJECT_SIZE_LIMIT_BYTES` | int | `52428800` | No | Total quota per project (50 MB) |
 | `MAX_FILE_SIZE_BYTES` | int | `52428800` | No | Maximum allowed single file upload size |
 | `LAMBDA_CALLBACK_SECRET` | str | - | **Yes** | Shared HMAC secret for Lambda notifications |
+| `SMTP_HOST` | str | `""` | No | SMTP host for email sending (empty disables sending) |
+| `SMTP_PORT` | int | `1025` | No | SMTP server port (default MailHog SMTP port) |
+| `SMTP_FROM` | str | `"pm-service@localhost"` | No | Email address used in `From:` header |
+| `APP_BASE_URL` | str | `"http://localhost:8000"` | No | Public base URL for generated share links |
+| `INVITATION_EXPIRE_HOURS` | int | `48` | No | Email invitation validity period in hours |
 
 Copy `.env.example` to `.env` to configure your local settings:
 ```bash
@@ -115,8 +122,10 @@ cp .env.example .env
 - `PUT /document/{id}` — Replace an existing document with a new binary file. Returns `200 OK`.
 - `DELETE /document/{id}` — Delete document record and purge physical file from storage. Returns `204 No Content`.
 
-### 5. Collaboration (`/project/{id}/invite`)
-- `POST /project/{id}/invite?user={login}` — Invite registered user as a `participant` (owner only). Returns `200 OK`.
+### 5. Collaboration (`/project/{id}/invite`, `/project/{id}/share`, `/join`)
+- `POST /project/{id}/invite?user={login}` — Directly invite registered user as a `participant` (owner only). Returns `200 OK`.
+- `GET /project/{id}/share?with={email}` — Generate secure single-use token and send invitation link via email (owner only). Returns `200 OK`.
+- `GET /join?token={token}` — Accept invitation token and join project as `participant` (authenticated user). Returns `200 OK`. MailHog Web UI is available at [http://localhost:8025](http://localhost:8025) to view sent emails in development.
 
 ---
 

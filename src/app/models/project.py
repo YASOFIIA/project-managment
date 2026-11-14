@@ -9,6 +9,7 @@ from app.domain.roles import ProjectRole
 
 if TYPE_CHECKING:
     from app.models.document import Document
+    from app.models.invitation import ProjectInvitation
     from app.models.user import User
 
 
@@ -43,6 +44,11 @@ class Project(Base):
         passive_deletes=True,
     )
     documents: Mapped[list["Document"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    invitations: Mapped[list["ProjectInvitation"]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
         passive_deletes=True,
