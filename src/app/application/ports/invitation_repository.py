@@ -19,3 +19,9 @@ class InvitationRepository(Protocol):
 
     # Find invitation by token
     def get_by_token(self, token: str) -> ProjectInvitation | None: ...
+
+    # Find invitation by ID
+    def get_by_id(self, invitation_id: int) -> ProjectInvitation | None: ...
+
+    # Find pending (unused, non-expired) invitations for email
+    def get_pending_by_email(self, email: str) -> list[ProjectInvitation]: ...

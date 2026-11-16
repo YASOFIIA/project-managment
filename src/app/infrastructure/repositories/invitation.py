@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,3 +36,21 @@ class SqlAlchemyInvitationRepository:
     def get_by_token(self, token: str) -> ProjectInvitation | None:
         stmt = select(ProjectInvitation).where(ProjectInvitation.token == token)
         return self._session.scalars(stmt).first()
+
+    # Find invitation by ID
+    def get_by_id(self, invitation_id: int) -> ProjectInvitation | None:
+        return self._session.get(ProjectInvitation, invitation_id)
+
+    # Find pending (unused, non-expired) invitations for email
+    def get_pending_by_email(self, email: str) -> list[ProjectInvitation]:
+        now = datetime.now(UTC)
+        stmt = (
+            select(ProjectInvitation)
+            .where(
+                ProjectInvitation.email == email,
+                ProjectInvitation.used.is_(False),
+                ProjectInvitation.expires_at > now,
+            )
+            .order_by(ProjectInvitation.created_at.desc())
+        )
+        return list(self._session.scalars(stmt).all())
