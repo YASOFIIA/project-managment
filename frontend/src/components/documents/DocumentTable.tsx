@@ -15,11 +15,11 @@ export function DocumentTable({ documents, ...handlers }: Props) {
       <table className="w-full table-fixed text-sm">
         <thead>
           <tr>
-            <th scope="col" className={`${th} w-auto`}>Назва</th>
-            <th scope="col" className={`${th} hidden w-28 sm:table-cell`}>Тип</th>
-            <th scope="col" className={`${th} w-24`}>Розмір</th>
-            <th scope="col" className={`${th} hidden w-32 md:table-cell`}>Дата</th>
-            <th scope="col" className={`${th} w-32`}><span className="sr-only">Дії</span></th>
+            <th scope="col" className={`${th} w-auto`}>Name</th>
+            <th scope="col" className={`${th} hidden w-28 sm:table-cell`}>Type</th>
+            <th scope="col" className={`${th} w-24`}>Size</th>
+            <th scope="col" className={`${th} hidden w-32 md:table-cell`}>Date</th>
+            <th scope="col" className={`${th} w-32`}><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>

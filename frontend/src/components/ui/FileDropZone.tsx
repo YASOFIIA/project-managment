@@ -33,15 +33,15 @@ export function FileDropZone({ onFiles, disabled, multiple = true }: Props) {
       } ${disabled ? 'opacity-60' : ''}`}
     >
       <UploadCloud size={28} strokeWidth={1.5} className="mb-2 text-accent" aria-hidden />
-      <p className="text-sm font-medium">Перетягніть файли сюди</p>
-      <p className="mt-0.5 text-xs text-ink-soft">PDF, DOCX, PNG, JPG · до 50 МБ</p>
+      <p className="text-sm font-medium">Drop files here</p>
+      <p className="mt-0.5 text-xs text-ink-soft">PDF, DOCX, PNG, JPG · up to 50 MB</p>
       <button
         type="button"
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
         className="mt-3 rounded-btn bg-white px-3 py-1.5 text-[13px] font-medium shadow-card transition-colors hover:bg-white/80 disabled:cursor-not-allowed"
       >
-        Завантажити файл
+        Upload File
       </button>
       <input
         ref={inputRef}
