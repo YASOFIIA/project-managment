@@ -12,7 +12,6 @@ from app.schemas.project import (
     ProjectCreateRequest,
     ProjectDetailResponse,
     ProjectMemberDetailResponse,
-    ProjectMemberResponse,
     ProjectResponse,
     ProjectUpdateRequest,
 )
@@ -21,7 +20,6 @@ from app.services.projects import (
     create_project,
     delete_project,
     get_project_info,
-    invite_member,
     list_project_members,
     list_user_projects,
     update_project_info,
@@ -128,29 +126,6 @@ def delete_existing_project(
         project_id=project_id,
         user_id=current_user.id,
     )
-
-
-# Invite user endpoint (owner only)
-@router.post(
-    "/project/{project_id}/invite",
-    response_model=ProjectMemberResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Invite user to project",
-    description="Invite a user to the project as a participant. Permitted for owner only.",
-)
-def invite_user_to_project(
-    project_id: int,
-    current_user: CurrentUser,
-    uow: UowDep,
-    user: str = Query(..., min_length=1, description="Username of user to invite"),
-) -> ProjectMemberResponse:
-    membership = invite_member(
-        uow=uow,
-        project_id=project_id,
-        owner_id=current_user.id,
-        invitee_login=user,
-    )
-    return ProjectMemberResponse.model_validate(membership)
 
 
 # Share project via email endpoint (owner only)
