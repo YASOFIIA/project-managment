@@ -22,6 +22,7 @@ from app.services.projects import (
     get_project_info,
     list_project_members,
     list_user_projects,
+    remove_member,
     update_project_info,
 )
 from app.storage import get_storage
@@ -125,6 +126,29 @@ def delete_existing_project(
         storage=storage,
         project_id=project_id,
         user_id=current_user.id,
+    )
+
+
+# Remove member from project endpoint (owner only)
+@router.delete(
+    "/project/{project_id}/members/{member_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove member from project",
+    description=(
+        "Remove a participant from the project. Owner only. Cannot remove yourself or other owners."
+    ),
+)
+def remove_project_member(
+    project_id: int,
+    member_id: int,
+    current_user: CurrentUser,
+    uow: UowDep,
+) -> None:
+    remove_member(
+        uow=uow,
+        project_id=project_id,
+        owner_id=current_user.id,
+        member_id=member_id,
     )
 
 

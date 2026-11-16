@@ -78,6 +78,14 @@ class SqlAlchemyProjectRepository:
         )
         return self._session.scalar(stmt)
 
+    # Find project membership by ID
+    def get_member_by_id(self, member_id: int) -> ProjectMember | None:
+        return self._session.get(ProjectMember, member_id)
+
+    # Remove project membership
+    def remove_member(self, member: ProjectMember) -> None:
+        self._session.delete(member)
+
     # List all members of a project (with users loaded)
     def list_members(self, project_id: int) -> list[ProjectMember]:
         stmt = (

@@ -15,12 +15,15 @@ class Action(StrEnum):
     REPLACE_DOCUMENT = "replace_document"
     DELETE_DOCUMENT = "delete_document"
     INVITE_MEMBER = "invite_member"
+    REMOVE_MEMBER = "remove_member"
 
 
 POLICY_MATRIX: dict[ProjectRole, frozenset[Action]] = {
     ProjectRole.OWNER: frozenset(Action),
     ProjectRole.PARTICIPANT: frozenset(
-        action for action in Action if action not in {Action.DELETE_PROJECT, Action.INVITE_MEMBER}
+        action
+        for action in Action
+        if action not in {Action.DELETE_PROJECT, Action.INVITE_MEMBER, Action.REMOVE_MEMBER}
     ),
 }
 

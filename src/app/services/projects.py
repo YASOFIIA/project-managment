@@ -6,6 +6,7 @@ from app.application.ports.project_repository import ProjectWithDocuments
 from app.application.ports.storage import StorageBackend
 from app.application.ports.unit_of_work import UnitOfWork
 from app.domain.access_policy import Action
+from app.domain.errors import PermissionDenied, ProjectNotFound
 from app.domain.roles import ProjectRole
 from app.models.project import Project, ProjectMember
 from app.models.user import User
@@ -117,3 +118,30 @@ def delete_project(
                 exc,
             )
 
+
+# Remove a participant from a project (owner only)
+def remove_member(
+    uow: UnitOfWork,
+    project_id: int,
+    owner_id: int,
+    member_id: int,
+) -> None:
+    require_project_access(
+        uow, project_id=project_id, user_id=owner_id, action=Action.REMOVE_MEMBER
+    )
+
+    member = uow.projects.get_member_by_id(member_id)
+    if member is None or member.project_id != project_id:
+        raise ProjectNotFound(f"Member {member_id} not found in project {project_id}")
+
+    # Owner cannot remove themselves
+    if member.user_id == owner_id:
+        raise PermissionDenied("Cannot remove yourself from the project")
+
+    # Cannot remove another owner (safety check)
+    if member.role == ProjectRole.OWNER:
+        raise PermissionDenied("Cannot remove a project owner")
+
+    with uow:
+        uow.projects.remove_member(member)
+        uow.commit()
