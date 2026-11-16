@@ -7,8 +7,8 @@ from sqlalchemy import create_engine, inspect, text
 from app.core.config import get_settings
 
 
+# Check plain schema.sql produces tables, columns, and foreign keys matching Alembic
 def test_schema_sql_is_structurally_equivalent_to_alembic_migrations() -> None:
-    """Verify that plain schema.sql produces tables, columns, and foreign keys matching Alembic."""
     settings = get_settings()
     engine = create_engine(settings.test_database_url)
 

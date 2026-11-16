@@ -14,8 +14,8 @@ from tests.factories import (
 )
 
 
+# Check a user without any project memberships receives an empty list
 def test_get_projects_empty_for_new_user(client: TestClient, db_session: Session) -> None:
-    """Verify that a user without any project memberships receives an empty list."""
     user = create_user(db_session, login="lonely_user")
     token = create_access_token(user_id=user.id, login=user.login)
 
@@ -28,11 +28,11 @@ def test_get_projects_empty_for_new_user(client: TestClient, db_session: Session
     assert response.json() == []
 
 
+# Check GET /projects returns only accessible projects with their attached documents
 def test_get_projects_returns_accessible_projects_with_nested_documents(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify that GET /projects returns only accessible projects with their attached documents."""
     user_a = create_user(db_session, login="user_a")
     user_b = create_user(db_session, login="user_b")
     user_c = create_user(db_session, login="user_c")
@@ -81,8 +81,8 @@ def test_get_projects_returns_accessible_projects_with_nested_documents(
     assert doc_ids_2 == {doc2_a.id}
 
 
+# Check raw SQL list_for_user_with_documents produces expected results
 def test_raw_sql_and_orm_produce_identical_results(db_session: Session) -> None:
-    """Verify that raw SQL list_for_user_with_documents produces expected results."""
     user = create_user(db_session, login="query_comparator")
     proj = create_project(db_session, name="Comparison Project")
     create_project_member(db_session, proj.id, user.id, role=ProjectRole.OWNER)
@@ -105,7 +105,7 @@ def test_raw_sql_and_orm_produce_identical_results(db_session: Session) -> None:
     assert raw_doc_ids == {doc1.id, doc2.id}
 
 
+# Check GET /projects requires valid authentication
 def test_get_projects_unauthenticated_returns_401(client: TestClient) -> None:
-    """Verify that GET /projects requires valid authentication."""
     response = client.get("/projects")
     assert response.status_code == 401

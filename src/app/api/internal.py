@@ -1,5 +1,4 @@
-"""Internal API endpoints for serverless function webhooks and administrative tasks."""
-
+# Internal endpoints for Lambda webhooks
 from __future__ import annotations
 
 from typing import Annotated
@@ -16,6 +15,7 @@ router = APIRouter(prefix="/internal", tags=["Internal"])
 UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 
 
+# Handle Lambda size limit webhook callback
 @router.post(
     "/lambda/quota-alert",
     response_model=LambdaQuotaCallbackResponse,
@@ -26,7 +26,6 @@ def handle_lambda_quota_callback(
     payload: LambdaQuotaCallbackRequest,
     uow: UowDep,
 ) -> LambdaQuotaCallbackResponse:
-    """Internal webhook called by AWS Lambda size limit checker."""
     result = process_quota_alert(
         uow=uow,
         project_id=payload.project_id,

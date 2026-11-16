@@ -4,9 +4,8 @@ from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# App settings from env and .env file
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables and .env file."""
-
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -54,7 +53,7 @@ class Settings(BaseSettings):
     invitation_expire_hours: int = 48
 
 
+# Cached application settings singleton
 @lru_cache
 def get_settings() -> Settings:
-    """Return cached application settings singleton instance."""
     return Settings()

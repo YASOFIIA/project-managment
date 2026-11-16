@@ -13,8 +13,8 @@ from app.services.file_validation import (
 )
 
 
+# Check filename sanitization strips directories and whitespace
 def test_sanitize_filename() -> None:
-    """Verify filename sanitization strips directories and whitespace."""
     assert sanitize_filename("document.pdf") == "document.pdf"
     assert sanitize_filename("  spaces.docx  ") == "spaces.docx"
     assert sanitize_filename("../../etc/passwd.pdf") == "passwd.pdf"
@@ -26,8 +26,8 @@ def test_sanitize_filename() -> None:
     assert "cannot be empty" in exc_info.value.detail
 
 
+# Check unique, collision-free UUID stored filename generation
 def test_generate_safe_stored_filename() -> None:
-    """Verify unique, collision-free UUID stored filename generation."""
     name1 = generate_safe_stored_filename("Annual Report 2026.pdf")
     name2 = generate_safe_stored_filename("Annual Report 2026.pdf")
 
@@ -38,8 +38,8 @@ def test_generate_safe_stored_filename() -> None:
     assert len(name1) == 36
 
 
+# Check successful validation of PDF and DOCX files
 def test_validate_valid_pdf_and_docx() -> None:
-    """Verify successful validation of PDF and DOCX files."""
     # PDF
     pdf_bytes = b"%PDF-1.7 valid pdf sample content"
     clean_name, mime = validate_file_upload("report.pdf", pdf_bytes)
@@ -53,8 +53,8 @@ def test_validate_valid_pdf_and_docx() -> None:
     assert mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
+# Check validation of allowed image formats (PNG, JPG, JPEG)
 def test_validate_valid_images() -> None:
-    """Verify validation of allowed image formats (PNG, JPG, JPEG)."""
     # PNG
     png_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
     _, mime_png = validate_file_upload("diagram.png", png_bytes)
@@ -69,16 +69,16 @@ def test_validate_valid_images() -> None:
     assert mime_jpeg == "image/jpeg"
 
 
+# Check empty file uploads return 400 Bad Request
 def test_validate_empty_file_rejected() -> None:
-    """Verify that empty file uploads return 400 Bad Request."""
     with pytest.raises(DomainError) as exc_info:
         validate_file_upload("empty.pdf", b"")
     assert isinstance(exc_info.value, InvalidInputError)
     assert "empty" in exc_info.value.detail
 
 
+# Check files exceeding the maximum size limit return 413 Payload Too Large
 def test_validate_file_size_exceeded_rejected() -> None:
-    """Verify that files exceeding the maximum size limit return 413 Payload Too Large."""
     large_pdf = b"%PDF-" + b"0" * 100
     with pytest.raises(DomainError) as exc_info:
         validate_file_upload("large.pdf", large_pdf, max_size_bytes=50)
@@ -86,8 +86,8 @@ def test_validate_file_size_exceeded_rejected() -> None:
     assert "exceeds limit" in exc_info.value.detail
 
 
+# Check disallowed extensions return 400 Bad Request
 def test_validate_disallowed_extension_rejected() -> None:
-    """Verify that disallowed extensions return 400 Bad Request."""
     bad_extensions = ["malware.exe", "script.sh", "notes.txt", "archive.zip", "test.py"]
     for fname in bad_extensions:
         with pytest.raises(DomainError) as exc_info:
@@ -96,8 +96,8 @@ def test_validate_disallowed_extension_rejected() -> None:
         assert "not allowed" in exc_info.value.detail
 
 
+# Check files with mismatched magic bytes return 400 Bad Request
 def test_validate_spoofed_magic_bytes_rejected() -> None:
-    """Verify that files with mismatched magic bytes return 400 Bad Request."""
     # Declared as PDF, but actually plain text / executable
     fake_pdf = b"MZ executable content disguised as pdf"
     with pytest.raises(DomainError) as exc_info:
@@ -113,8 +113,8 @@ def test_validate_spoofed_magic_bytes_rejected() -> None:
     assert "signature does not match" in exc_info.value.detail
 
 
+# Check read_upload_file_limited reads content within limit
 def test_read_upload_file_limited_success() -> None:
-    """Verify that read_upload_file_limited reads content within limit."""
     import io
 
     from fastapi import UploadFile
@@ -127,8 +127,8 @@ def test_read_upload_file_limited_success() -> None:
     assert data == b"Hello world"
 
 
+# Check read_upload_file_limited aborts immediately when exceeding max_bytes
 def test_read_upload_file_limited_exceeding_stops_reading() -> None:
-    """Verify that read_upload_file_limited aborts immediately when exceeding max_bytes."""
     from unittest.mock import MagicMock
 
     from fastapi import UploadFile

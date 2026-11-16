@@ -126,3 +126,16 @@ data/storage/
 # ==============================================================================
 PROMPTS.md
 REFERENCE_NOTES.md
+
+# ==============================================================================
+# Agent / AI development files (never commit)
+# ==============================================================================
+AGENTS.md
+CLAUDE.md
+.claude/
+docs/LEARNING_LOG.md
+docs/OPEN_QUESTIONS.md
+docs/TASK.md
+docs/PLAN.md
+docs/DEMO_SCRIPT.md
+

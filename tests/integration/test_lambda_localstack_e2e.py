@@ -1,5 +1,4 @@
-"""End-to-end integration tests for LocalStack S3 + Lambda size limit workflow."""
-
+# E2E tests for LocalStack S3 and Lambda workflow
 from __future__ import annotations
 
 import io
@@ -20,8 +19,8 @@ from app.models.document import Document
 from tests.factories import create_document, create_project, create_project_member, create_user
 
 
+# Check the lambda packaging creates a valid zip containing handler.py
 def test_lambda_zip_packaging_integrity() -> None:
-    """Verify the lambda packaging creates a valid zip containing handler.py."""
     lambda_dir = Path(__file__).resolve().parents[2] / "lambdas" / "size_limit"
     handler_file = lambda_dir / "handler.py"
     assert handler_file.exists(), f"Handler file missing at {handler_file}"
@@ -39,8 +38,8 @@ def test_lambda_zip_packaging_integrity() -> None:
         assert "def lambda_handler(" in content
 
 
+# Check deploy-lambda-localstack.sh and init-localstack.sh exist with proper permissions
 def test_deploy_scripts_exist_and_are_executable() -> None:
-    """Verify deploy-lambda-localstack.sh and init-localstack.sh exist with proper permissions."""
     scripts_dir = Path(__file__).resolve().parents[2] / "scripts"
     init_script = scripts_dir / "init-localstack.sh"
     deploy_script = scripts_dir / "deploy-lambda-localstack.sh"
@@ -55,12 +54,12 @@ def test_deploy_scripts_exist_and_are_executable() -> None:
     assert "put-bucket-notification-configuration" in init_content
 
 
+# Simulate complete E2E workflow: S3 upload within limit -> Lambda event -> API callback
 def test_end_to_end_s3_upload_within_limit_syncs_db(
     client: TestClient,
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Simulate complete E2E workflow: S3 upload within limit -> Lambda event -> API callback."""
     settings = get_settings()
     user = create_user(db_session)
     project = create_project(db_session, total_size_bytes=1000)
@@ -127,12 +126,12 @@ def test_end_to_end_s3_upload_within_limit_syncs_db(
     assert db_session.get(Document, doc.id) is not None
 
 
+# Simulate E2E workflow when quota is exceeded: Lambda deletes S3 file and purges DB record
 def test_end_to_end_s3_upload_exceeding_limit_purges_s3_and_db(
     client: TestClient,
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Simulate E2E workflow when quota is exceeded: Lambda deletes S3 file and purges DB record."""
     settings = get_settings()
     user = create_user(db_session)
     # Existing project already near limit
@@ -207,15 +206,12 @@ def test_end_to_end_s3_upload_exceeding_limit_purges_s3_and_db(
     assert project.total_size_bytes == 50_000_000
 
 
+# Check upload via API with S3Storage
 def test_api_upload_with_s3_storage_and_lambda_lifecycle(
     client: TestClient,
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Verify upload via API with S3Storage.
-
-    Under limit -> Lambda accepts; exceeding -> Lambda rejects.
-    """
     from app.core.security import create_access_token
     from app.main import app
     from app.storage import get_storage as orig_get_storage

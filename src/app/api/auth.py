@@ -19,6 +19,7 @@ router = APIRouter(tags=["Authentication"])
 UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 
 
+# Register user endpoint
 @router.post(
     "/auth",
     response_model=UserResponse,
@@ -30,11 +31,11 @@ def register(
     data: UserRegisterRequest,
     uow: UowDep,
 ) -> UserResponse:
-    """Create user endpoint."""
     user = register_user(uow=uow, data=data)
     return UserResponse.model_validate(user)
 
 
+# Login endpoint
 @router.post(
     "/login",
     response_model=TokenResponse,
@@ -46,11 +47,11 @@ def login(
     data: UserLoginRequest,
     uow: UowDep,
 ) -> TokenResponse:
-    """Login into service endpoint."""
     token = authenticate_user(uow=uow, data=data)
     return TokenResponse(access_token=token, token_type="bearer")
 
 
+# Get current user profile endpoint
 @router.get(
     "/auth/me",
     response_model=UserResponse,
@@ -61,5 +62,4 @@ def login(
 def get_current_user_profile(
     current_user: CurrentUser,
 ) -> UserResponse:
-    """Retrieve profile of authenticated user."""
     return UserResponse.model_validate(current_user)

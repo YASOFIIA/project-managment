@@ -1,10 +1,9 @@
-"""Tests for custom OpenAPI schema generation and Swagger UI compatibility."""
-
+# OpenAPI schema generation tests
 from app.main import create_app
 
 
+# Check OpenAPI schema converts contentMediaType to format: binary for file uploads
 def test_openapi_schema_replaces_content_media_type_with_format_binary() -> None:
-    """Verify OpenAPI schema converts contentMediaType to format: binary for file uploads."""
     app = create_app()
     openapi = app.openapi()
     schemas = openapi["components"]["schemas"]
@@ -20,8 +19,8 @@ def test_openapi_schema_replaces_content_media_type_with_format_binary() -> None
     assert "contentMediaType" not in update_file_prop
 
 
+# Check openapi schema is cached on the app instance
 def test_openapi_schema_is_cached() -> None:
-    """Verify openapi schema is cached on the app instance."""
     app = create_app()
     schema_first = app.openapi()
     schema_second = app.openapi()

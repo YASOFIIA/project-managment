@@ -13,10 +13,9 @@ from app.domain.errors import (
 DEFAULT_MAX_FILE_SIZE_BYTES: int = 52_428_800  # 50 MB
 
 
+# Allowed file type specification
 @dataclass(frozen=True)
 class FileTypeSpec:
-    """Specification of an allowed file type."""
-
     extension: str
     mime_type: str
     magic_bytes: bytes
@@ -51,14 +50,8 @@ ALLOWED_FILE_TYPES: dict[str, FileTypeSpec] = {
 }
 
 
+# Sanitize user-supplied filename
 def sanitize_filename(filename: str) -> str:
-    """Clean and sanitize original user-supplied filename.
-
-    Strips directory separators (both POSIX / and Windows \\) and whitespace.
-
-    Raises:
-        EmptyFilenameError: If filename is empty or contains no valid name characters.
-    """
     normalized = filename.replace("\\", "/").rstrip("/")
     clean_name = normalized.split("/")[-1].strip()
     if not clean_name:
@@ -66,35 +59,19 @@ def sanitize_filename(filename: str) -> str:
     return clean_name
 
 
+# Generate unique storage key keeping extension
 def generate_safe_stored_filename(original_filename: str) -> str:
-    """Generate a collision-free, secure storage key preserving the sanitized extension.
-
-    Example: 'Quarterly Report.pdf' -> 'a1b2c3d4e5f6...pdf'
-    """
     clean_name = sanitize_filename(original_filename)
     extension = Path(clean_name).suffix.lower()
     return f"{uuid.uuid4().hex}{extension}"
 
 
+# Validate file metadata, size, and magic bytes
 def validate_file_upload(
     filename: str,
     content: bytes,
     max_size_bytes: int = DEFAULT_MAX_FILE_SIZE_BYTES,
 ) -> tuple[str, str]:
-    """Validate uploaded file metadata, size, extension, and binary signature.
-
-    Args:
-        filename: Declared file name from client.
-        content: Binary content of the uploaded file.
-        max_size_bytes: Maximum allowed byte size (defaults to 50 MB).
-
-    Returns:
-        tuple[clean_filename, content_type]
-
-    Raises:
-        ValidationError: If file is empty, extension is disallowed, or magic bytes mismatch.
-        FileTooLarge: If file size exceeds the allowed limit.
-    """
     clean_name = sanitize_filename(filename)
 
     # 1. Size validations

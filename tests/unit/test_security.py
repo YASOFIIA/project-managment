@@ -14,8 +14,8 @@ from app.core.security import (
 )
 
 
+# Check Argon2 hashing is secure and verifies passwords correctly
 def test_password_hashing_and_verification() -> None:
-    """Verify that Argon2 hashing is secure and verifies passwords correctly."""
     password = "SuperSecretPassword123!"
     hashed = hash_password(password)
 
@@ -30,8 +30,8 @@ def test_password_hashing_and_verification() -> None:
     assert verify_password("WrongPassword123!", hashed) is False
 
 
+# Check create_access_token issues a token with valid claims and 1-hour expiry
 def test_jwt_token_creation_and_claims() -> None:
-    """Verify that create_access_token issues a token with valid claims and 1-hour expiry."""
     user_id = 42
     login = "test_user"
 
@@ -49,8 +49,8 @@ def test_jwt_token_creation_and_claims() -> None:
     assert lifetime == 3600
 
 
+# Check an expired token raises TokenExpiredError
 def test_jwt_token_expired_raises_error() -> None:
-    """Verify that an expired token raises TokenExpiredError."""
     token = create_access_token(
         user_id=1,
         login="expired_user",
@@ -61,8 +61,8 @@ def test_jwt_token_expired_raises_error() -> None:
         decode_access_token(token)
 
 
+# Check modifying the token payload raises InvalidTokenError
 def test_jwt_token_tampered_raises_error() -> None:
-    """Verify that modifying the token payload raises InvalidTokenError."""
     token = create_access_token(user_id=1, login="legit_user")
     parts = token.split(".")
 
@@ -73,8 +73,8 @@ def test_jwt_token_tampered_raises_error() -> None:
         decode_access_token(tampered_token)
 
 
+# Check a token signed with an unknown secret key is rejected
 def test_jwt_token_signed_with_wrong_key_raises_error() -> None:
-    """Verify that a token signed with an unknown secret key is rejected."""
     settings = get_settings()
     other_key = "different-unknown-secret-key-at-least-32-chars-long"
 

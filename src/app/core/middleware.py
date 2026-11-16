@@ -10,15 +10,8 @@ from app.core.logging import get_logger, request_id_ctx, sanitize_query_string
 logger = get_logger("app.middleware")
 
 
+# Track X-Request-ID and log requests safely
 class RequestIDLoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware that injects X-Request-ID and logs incoming requests and responses safely.
-
-    - Preserves client-supplied X-Request-ID or generates a new UUIDv4.
-    - Attaches X-Request-ID to both the request state, contextvars, and response headers.
-    - Logs method, path, sanitized query parameters, status code, and latency in ms.
-    - Prevents sensitive credentials or token values from appearing in logs.
-    """
-
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         incoming_request_id = request.headers.get("X-Request-ID")
         request_id = incoming_request_id.strip() if incoming_request_id else str(uuid.uuid4())

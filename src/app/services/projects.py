@@ -19,12 +19,12 @@ from app.services.access import (
 logger = logging.getLogger(__name__)
 
 
+# Create project and assign creator as owner
 def create_project(
     uow: UnitOfWork,
     user: User,
     data: ProjectCreateRequest,
 ) -> Project:
-    """Create a new project and assign the creator as OWNER in a single atomic transaction."""
     with uow:
         project = Project(
             name=data.name.strip(),
@@ -43,41 +43,33 @@ def create_project(
         return project
 
 
+# List all accessible projects with documents
 def list_user_projects(
     uow: UnitOfWork,
     user_id: int,
 ) -> list[ProjectWithDocuments]:
-    """Retrieve all projects accessible to the user with preloaded document metadata."""
     return uow.projects.list_for_user_with_documents(user_id=user_id)
 
 
+# Get project details for owner or participant
 def get_project_info(
     uow: UnitOfWork,
     project_id: int,
     user_id: int,
 ) -> Project:
-    """Retrieve project details, verifying the user is an owner or participant.
-
-    Raises:
-        ProjectNotFound: if project does not exist OR user is not a member.
-    """
     project, _ = require_project_access(
         uow, project_id=project_id, user_id=user_id, action=Action.VIEW
     )
     return project
 
 
+# Update project details (name, description)
 def update_project_info(
     uow: UnitOfWork,
     project_id: int,
     user_id: int,
     data: ProjectUpdateRequest,
 ) -> Project:
-    """Update project details (name, description), permitted for owners and participants.
-
-    Raises:
-        ProjectNotFound: if project does not exist OR user is not a member.
-    """
     project, _ = require_project_access(
         uow, project_id=project_id, user_id=user_id, action=Action.EDIT
     )
@@ -91,18 +83,13 @@ def update_project_info(
     return project
 
 
+# Delete project, records, and files from storage
 def delete_project(
     uow: UnitOfWork,
     storage: StorageBackend,
     project_id: int,
     user_id: int,
 ) -> None:
-    """Delete a project, all its database records, and all attached files from storage.
-
-    Raises:
-        ProjectNotFound: if project does not exist OR user is not a member.
-        PermissionDenied: if user is a member but not the owner.
-    """
     project, _ = require_project_access(
         uow, project_id=project_id, user_id=user_id, action=Action.DELETE_PROJECT
     )
@@ -125,20 +112,13 @@ def delete_project(
             )
 
 
+# Invite user to project as participant (owner only)
 def invite_member(
     uow: UnitOfWork,
     project_id: int,
     owner_id: int,
     invitee_login: str,
 ) -> ProjectMember:
-    """Invite a user to a project as a participant. Permitted only for the project OWNER.
-
-    Raises:
-        ProjectNotFound: if project does not exist OR current user is not a member.
-        PermissionDenied: if current user is a participant (not the owner).
-        UserNotFound: if user with invitee_login does not exist.
-        UserAlreadyMember: if user is already a member of the project.
-    """
     require_project_access(
         uow, project_id=project_id, user_id=owner_id, action=Action.INVITE_MEMBER
     )

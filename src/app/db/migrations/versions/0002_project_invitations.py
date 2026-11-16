@@ -1,11 +1,4 @@
-"""project_invitations
-
-Revision ID: 0002
-Revises: 0001
-Create Date: 2026-11-14 20:30:00.000000
-
-"""
-
+# Migration: project invitations
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -18,8 +11,8 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+# Migration: project invitations
 def upgrade() -> None:
-    """Upgrade schema: create project_invitations table."""
     op.create_table(
         "project_invitations",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -60,8 +53,8 @@ def upgrade() -> None:
     )
 
 
+# Migration: project invitations
 def downgrade() -> None:
-    """Downgrade schema: drop project_invitations table."""
     op.drop_index(
         op.f("ix_project_invitations_token"),
         table_name="project_invitations",

@@ -7,13 +7,13 @@ from app.domain.roles import ProjectRole
 from app.models import Document, Project, ProjectMember, User
 
 
+# Factory helper to create and persist a User entity
 def create_user(
     session: Session,
     login: str | None = None,
     hashed_password: str = "hashed_dummy_password",
     **kwargs: Any,
 ) -> User:
-    """Factory helper to create and persist a User entity."""
     user = User(
         login=login or f"user_{uuid.uuid4().hex[:8]}",
         hashed_password=hashed_password,
@@ -24,6 +24,7 @@ def create_user(
     return user
 
 
+# Factory helper to create and persist a Project entity
 def create_project(
     session: Session,
     name: str | None = None,
@@ -31,7 +32,6 @@ def create_project(
     total_size_bytes: int = 0,
     **kwargs: Any,
 ) -> Project:
-    """Factory helper to create and persist a Project entity."""
     project = Project(
         name=name or f"Project {uuid.uuid4().hex[:6]}",
         description=description,
@@ -43,6 +43,7 @@ def create_project(
     return project
 
 
+# Factory helper to create and persist a ProjectMember entity
 def create_project_member(
     session: Session,
     project_id: int,
@@ -50,7 +51,6 @@ def create_project_member(
     role: ProjectRole = ProjectRole.OWNER,
     **kwargs: Any,
 ) -> ProjectMember:
-    """Factory helper to create and persist a ProjectMember entity."""
     member = ProjectMember(
         project_id=project_id,
         user_id=user_id,
@@ -62,6 +62,7 @@ def create_project_member(
     return member
 
 
+# Factory helper to create and persist a Document entity
 def create_document(
     session: Session,
     project_id: int,
@@ -71,7 +72,6 @@ def create_document(
     content_type: str = "application/pdf",
     **kwargs: Any,
 ) -> Document:
-    """Factory helper to create and persist a Document entity."""
     temp_stored = stored_filename or f"pending_{uuid.uuid4().hex}"
     document = Document(
         project_id=project_id,

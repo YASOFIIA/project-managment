@@ -1,5 +1,4 @@
-"""Unit tests for access control and permission enforcement."""
-
+# Tests for access control and permissions
 import pytest
 from sqlalchemy.orm import Session
 
@@ -25,10 +24,10 @@ from tests.factories import (
 )
 
 
+# Check both owners and participants pass require_project_access for allowed action
 def test_require_project_access_for_owner_and_participant(
     uow: UnitOfWork, db_session: Session
 ) -> None:
-    """Verify that both owners and participants pass require_project_access for allowed action."""
     owner = create_user(db_session, login="owner_acc")
     participant = create_user(db_session, login="part_acc")
     project = create_project(db_session, name="Shared Project")
@@ -45,10 +44,10 @@ def test_require_project_access_for_owner_and_participant(
     assert mem_p.role == ProjectRole.PARTICIPANT
 
 
+# Check a user without membership receives 404 Not Found (information hiding)
 def test_require_project_access_non_member_returns_404(
     uow: UnitOfWork, db_session: Session
 ) -> None:
-    """Verify that a user without membership receives 404 Not Found (information hiding)."""
     user = create_user(db_session, login="stranger")
     project = create_project(db_session, name="Secret Project")
 
@@ -59,10 +58,10 @@ def test_require_project_access_non_member_returns_404(
     assert f"Project {project.id} not found" in exc_info.value.detail
 
 
+# Check a non-existent project returns 404 Not Found
 def test_require_project_access_nonexistent_project_returns_404(
     uow: UnitOfWork, db_session: Session
 ) -> None:
-    """Verify that a non-existent project returns 404 Not Found."""
     user = create_user(db_session, login="user_nonexistent_proj")
 
     with pytest.raises(ProjectNotFound) as exc_info:
@@ -71,8 +70,8 @@ def test_require_project_access_nonexistent_project_returns_404(
     assert isinstance(exc_info.value, NotFoundError)
 
 
+# Check owner passes require_project_access for owner-restricted actions
 def test_require_project_owner_succeeds_for_owner(uow: UnitOfWork, db_session: Session) -> None:
-    """Verify that owner passes require_project_access for owner-restricted actions."""
     owner = create_user(db_session, login="real_owner")
     project = create_project(db_session, name="Owner Project")
     create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
@@ -82,10 +81,10 @@ def test_require_project_owner_succeeds_for_owner(uow: UnitOfWork, db_session: S
     assert mem.role == ProjectRole.OWNER
 
 
+# Check a participant receives 403 Forbidden for owner-restricted action
 def test_require_project_owner_returns_403_for_participant(
     uow: UnitOfWork, db_session: Session
 ) -> None:
-    """Verify that a participant receives 403 Forbidden for owner-restricted action."""
     participant = create_user(db_session, login="just_participant")
     project = create_project(db_session, name="Protected Project")
     create_project_member(db_session, project.id, participant.id, role=ProjectRole.PARTICIPANT)
@@ -97,10 +96,10 @@ def test_require_project_owner_returns_403_for_participant(
     assert "Only project owner" in exc_info.value.detail
 
 
+# Check project members can access attached documents
 def test_require_document_access_succeeds_for_project_members(
     uow: UnitOfWork, db_session: Session
 ) -> None:
-    """Verify that project members can access attached documents."""
     member = create_user(db_session, login="doc_reader")
     project = create_project(db_session, name="Doc Project")
     create_project_member(db_session, project.id, member.id, role=ProjectRole.PARTICIPANT)
@@ -113,10 +112,10 @@ def test_require_document_access_succeeds_for_project_members(
     assert found_mem.role == ProjectRole.PARTICIPANT
 
 
+# Check accessing a document of an unshared project returns 404 Not Found
 def test_require_document_access_non_member_returns_404(
     uow: UnitOfWork, db_session: Session
 ) -> None:
-    """Verify that accessing a document of an unshared project returns 404 Not Found."""
     stranger = create_user(db_session, login="doc_stranger")
     project = create_project(db_session, name="Private Doc Project")
     doc = create_document(db_session, project_id=project.id, filename="confidential.pdf")
@@ -127,10 +126,10 @@ def test_require_document_access_non_member_returns_404(
     assert isinstance(exc_info.value, NotFoundError)
 
 
+# Check non-existent document ID returns 404 Not Found
 def test_require_document_access_nonexistent_doc_returns_404(
     uow: UnitOfWork, db_session: Session
 ) -> None:
-    """Verify that non-existent document ID returns 404 Not Found."""
     user = create_user(db_session, login="user_missing_doc")
 
     with pytest.raises(DocumentNotFound) as exc_info:

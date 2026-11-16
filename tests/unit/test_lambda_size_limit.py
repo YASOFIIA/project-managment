@@ -1,5 +1,4 @@
-"""Unit tests for the AWS Lambda size limit handler."""
-
+# Tests for Lambda size limit handler
 from __future__ import annotations
 
 from typing import Any

@@ -25,9 +25,8 @@ UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 
 
+# Adapter wrapping FastAPI UploadFile into protocol
 class FastApiUploadedFile:
-    """Adapter wrapping FastAPI UploadFile into the Application UploadedFile protocol."""
-
     def __init__(self, upload_file: UploadFile) -> None:
         self._upload_file = upload_file
         self.filename = upload_file.filename
@@ -38,6 +37,7 @@ class FastApiUploadedFile:
         return self._upload_file.file.read(size)
 
 
+# Upload documents endpoint
 @router.post(
     "/project/{project_id}/documents",
     response_model=list[DocumentResponse],
@@ -53,7 +53,6 @@ def upload_files(
     uow: UowDep,
     storage: StorageDep,
 ) -> list[DocumentResponse]:
-    """Upload documents endpoint."""
     adapted_files = [FastApiUploadedFile(f) for f in files]
     documents = upload_documents(
         uow=uow,
@@ -65,6 +64,7 @@ def upload_files(
     return [DocumentResponse.model_validate(doc) for doc in documents]
 
 
+# List documents endpoint
 @router.get(
     "/project/{project_id}/documents",
     response_model=list[DocumentResponse],
@@ -78,7 +78,6 @@ def get_documents(
     current_user: CurrentUser,
     uow: UowDep,
 ) -> list[DocumentResponse]:
-    """List documents endpoint."""
     documents = list_project_documents(
         uow=uow,
         project_id=project_id,
@@ -87,6 +86,7 @@ def get_documents(
     return [DocumentResponse.model_validate(doc) for doc in documents]
 
 
+# Download document endpoint
 @router.get(
     "/document/{document_id}",
     status_code=status.HTTP_200_OK,
@@ -100,7 +100,6 @@ def download_file(
     uow: UowDep,
     storage: StorageDep,
 ) -> StreamingResponse:
-    """Download document endpoint."""
     doc, stream = get_document_for_download(
         uow=uow,
         storage=storage,
@@ -116,6 +115,7 @@ def download_file(
     return StreamingResponse(stream, media_type=doc.content_type, headers=headers)
 
 
+# Replace document endpoint
 @router.put(
     "/document/{document_id}",
     response_model=DocumentResponse,
@@ -131,7 +131,6 @@ def update_file(
     uow: UowDep,
     storage: StorageDep,
 ) -> DocumentResponse:
-    """Replace document endpoint."""
     doc = replace_document(
         uow=uow,
         storage=storage,
@@ -142,6 +141,7 @@ def update_file(
     return DocumentResponse.model_validate(doc)
 
 
+# Delete document endpoint
 @router.delete(
     "/document/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -155,7 +155,6 @@ def delete_file(
     uow: UowDep,
     storage: StorageDep,
 ) -> None:
-    """Delete document endpoint."""
     delete_document(
         uow=uow,
         storage=storage,

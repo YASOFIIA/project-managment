@@ -12,23 +12,20 @@ ProjectName = Annotated[
 ]
 
 
+# Request payload for project creation
 class ProjectCreateRequest(BaseModel):
-    """Payload for creating a new project via POST /projects."""
-
     name: ProjectName = Field(..., description="Project title")
     description: str | None = Field(default=None, description="Optional project description")
 
 
+# Request payload for project update
 class ProjectUpdateRequest(BaseModel):
-    """Payload for updating project details via PUT /project/<id>/info."""
-
     name: ProjectName = Field(..., description="Updated project title")
     description: str | None = Field(default=None, description="Updated project description")
 
 
+# Project details response
 class ProjectResponse(BaseModel):
-    """Project details response model."""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -39,15 +36,13 @@ class ProjectResponse(BaseModel):
     updated_at: datetime
 
 
+# Project detail response with documents
 class ProjectDetailResponse(ProjectResponse):
-    """Detailed project model including attached documents list for GET /projects."""
-
     documents: list[DocumentResponse] = Field(default_factory=list)
 
 
+# Project member response
 class ProjectMemberResponse(BaseModel):
-    """Membership details returned upon project member invitation."""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -57,9 +52,8 @@ class ProjectMemberResponse(BaseModel):
     created_at: datetime
 
 
+# Response after sending email invitation
 class InvitationResponse(BaseModel):
-    """Payload returned when project share invitation is created and dispatched."""
-
     model_config = ConfigDict(from_attributes=True)
 
     message: str = Field(default="Invitation sent", description="Status message")

@@ -18,6 +18,7 @@ from app.schemas.project import InvitationResponse
 from app.services.access import get_project_membership, require_project_access
 
 
+# Create invitation token and send email with join link
 def create_and_send_invitation(
     uow: UnitOfWork,
     email_sender: EmailSender,
@@ -27,14 +28,6 @@ def create_and_send_invitation(
     base_url: str,
     expire_hours: int = 48,
 ) -> InvitationResponse:
-    """Create a project invitation token, persist it, and dispatch email via EmailSender.
-
-    Permitted only for the project OWNER.
-
-    Raises:
-        ProjectNotFound: if project does not exist OR current user is not a member.
-        PermissionDenied: if current user is not an OWNER.
-    """
     require_project_access(
         uow, project_id=project_id, user_id=owner_id, action=Action.INVITE_MEMBER
     )
@@ -69,18 +62,12 @@ def create_and_send_invitation(
     )
 
 
+# Accept invitation token and add user as participant
 def accept_invitation(
     uow: UnitOfWork,
     token: str,
     user_id: int,
 ) -> ProjectMember:
-    """Accept an email invitation token and add the current user as a project participant.
-
-    Raises:
-        InvalidInvitationError: if token does not exist or has already been used.
-        InvitationExpiredError: if token expiration date has passed.
-        UserAlreadyMember: if the user is already a member of the project.
-    """
     invitation = uow.invitations.get_by_token(token)
     if invitation is None or invitation.used:
         raise InvalidInvitationError("Invalid or already used invitation token")

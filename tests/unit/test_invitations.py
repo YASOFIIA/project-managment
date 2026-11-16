@@ -22,8 +22,8 @@ from app.models.project import Project, ProjectMember
 from app.services.invitations import accept_invitation, create_and_send_invitation
 
 
+# Check owner can generate invitation token and dispatch email
 def test_create_and_send_invitation_success() -> None:
-    """Verify owner can generate invitation token and dispatch email."""
     mock_uow = MagicMock(spec=UnitOfWork)
     mock_email_sender = MagicMock(spec=EmailSender)
 
@@ -55,8 +55,8 @@ def test_create_and_send_invitation_success() -> None:
     assert "/join?token=" in kwargs["join_url"]
 
 
+# Check participant cannot generate share invitations
 def test_create_and_send_invitation_participant_forbidden() -> None:
-    """Verify participant cannot generate share invitations."""
     mock_uow = MagicMock(spec=UnitOfWork)
     mock_email_sender = MagicMock(spec=EmailSender)
 
@@ -74,8 +74,8 @@ def test_create_and_send_invitation_participant_forbidden() -> None:
         )
 
 
+# Check ProjectNotFound when project entity does not exist
 def test_create_and_send_invitation_project_not_found() -> None:
-    """Verify ProjectNotFound when project entity does not exist."""
     mock_uow = MagicMock(spec=UnitOfWork)
     mock_email_sender = MagicMock(spec=EmailSender)
 
@@ -94,8 +94,8 @@ def test_create_and_send_invitation_project_not_found() -> None:
         )
 
 
+# Check valid token adds user as participant and marks invitation used
 def test_accept_invitation_success() -> None:
-    """Verify valid token adds user as participant and marks invitation used."""
     mock_uow = MagicMock(spec=UnitOfWork)
     invitation = ProjectInvitation(
         id=1,
@@ -124,8 +124,8 @@ def test_accept_invitation_success() -> None:
     mock_uow.commit.assert_called_once()
 
 
+# Check InvalidInvitationError for nonexistent or already used tokens
 def test_accept_invitation_invalid_or_used() -> None:
-    """Verify InvalidInvitationError for nonexistent or already used tokens."""
     mock_uow = MagicMock(spec=UnitOfWork)
     mock_uow.invitations.get_by_token.return_value = None
 
@@ -146,8 +146,8 @@ def test_accept_invitation_invalid_or_used() -> None:
         accept_invitation(mock_uow, token="used-token", user_id=5)
 
 
+# Check InvitationExpiredError when expiration timestamp is in the past
 def test_accept_invitation_expired() -> None:
-    """Verify InvitationExpiredError when expiration timestamp is in the past."""
     mock_uow = MagicMock(spec=UnitOfWork)
     expired_invitation = ProjectInvitation(
         id=3,
@@ -163,8 +163,8 @@ def test_accept_invitation_expired() -> None:
         accept_invitation(mock_uow, token="expired-token", user_id=5)
 
 
+# Check UserAlreadyMember when user is already a project collaborator
 def test_accept_invitation_already_member() -> None:
-    """Verify UserAlreadyMember when user is already a project collaborator."""
     mock_uow = MagicMock(spec=UnitOfWork)
     invitation = ProjectInvitation(
         id=4,
@@ -183,8 +183,8 @@ def test_accept_invitation_already_member() -> None:
         accept_invitation(mock_uow, token="token-4", user_id=7)
 
 
+# Check SmtpEmailSender skips dispatch without errors when smtp_host is empty
 def test_smtp_email_sender_graceful_degradation_without_host() -> None:
-    """Verify SmtpEmailSender skips dispatch without errors when smtp_host is empty."""
     settings = Settings(
         jwt_secret_key="secret",
         lambda_callback_secret="secret",

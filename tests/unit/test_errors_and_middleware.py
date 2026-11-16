@@ -10,8 +10,8 @@ from app.core.logging import sanitize_query_string
 from app.core.middleware import RequestIDLoggingMiddleware
 
 
+# Check any request gets an X-Request-ID header in response
 def test_response_includes_x_request_id_header(client: TestClient) -> None:
-    """Verify that any request gets an X-Request-ID header in response."""
     response = client.get("/health")
     assert response.status_code == 200
     assert "X-Request-ID" in response.headers
@@ -20,16 +20,16 @@ def test_response_includes_x_request_id_header(client: TestClient) -> None:
     uuid.UUID(request_id)
 
 
+# Check a client-provided X-Request-ID is preserved in response header
 def test_incoming_x_request_id_is_preserved(client: TestClient) -> None:
-    """Verify that a client-provided X-Request-ID is preserved in response header."""
     custom_id = "client-trace-12345"
     response = client.get("/health", headers={"X-Request-ID": custom_id})
     assert response.status_code == 200
     assert response.headers.get("X-Request-ID") == custom_id
 
 
+# Check unmatched routes return 404 in unified JSON format
 def test_404_not_found_unified_error_format(client: TestClient) -> None:
-    """Verify that unmatched routes return 404 in unified JSON format."""
     custom_id = "test-404-id"
     response = client.get("/nonexistent-endpoint", headers={"X-Request-ID": custom_id})
     assert response.status_code == 404
@@ -42,8 +42,8 @@ def test_404_not_found_unified_error_format(client: TestClient) -> None:
     assert "detail" in data
 
 
+# Check unsupported HTTP methods return 405 in unified JSON format
 def test_405_method_not_allowed_unified_error_format(client: TestClient) -> None:
-    """Verify that unsupported HTTP methods return 405 in unified JSON format."""
     response = client.post("/health")
     assert response.status_code == 405
     assert "X-Request-ID" in response.headers
@@ -55,8 +55,8 @@ def test_405_method_not_allowed_unified_error_format(client: TestClient) -> None
     assert data["request_id"] == response.headers["X-Request-ID"]
 
 
+# Check validation errors return 422 in unified JSON format with detail list
 def test_422_validation_error_unified_error_format(client: TestClient) -> None:
-    """Verify that validation errors return 422 in unified JSON format with detail list."""
     response = client.post("/auth", json={"login": "short"})
     assert response.status_code == 422
 
@@ -68,8 +68,8 @@ def test_422_validation_error_unified_error_format(client: TestClient) -> None:
     assert "request_id" in data
 
 
+# Check unexpected exceptions return 500 without leaking stack traces
 def test_500_unhandled_exception_unified_error_format() -> None:
-    """Verify that unexpected exceptions return 500 without leaking stack traces."""
     test_app = FastAPI()
     register_error_handlers(test_app)
     test_app.add_middleware(RequestIDLoggingMiddleware)
@@ -94,8 +94,8 @@ def test_500_unhandled_exception_unified_error_format() -> None:
     assert data["request_id"] == "err-500-trace"
 
 
+# Check sensitive query parameters are masked and non-sensitive remain untouched
 def test_sanitize_query_string() -> None:
-    """Verify that sensitive query parameters are masked and non-sensitive remain untouched."""
     raw_query = "user=alice&password=secret123&token=jwt_xyz&page=2"
     sanitized = sanitize_query_string(raw_query)
 
@@ -109,14 +109,14 @@ def test_sanitize_query_string() -> None:
     assert sanitize_query_string("") == ""
 
 
+# Check known and unknown status codes map properly to error names
 def test_get_error_code_name() -> None:
-    """Verify known and unknown status codes map properly to error names."""
     assert get_error_code_name(404) == "NOT_FOUND"
     assert get_error_code_name(999) == "HTTP_999"
 
 
+# Check request ID extraction fallback behaviors
 def test_get_request_id_fallbacks() -> None:
-    """Verify request ID extraction fallback behaviors."""
     # 1. Fallback to header if state has no request_id
     req_header_only = MagicMock(spec=Request)
     req_header_only.state = MagicMock(spec=[])

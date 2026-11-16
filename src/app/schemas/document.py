@@ -3,9 +3,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
+# Document metadata response
 class DocumentResponse(BaseModel):
-    """Document metadata response model."""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: int

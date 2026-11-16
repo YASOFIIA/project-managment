@@ -6,19 +6,16 @@ from typing import Protocol
 from app.models.invitation import ProjectInvitation
 
 
+# Invitation repository port
 class InvitationRepository(Protocol):
-    """Port for project invitations persistence operations."""
-
+    # Create and save project invitation
     def create(
         self,
         project_id: int,
         email: str,
         token: str,
         expires_at: datetime,
-    ) -> ProjectInvitation:
-        """Create and persist a new project invitation."""
-        ...
+    ) -> ProjectInvitation: ...
 
-    def get_by_token(self, token: str) -> ProjectInvitation | None:
-        """Find project invitation by unique token."""
-        ...
+    # Find invitation by token
+    def get_by_token(self, token: str) -> ProjectInvitation | None: ...

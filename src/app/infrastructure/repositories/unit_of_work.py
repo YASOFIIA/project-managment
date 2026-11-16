@@ -22,9 +22,8 @@ from app.infrastructure.repositories.user_repository import (
 )
 
 
+# SQLAlchemy UnitOfWork implementation
 class SqlAlchemyUnitOfWork:
-    """SQLAlchemy implementation of UnitOfWork managing transactions."""
-
     def __init__(self, session: Session) -> None:
         self._session = session
         self.users: UserRepository = SqlAlchemyUserRepository(session)
@@ -44,10 +43,10 @@ class SqlAlchemyUnitOfWork:
         if exc_type is not None:
             self.rollback()
 
+    # Commit transaction
     def commit(self) -> None:
-        """Commit current transaction boundary."""
         self._session.commit()
 
+    # Rollback transaction
     def rollback(self) -> None:
-        """Rollback current transaction boundary."""
         self._session.rollback()

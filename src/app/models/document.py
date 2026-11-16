@@ -10,9 +10,8 @@ if TYPE_CHECKING:
     from app.models.project import Project
 
 
+# Document metadata attached to a project
 class Document(Base):
-    """Document entity attached to a specific project."""
-
     __tablename__ = "documents"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

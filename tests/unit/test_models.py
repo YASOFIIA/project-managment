@@ -20,9 +20,9 @@ def _set_sqlite_pragma(dbapi_connection: object, connection_record: object) -> N
         cursor.close()
 
 
+# Provide an isolated in-memory SQLite database session with enforced foreign keys
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    """Provide an isolated in-memory SQLite database session with enforced foreign keys."""
     engine = create_engine("sqlite:///:memory:", echo=False)
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, expire_on_commit=False)
@@ -36,8 +36,8 @@ def db_session() -> Generator[Session, None, None]:
         engine.dispose()
 
 
+# Check standard creation of User, Project, and ProjectMember
 def test_create_user_project_and_membership(db_session: Session) -> None:
-    """Verify standard creation of User, Project, and ProjectMember."""
     user = User(login="alice", hashed_password="hashed_pw_alice")
     db_session.add(user)
     db_session.commit()
@@ -60,8 +60,8 @@ def test_create_user_project_and_membership(db_session: Session) -> None:
     assert user.memberships[0].project_id == project.id
 
 
+# Check a user cannot be added twice to the same project
 def test_unique_project_member_constraint(db_session: Session) -> None:
-    """Verify that a user cannot be added twice to the same project."""
     user = User(login="bob", hashed_password="hashed_pw_bob")
     project = Project(name="Project Beta")
     db_session.add_all([user, project])
@@ -79,8 +79,8 @@ def test_unique_project_member_constraint(db_session: Session) -> None:
     db_session.rollback()
 
 
+# Check deleting a project cascades to its documents and project_members
 def test_cascade_delete_project_removes_documents_and_members(db_session: Session) -> None:
-    """Verify that deleting a project cascades to its documents and project_members."""
     user = User(login="charlie", hashed_password="hashed_pw_charlie")
     project = Project(name="Project Gamma")
     db_session.add_all([user, project])
@@ -114,8 +114,8 @@ def test_cascade_delete_project_removes_documents_and_members(db_session: Sessio
     assert db_session.get(User, user.id) is not None
 
 
+# Check stored_filename enforces unique constraint across documents
 def test_document_stored_filename_must_be_unique(db_session: Session) -> None:
-    """Verify that stored_filename enforces unique constraint across documents."""
     project = Project(name="Project Delta")
     db_session.add(project)
     db_session.commit()
@@ -143,8 +143,8 @@ def test_document_stored_filename_must_be_unique(db_session: Session) -> None:
     db_session.rollback()
 
 
+# Check duplicate user logins are rejected by unique constraint
 def test_user_login_must_be_unique(db_session: Session) -> None:
-    """Verify that duplicate user logins are rejected by unique constraint."""
     u1 = User(login="dave", hashed_password="pw1")
     u2 = User(login="dave", hashed_password="pw2")
 

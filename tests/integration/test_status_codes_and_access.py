@@ -6,18 +6,11 @@ from app.domain.roles import ProjectRole
 from tests.factories import create_project_member, create_user
 
 
+# Check Phase 3 'Done when' criterion:
 def test_two_users_collaboration_and_access_lifecycle(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify Phase 3 'Done when' criterion:
-
-    - Two users.
-    - Projects visible only to members.
-    - Non-member receives 404 (information hiding).
-    - Participant can view and edit, but receives 403 Forbidden on delete.
-    - Owner can delete (204 No Content).
-    """
     # 1. Register and login User A (Project Creator / Owner)
     reg_a = client.post(
         "/auth",
@@ -112,17 +105,8 @@ def test_two_users_collaboration_and_access_lifecycle(
     assert client.get(f"/project/{project_id}/info", headers=headers_b).status_code == 404
 
 
+# Explicitly verify every required HTTP status code across the API:
 def test_api_status_codes_matrix(client: TestClient, db_session: Session) -> None:
-    """Explicitly verify every required HTTP status code across the API:
-
-    - 200 OK
-    - 201 Created
-    - 204 No Content
-    - 401 Unauthorized
-    - 403 Forbidden
-    - 404 Not Found
-    - 422 Unprocessable Entity
-    """
     # 201 Created: Registration & Project creation
     reg_res = client.post(
         "/auth",

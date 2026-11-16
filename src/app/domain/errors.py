@@ -1,14 +1,9 @@
-"""Domain exception hierarchy for the Project Management domain.
-
-Pure domain exceptions with no dependencies on HTTP frameworks or status codes.
-"""
-
+# Domain exceptions for project management
 from __future__ import annotations
 
 
+# Base class for domain business errors
 class DomainError(Exception):
-    """Base class for all domain business errors."""
-
     def __init__(self, message: str) -> None:
         super().__init__(message)
         self.message = message
@@ -16,99 +11,122 @@ class DomainError(Exception):
 
 
 # Core Domain Categories (Pure business categories without HTTP knowledge)
+# Base category for missing or hidden entities
 class NotFoundError(DomainError):
-    """Base category for entities that do not exist or are hidden for security."""
+    pass
 
 
+# Base category for unique state collisions
 class AlreadyExistsError(DomainError):
-    """Base category for entity identity or unique state collisions."""
+    pass
 
 
+# Base category for permission errors
 class PermissionDeniedError(DomainError):
-    """Base category for business operations rejected due to insufficient privileges."""
+    pass
 
 
+# Base category for authentication errors
 class AuthenticationError(DomainError):
-    """Base category for credential verification or identity authentication failures."""
+    pass
 
 
+# Base category for invalid input errors
 class InvalidInputError(DomainError):
-    """Base category for malformed, empty, or unparseable input data."""
+    pass
 
 
+# Base category for limit violations
 class LimitExceededError(DomainError):
-    """Base category for quota, storage, or volume limit violations."""
+    pass
 
 
 # Concrete Resource Not Found Errors
+# Project not found or hidden
 class ProjectNotFound(NotFoundError):
-    """Project does not exist or user has no access (information hiding)."""
+    pass
 
 
+# Document not found or hidden
 class DocumentNotFound(NotFoundError):
-    """Document does not exist or user has no access (information hiding)."""
+    pass
 
 
+# User not found
 class UserNotFound(NotFoundError):
-    """Target user (e.g. invitee) does not exist."""
+    pass
 
 
+# Storage file not found
 class StorageFileNotFound(NotFoundError):
-    """File record exists in database, but physical object is missing from storage."""
+    pass
 
 
+# Invalid or used invitation token
 class InvalidInvitationError(NotFoundError):
-    """Invitation token was not found or has already been used."""
+    pass
 
 
+# Invitation token has expired
 class InvitationExpiredError(DomainError):
-    """Invitation token has expired."""
+    pass
 
 
 # Concrete Authorization Errors
+# Permission denied for non-owner
 class PermissionDenied(PermissionDeniedError):
-    """Authenticated user lacks permission (e.g. not OWNER) to perform action."""
+    pass
 
 
 # Concrete Conflict / Already Exists Errors
+# Login already taken
 class LoginTaken(AlreadyExistsError):
-    """Attempted registration with a login that is already taken."""
+    pass
 
 
+# User is already a project member
 class UserAlreadyMember(AlreadyExistsError):
-    """Attempted invitation for a user who is already a project member."""
+    pass
 
 
 # Concrete Authentication Errors
+# Invalid login credentials
 class InvalidCredentials(AuthenticationError):
-    """Supplied login or password does not match."""
+    pass
 
 
 # Concrete Limit Exceeded Errors
+# Uploaded file exceeds size limit
 class FileTooLarge(LimitExceededError):
-    """Uploaded file exceeds maximum allowed file size."""
+    pass
 
 
+# Upload exceeds project quota
 class ProjectQuotaExceeded(LimitExceededError):
-    """Upload would exceed the total project size quota."""
+    pass
 
 
 # Concrete Input Validation Errors
+# Filename is empty
 class EmptyFilenameError(InvalidInputError):
-    """Uploaded filename is empty or whitespace-only."""
+    pass
 
 
+# File is empty (0 bytes)
 class EmptyFileError(InvalidInputError):
-    """Uploaded file is empty (0 bytes)."""
+    pass
 
 
+# No files provided in request
 class NoFilesProvidedError(InvalidInputError):
-    """Upload endpoint received no files."""
+    pass
 
 
+# File extension is not allowed
 class InvalidFileExtension(InvalidInputError):
-    """File extension is not in the allowed list."""
+    pass
 
 
+# File signature mismatch
 class InvalidFileSignature(InvalidInputError):
-    """File magic bytes do not match declared extension/MIME type."""
+    pass

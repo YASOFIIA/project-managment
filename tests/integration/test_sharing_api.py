@@ -8,8 +8,8 @@ from app.models.project import ProjectMember
 from tests.factories import create_project, create_project_member, create_user
 
 
+# Check project owner can successfully invite a user as participant
 def test_invite_member_success(client: TestClient, db_session: Session) -> None:
-    """Verify that project owner can successfully invite a user as participant."""
     owner = create_user(db_session, login="project_owner")
     invitee = create_user(db_session, login="new_colleague")
     project = create_project(db_session, name="Shared Workspace")
@@ -44,10 +44,10 @@ def test_invite_member_success(client: TestClient, db_session: Session) -> None:
     assert membership.role == ProjectRole.PARTICIPANT
 
 
+# Check a participant cannot invite other members (403 Forbidden)
 def test_invite_member_by_participant_forbidden_403(
     client: TestClient, db_session: Session
 ) -> None:
-    """Verify that a participant cannot invite other members (403 Forbidden)."""
     owner = create_user(db_session, login="owner_user")
     participant = create_user(db_session, login="participant_user")
     invitee = create_user(db_session, login="third_party_user")
@@ -74,8 +74,8 @@ def test_invite_member_by_participant_forbidden_403(
     assert "Only project owner can perform this operation" in response.json()["detail"]
 
 
+# Check a non-member receives 404 (information hiding)
 def test_invite_member_by_non_member_returns_404(client: TestClient, db_session: Session) -> None:
-    """Verify that a non-member receives 404 (information hiding)."""
     owner = create_user(db_session, login="real_owner")
     stranger = create_user(db_session, login="stranger_user")
     invitee = create_user(db_session, login="invitee_user")
@@ -95,10 +95,10 @@ def test_invite_member_by_non_member_returns_404(client: TestClient, db_session:
     assert response.status_code == 404
 
 
+# Check attempting to invite to nonexistent project returns 404
 def test_invite_member_project_not_found_returns_404(
     client: TestClient, db_session: Session
 ) -> None:
-    """Verify that attempting to invite to nonexistent project returns 404."""
     user = create_user(db_session, login="random_user")
     token = create_access_token(user_id=user.id, login=user.login)
     headers = {"Authorization": f"Bearer {token}"}
@@ -111,8 +111,8 @@ def test_invite_member_project_not_found_returns_404(
     assert response.status_code == 404
 
 
+# Check attempting to invite a non-existent login returns 404
 def test_invite_unknown_user_returns_404(client: TestClient, db_session: Session) -> None:
-    """Verify that attempting to invite a non-existent login returns 404."""
     owner = create_user(db_session, login="project_boss")
     project = create_project(db_session, name="Boss Project")
     create_project_member(
@@ -131,8 +131,8 @@ def test_invite_unknown_user_returns_404(client: TestClient, db_session: Session
     assert "User 'ghost_user_999' not found" in response.json()["detail"]
 
 
+# Check attempting to invite an existing member returns 409 Conflict
 def test_invite_already_member_returns_409(client: TestClient, db_session: Session) -> None:
-    """Verify that attempting to invite an existing member returns 409 Conflict."""
     owner = create_user(db_session, login="lead_user")
     colleague = create_user(db_session, login="existing_colleague")
     project = create_project(db_session, name="Team Workspace")
@@ -166,14 +166,14 @@ def test_invite_already_member_returns_409(client: TestClient, db_session: Sessi
     assert f"User '{owner.login}' is already a member" in response_self.json()["detail"]
 
 
+# Check unauthenticated invite request returns 401
 def test_invite_unauthenticated_returns_401(client: TestClient) -> None:
-    """Verify that unauthenticated invite request returns 401."""
     response = client.post("/project/1/invite?user=anyone")
     assert response.status_code == 401
 
 
+# Check missing or empty user query parameter returns 422
 def test_invite_missing_or_empty_param_returns_422(client: TestClient, db_session: Session) -> None:
-    """Verify that missing or empty user query parameter returns 422."""
     owner = create_user(db_session, login="lead_dev")
     project = create_project(db_session, name="Alpha Project")
     create_project_member(

@@ -12,8 +12,8 @@ from app.services.auth import register_user
 from tests.factories import create_user
 
 
+# Check POST /auth successfully creates a new user and returns 201
 def test_register_user_success(client: TestClient) -> None:
-    """Verify that POST /auth successfully creates a new user and returns 201."""
     payload = {
         "login": "newuser",
         "password": "SecretPassword123!",
@@ -32,8 +32,8 @@ def test_register_user_success(client: TestClient) -> None:
     assert "hashed_password" not in data
 
 
+# Check POST /auth returns 422 when password and repeat_password differ
 def test_register_user_mismatched_passwords_returns_422(client: TestClient) -> None:
-    """Verify that POST /auth returns 422 when password and repeat_password differ."""
     payload = {
         "login": "mismatch_user",
         "password": "Password123!",
@@ -47,8 +47,8 @@ def test_register_user_mismatched_passwords_returns_422(client: TestClient) -> N
     assert any("Passwords do not match" in str(err) for err in errors)
 
 
+# Check POST /auth returns 409 Conflict if login is already registered
 def test_register_duplicate_login_returns_409(client: TestClient) -> None:
-    """Verify that POST /auth returns 409 Conflict if login is already registered."""
     payload = {
         "login": "duplicate_user",
         "password": "ValidPassword123!",
@@ -63,11 +63,11 @@ def test_register_duplicate_login_returns_409(client: TestClient) -> None:
     assert "already taken" in resp2.json()["detail"]
 
 
+# Check register_user catches database IntegrityError on race condition and returns 409
 def test_register_user_catches_integrity_error_on_race_condition(
     uow: UnitOfWork,
     db_session: Session,
 ) -> None:
-    """Verify register_user catches database IntegrityError on race condition and returns 409."""
     create_user(db_session, login="concurrent_login")
     data = UserRegisterRequest(
         login="concurrent_login",
@@ -82,8 +82,8 @@ def test_register_user_catches_integrity_error_on_race_condition(
         assert "concurrent_login" in exc_info.value.detail
 
 
+# Check POST /login with valid credentials returns 200 and a decodable JWT
 def test_login_success_returns_jwt_token(client: TestClient) -> None:
-    """Verify that POST /login with valid credentials returns 200 and a decodable JWT."""
     # First register user
     register_payload = {
         "login": "login_success_user",
@@ -109,8 +109,8 @@ def test_login_success_returns_jwt_token(client: TestClient) -> None:
     assert payload["login"] == "login_success_user"
 
 
+# Check POST /login with incorrect password returns 401 Unauthorized
 def test_login_invalid_password_returns_401(client: TestClient) -> None:
-    """Verify that POST /login with incorrect password returns 401 Unauthorized."""
     register_payload = {
         "login": "wrong_pw_user",
         "password": "RealPassword123!",
@@ -128,8 +128,8 @@ def test_login_invalid_password_returns_401(client: TestClient) -> None:
     assert "Invalid login or password" in response.json()["detail"]
 
 
+# Check POST /login with non-existent username returns 401 Unauthorized
 def test_login_nonexistent_user_returns_401(client: TestClient) -> None:
-    """Verify that POST /login with non-existent username returns 401 Unauthorized."""
     login_payload = {
         "login": "ghost_user",
         "password": "AnyPassword123!",

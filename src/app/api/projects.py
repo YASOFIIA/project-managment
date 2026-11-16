@@ -31,6 +31,7 @@ router = APIRouter(tags=["Projects"])
 StorageDep = Annotated[StorageBackend, Depends(get_storage)]
 
 
+# Create project endpoint
 @router.post(
     "/projects",
     response_model=ProjectResponse,
@@ -44,11 +45,11 @@ def create_new_project(
     current_user: CurrentUser,
     uow: UowDep,
 ) -> ProjectResponse:
-    """Create a new project endpoint."""
     project = create_project(uow=uow, user=current_user, data=data)
     return ProjectResponse.model_validate(project)
 
 
+# Get all accessible projects endpoint
 @router.get(
     "/projects",
     response_model=list[ProjectDetailResponse],
@@ -61,11 +62,11 @@ def get_all_projects(
     current_user: CurrentUser,
     uow: UowDep,
 ) -> list[ProjectDetailResponse]:
-    """Retrieve all accessible projects with documents."""
     projects = list_user_projects(uow=uow, user_id=current_user.id)
     return [ProjectDetailResponse.model_validate(p) for p in projects]
 
 
+# Get project details endpoint
 @router.get(
     "/project/{project_id}/info",
     response_model=ProjectResponse,
@@ -78,11 +79,11 @@ def get_info(
     current_user: CurrentUser,
     uow: UowDep,
 ) -> ProjectResponse:
-    """Retrieve project details endpoint."""
     project = get_project_info(uow=uow, project_id=project_id, user_id=current_user.id)
     return ProjectResponse.model_validate(project)
 
 
+# Update project details endpoint
 @router.put(
     "/project/{project_id}/info",
     response_model=ProjectResponse,
@@ -96,7 +97,6 @@ def update_info(
     current_user: CurrentUser,
     uow: UowDep,
 ) -> ProjectResponse:
-    """Update project details endpoint."""
     project = update_project_info(
         uow=uow,
         project_id=project_id,
@@ -106,6 +106,7 @@ def update_info(
     return ProjectResponse.model_validate(project)
 
 
+# Delete project endpoint (owner only)
 @router.delete(
     "/project/{project_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -119,7 +120,6 @@ def delete_existing_project(
     uow: UowDep,
     storage: StorageDep,
 ) -> None:
-    """Delete project endpoint (owner only)."""
     delete_project(
         uow=uow,
         storage=storage,
@@ -128,6 +128,7 @@ def delete_existing_project(
     )
 
 
+# Invite user endpoint (owner only)
 @router.post(
     "/project/{project_id}/invite",
     response_model=ProjectMemberResponse,
@@ -141,7 +142,6 @@ def invite_user_to_project(
     uow: UowDep,
     user: str = Query(..., min_length=1, description="Username of user to invite"),
 ) -> ProjectMemberResponse:
-    """Invite user endpoint (owner only)."""
     membership = invite_member(
         uow=uow,
         project_id=project_id,
@@ -151,6 +151,7 @@ def invite_user_to_project(
     return ProjectMemberResponse.model_validate(membership)
 
 
+# Share project via email endpoint (owner only)
 @router.get(
     "/project/{project_id}/share",
     response_model=InvitationResponse,
@@ -169,7 +170,6 @@ def share_project_via_email(
     email: Annotated[str, Query(alias="with", min_length=3, description="Recipient email address")],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> InvitationResponse:
-    """Share project via email endpoint (owner only)."""
     return create_and_send_invitation(
         uow=uow,
         email_sender=email_sender,

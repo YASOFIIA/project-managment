@@ -6,9 +6,9 @@ from app.storage.local import LocalStorage
 from app.storage.s3 import S3Storage
 
 
+# Get storage backend singleton
 @lru_cache
 def get_storage() -> StorageBackend:
-    """Return the configured storage backend singleton."""
     settings = get_settings()
     if settings.storage_backend == "local":
         return LocalStorage(base_dir=settings.local_storage_dir)

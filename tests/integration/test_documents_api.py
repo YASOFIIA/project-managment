@@ -15,12 +15,12 @@ from app.storage import get_storage
 from tests.factories import create_project, create_project_member, create_user
 
 
+# Check owner can upload a valid PDF document to their project
 def test_upload_single_document_by_owner_success(
     client: TestClient,
     db_session: Session,
     tmp_path: Path,
 ) -> None:
-    """Verify owner can upload a valid PDF document to their project."""
     owner = create_user(db_session, login="doc_owner")
     project = create_project(db_session, name="Document Project")
     create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
@@ -49,11 +49,11 @@ def test_upload_single_document_by_owner_success(
     assert project.total_size_bytes == len(pdf_content)
 
 
+# Check project participant can upload a batch of multiple files (PDF and DOCX)
 def test_upload_multiple_documents_by_participant_success(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify project participant can upload a batch of multiple files (PDF and DOCX)."""
     owner = create_user(db_session, login="owner_multi")
     participant = create_user(db_session, login="part_multi")
     project = create_project(db_session, name="Multi Doc Project")
@@ -86,11 +86,11 @@ def test_upload_multiple_documents_by_participant_success(
     assert project.total_size_bytes == len(pdf_bytes) + len(docx_bytes)
 
 
+# Check listing documents returns attached document metadata in chronological order
 def test_list_project_documents_by_owner_and_participant(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify listing documents returns attached document metadata in chronological order."""
     owner = create_user(db_session, login="owner_lister")
     participant = create_user(db_session, login="part_lister")
     project = create_project(db_session, name="Listing Project")
@@ -128,11 +128,11 @@ def test_list_project_documents_by_owner_and_participant(
     assert docs[0]["filename"] == "file1.pdf"
 
 
+# Check non-members receive 404 for upload and list (Information Hiding)
 def test_upload_and_list_documents_non_member_returns_404(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify non-members receive 404 for upload and list (Information Hiding)."""
     owner = create_user(db_session, login="owner_secret")
     stranger = create_user(db_session, login="stranger_doc")
     project = create_project(db_session, name="Secret Doc Project")
@@ -155,17 +155,17 @@ def test_upload_and_list_documents_non_member_returns_404(
     assert list_res.status_code == 404
 
 
+# Check unauthenticated requests return 401 Unauthorized
 def test_upload_and_list_unauthenticated_returns_401(client: TestClient) -> None:
-    """Verify unauthenticated requests return 401 Unauthorized."""
     assert client.get("/project/1/documents").status_code == 401
     assert client.post("/project/1/documents").status_code == 401
 
 
+# Check validation errors (bad extension, spoofed signature, empty file) return 400
 def test_upload_validation_errors(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify validation errors (bad extension, spoofed signature, empty file) return 400."""
     owner = create_user(db_session, login="owner_val_err")
     project = create_project(db_session, name="Validation Test Project")
     create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
@@ -201,12 +201,12 @@ def test_upload_validation_errors(
     assert "empty" in res_empty.json()["detail"]
 
 
+# Check uploading files that exceed project limit returns 413 Content Too Large
 def test_upload_exceeding_project_size_limit_returns_413(
     client: TestClient,
     db_session: Session,
     monkeypatch,
 ) -> None:
-    """Verify uploading files that exceed project limit returns 413 Content Too Large."""
     owner = create_user(db_session, login="owner_quota")
     project = create_project(db_session, name="Quota Project")
     create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
@@ -229,8 +229,8 @@ def test_upload_exceeding_project_size_limit_returns_413(
     assert "limit" in response.json()["detail"]
 
 
+# Check row locking with with_for_update prevents race conditions
 def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
-    """Verify that row locking with with_for_update prevents race conditions."""
     import concurrent.futures
     import threading
     import uuid
@@ -325,11 +325,11 @@ def test_concurrent_uploads_cannot_bypass_project_size_limit() -> None:
     engine.dispose()
 
 
+# Check stored key uses UUID filename
 def test_upload_key_does_not_leak_client_filename_and_matches_lambda_regex(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify stored key uses UUID filename, does not leak client name, and matches Lambda regex."""
     owner = create_user(db_session, login="secure_key_owner")
     project = create_project(db_session, name="Key Security Project")
     create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)

@@ -8,23 +8,22 @@ from app.domain.errors import LoginTaken
 from app.models.user import User
 
 
+# SQLAlchemy adapter for user persistence
 class SqlAlchemyUserRepository:
-    """SQLAlchemy adapter for user persistence."""
-
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    # Find user by primary key
     def get_by_id(self, user_id: int) -> User | None:
-        """Find user by primary key."""
         return self._session.get(User, user_id)
 
+    # Find user by login
     def get_by_login(self, login: str) -> User | None:
-        """Find user by unique login."""
         stmt = select(User).where(User.login == login)
         return self._session.scalar(stmt)
 
+    # Add and flush user
     def add(self, user: User) -> None:
-        """Add and flush user entity."""
         self._session.add(user)
         try:
             self._session.flush()

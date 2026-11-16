@@ -11,12 +11,12 @@ from app.storage import get_storage
 from tests.factories import create_document, create_project, create_project_member, create_user
 
 
+# Check owner and participant can download a document's binary payload
 def test_download_document_success(
     client: TestClient,
     db_session: Session,
     tmp_path: Path,
 ) -> None:
-    """Verify owner and participant can download a document's binary payload."""
     owner = create_user(db_session, login="owner_downloader")
     participant = create_user(db_session, login="part_downloader")
     project = create_project(db_session, name="Download Project")
@@ -60,11 +60,11 @@ def test_download_document_success(
     assert resp_part.content == pdf_content
 
 
+# Check downloading a document missing from storage returns 404, not 500
 def test_download_document_missing_from_storage_returns_404(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify that downloading a document missing from storage returns 404, not 500."""
     owner = create_user(db_session, login="owner_missing_doc")
     project = create_project(db_session, name="Missing File Project")
     create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)
@@ -90,11 +90,11 @@ def test_download_document_missing_from_storage_returns_404(
     assert "not found" in data["detail"].lower()
 
 
+# Check document replacement updates metadata, storage files, and project size
 def test_replace_document_success(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify document replacement updates metadata, storage files, and project size."""
     owner = create_user(db_session, login="owner_replacer")
     participant = create_user(db_session, login="part_replacer")
     project = create_project(db_session, name="Replace Project")
@@ -145,11 +145,11 @@ def test_replace_document_success(
     assert project.total_size_bytes == len(new_content)
 
 
+# Check document deletion removes row from DB, deletes file, and updates size
 def test_delete_document_success(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify document deletion removes row from DB, deletes file, and updates size."""
     owner = create_user(db_session, login="owner_deleter_doc")
     participant = create_user(db_session, login="part_deleter_doc")
     project = create_project(db_session, name="Delete Doc Project")
@@ -190,11 +190,11 @@ def test_delete_document_success(
     assert project.total_size_bytes == 0
 
 
+# Check non-members receive 404 for download, replace, and delete
 def test_document_operations_non_member_returns_404(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify non-members receive 404 for download, replace, and delete."""
     owner = create_user(db_session, login="owner_hide_doc")
     stranger = create_user(db_session, login="stranger_hide_doc")
     project = create_project(db_session, name="Private Project")
@@ -216,11 +216,11 @@ def test_document_operations_non_member_returns_404(
     assert client.delete(f"/document/{doc.id}", headers=headers).status_code == 404
 
 
+# Check operations on non-existent document ID return 404
 def test_document_operations_nonexistent_returns_404(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify operations on non-existent document ID return 404."""
     user = create_user(db_session, login="user_missing_doc")
     token = create_access_token(user_id=user.id, login=user.login)
     headers = {"Authorization": f"Bearer {token}"}
@@ -231,18 +231,18 @@ def test_document_operations_nonexistent_returns_404(
     assert client.delete("/document/99999", headers=headers).status_code == 404
 
 
+# Check unauthenticated requests to document operations return 401
 def test_document_operations_unauthenticated_returns_401(client: TestClient) -> None:
-    """Verify unauthenticated requests to document operations return 401."""
     assert client.get("/document/1").status_code == 401
     assert client.put("/document/1").status_code == 401
     assert client.delete("/document/1").status_code == 401
 
 
+# Check replacing document with invalid type or spoofed bytes returns 400
 def test_replace_document_validation_errors(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify replacing document with invalid type or spoofed bytes returns 400."""
     owner = create_user(db_session, login="owner_bad_replace")
     project = create_project(db_session, name="Bad Replace Project")
     create_project_member(db_session, project.id, owner.id, role=ProjectRole.OWNER)

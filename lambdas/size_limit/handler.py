@@ -1,15 +1,4 @@
-"""AWS Lambda handler for project document size quota enforcement.
-
-Triggered by S3 ObjectCreated events.
-1. Parses the S3 bucket and object key: 'projects/<project_id>/<document_id>/<name>'.
-2. Sums the total bytes of all objects stored under 'projects/<project_id>/'.
-3. If total size exceeds MAX_PROJECT_SIZE_BYTES (default: 50 MB):
-   - Deletes the newly uploaded object from S3.
-   - Dispatches a webhook notification to the internal API callback endpoint with status='rejected'.
-4. If within quota:
-   - Dispatches a webhook notification with status='accepted' and the updated total_size_bytes.
-"""
-
+# Lambda handler for document size quota checks
 from __future__ import annotations
 
 import json
@@ -29,19 +18,19 @@ DEFAULT_MAX_SIZE_BYTES: int = 50 * 1024 * 1024  # 50 MB
 S3_KEY_PATTERN = re.compile(r"^projects/(?P<project_id>\d+)/(?P<document_id>\d+)/(?P<filename>.+)$")
 
 
+# Create boto3 S3 client
 def get_s3_client(endpoint_url: str | None = None) -> Any:
-    """Create a boto3 S3 client with optional endpoint override."""
     endpoint = endpoint_url or os.getenv("S3_ENDPOINT_URL") or None
     return boto3.client("s3", endpoint_url=endpoint)
 
 
+# Send webhook to internal API callback
 def send_api_callback(
     callback_url: str,
     secret: str,
     payload: dict[str, Any],
     timeout_seconds: float = 5.0,
 ) -> bool:
-    """Send an HTTP POST webhook to the internal API callback endpoint."""
     if not callback_url:
         logger.info("API_CALLBACK_URL is not configured; skipping callback dispatch.")
         return False
@@ -67,8 +56,8 @@ def send_api_callback(
         return False
 
 
+# Sum sizes of all objects in project prefix
 def calculate_project_total_size(s3_client: Any, bucket: str, project_id: int) -> int:
-    """Sum the sizes of all objects under projects/<project_id>/ across all pages."""
     prefix = f"projects/{project_id}/"
     total_size = 0
     paginator = s3_client.get_paginator("list_objects_v2")
@@ -81,8 +70,8 @@ def calculate_project_total_size(s3_client: Any, bucket: str, project_id: int) -
     return total_size
 
 
+# Lambda entrypoint for S3 ObjectCreated events
 def lambda_handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]:
-    """AWS Lambda entrypoint triggered by S3 ObjectCreated events."""
     logger.info("Lambda size_limit invoked with event: %s", json.dumps(event))
 
     records = event.get("Records", [])

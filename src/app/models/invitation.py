@@ -12,9 +12,8 @@ if TYPE_CHECKING:
     from app.models.project import Project
 
 
+# Project invitation with single-use token and expiration
 class ProjectInvitation(Base):
-    """Project email invitation entity with unique share token and expiration timestamp."""
-
     __tablename__ = "project_invitations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

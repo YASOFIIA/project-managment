@@ -19,16 +19,15 @@ SENSITIVE_KEYS: set[str] = {
 }
 
 
+# Inject request_id into log records
 class RequestIDLogFilter(logging.Filter):
-    """Logging filter that injects the current request_id into log records."""
-
     def filter(self, record: logging.LogRecord) -> bool:
         record.request_id = request_id_ctx.get()
         return True
 
 
+# Mask sensitive query parameters in logs
 def sanitize_query_string(query_string: str) -> str:
-    """Mask sensitive query parameter values to prevent secret leakage in logs."""
     if not query_string:
         return ""
     pairs = parse_qsl(query_string, keep_blank_values=True)
@@ -41,8 +40,8 @@ def sanitize_query_string(query_string: str) -> str:
     return urlencode(sanitized)
 
 
+# Get logger with request_id formatting
 def get_logger(name: str = "app") -> logging.Logger:
-    """Get or configure a logger with request_id formatting."""
     logger = logging.getLogger(name)
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stdout)

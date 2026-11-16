@@ -15,13 +15,8 @@ from app.core.errors import register_error_handlers
 from app.core.middleware import RequestIDLoggingMiddleware
 
 
+# Fix OpenAPI file upload schema for Swagger UI
 def _fix_file_upload_schemas(node: Any) -> None:
-    """Recursively transform OpenAPI 3.1 file schemas to Swagger UI compatible format.
-
-    FastAPI generates `type: string, contentMediaType: application/octet-stream` for file uploads,
-    which conforms to OpenAPI 3.1 but causes Swagger UI to render plain text inputs instead of
-    file pickers. Replacing `contentMediaType` with `format: binary` restores file upload inputs.
-    """
     if isinstance(node, dict):
         if (
             node.get("type") == "string"
@@ -36,8 +31,8 @@ def _fix_file_upload_schemas(node: Any) -> None:
             _fix_file_upload_schemas(item)
 
 
+# Create and configure FastAPI application
 def create_app() -> FastAPI:
-    """Application factory for creating and configuring the FastAPI instance."""
     settings = get_settings()
     application = FastAPI(
         title=settings.app_name,
@@ -73,9 +68,9 @@ def create_app() -> FastAPI:
 
     application.openapi = custom_openapi  # type: ignore[method-assign]
 
+    # Service health check
     @application.get("/health", tags=["Health"])
     def health_check() -> dict[str, str]:
-        """Health check endpoint accessible without authentication."""
         return {
             "status": "ok",
             "environment": settings.environment,

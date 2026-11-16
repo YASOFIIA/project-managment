@@ -13,43 +13,37 @@ settings = get_settings()
 _password_hash = PasswordHash((Argon2Hasher(),))
 
 
+# Base exception for security errors
 class SecurityError(Exception):
-    """Base exception for security and authentication errors."""
-
     pass
 
 
+# Raised when auth token has expired
 class TokenExpiredError(SecurityError):
-    """Raised when an authentication token is expired."""
-
     pass
 
 
+# Raised when auth token is invalid or tampered with
 class InvalidTokenError(SecurityError):
-    """Raised when an authentication token is malformed, invalid, or tampered."""
-
     pass
 
 
+# Hash password with Argon2id
 def hash_password(plain_password: str) -> str:
-    """Hash a raw password using the Argon2id algorithm.
-
-    Never log or store plain passwords.
-    """
     return _password_hash.hash(plain_password)
 
 
+# Verify password against Argon2id hash
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against an Argon2id hash."""
     return _password_hash.verify(plain_password, hashed_password)
 
 
+# Create JWT token with 1h expiry
 def create_access_token(
     user_id: int,
     login: str,
     expires_delta: timedelta | None = None,
 ) -> str:
-    """Issue a signed JWT access token with user claims and exactly 1-hour expiry."""
     now = datetime.now(UTC)
     if expires_delta is not None:
         expire = now + expires_delta
@@ -70,14 +64,8 @@ def create_access_token(
     )
 
 
+# Decode and validate signed JWT token
 def decode_access_token(token: str) -> dict[str, Any]:
-    """Decode and validate a signed JWT access token.
-
-    Validates signature and expiration timestamp.
-    Raises:
-        TokenExpiredError: if the token lifetime has elapsed.
-        InvalidTokenError: if signature is invalid or payload is corrupted.
-    """
     try:
         payload: dict[str, Any] = jwt.decode(
             token,

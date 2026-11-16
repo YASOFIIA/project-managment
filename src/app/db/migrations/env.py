@@ -16,20 +16,16 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+# Get database URL from settings
 def get_url() -> str:
-    """Retrieve database URL from application settings dynamically."""
     configured_url = config.get_main_option("sqlalchemy.url")
     if configured_url:
         return configured_url
     return get_settings().database_url
 
 
+# Run migrations in offline mode
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL and not an Engine,
-    generating SQL scripts without executing them directly.
-    """
     url = get_url()
     context.configure(
         url=url,
@@ -43,8 +39,8 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+# Run migrations in online mode
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode with a live database connection."""
     # Check if a live connection was passed into config attributes (e.g. from tests)
     provided_connection = config.attributes.get("connection")
 

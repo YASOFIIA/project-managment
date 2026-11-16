@@ -31,8 +31,8 @@ DOMAIN_CATEGORY_STATUS_MAP: dict[type[DomainError], int] = {
 }
 
 
+# Map domain error to HTTP status code
 def get_http_status_for_domain_error(exc: DomainError) -> int:
-    """Resolve HTTP status code for a domain error based on its business category."""
     if isinstance(exc, InvitationExpiredError):
         return status.HTTP_410_GONE
     for error_category, http_status in DOMAIN_CATEGORY_STATUS_MAP.items():
@@ -41,8 +41,8 @@ def get_http_status_for_domain_error(exc: DomainError) -> int:
     return status.HTTP_400_BAD_REQUEST
 
 
+# Get correlation request ID
 def get_request_id(request: Request) -> str:
-    """Retrieve the correlation request ID from request state, contextvar, or fallback."""
     state_id = getattr(request.state, "request_id", None)
     if state_id:
         return str(state_id)
@@ -55,16 +55,16 @@ def get_request_id(request: Request) -> str:
     return str(uuid.uuid4())
 
 
+# Map HTTP status code to error code name
 def get_error_code_name(status_code: int) -> str:
-    """Map HTTP status code to an UPPERCASE descriptive error code."""
     try:
         return http.HTTPStatus(status_code).name
     except ValueError:
         return f"HTTP_{status_code}"
 
 
+# Handle HTTP exceptions
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-    """Unified handler for all HTTPExceptions (including 404 route not found, 405, etc.)."""
     request_id = get_request_id(request)
     headers = dict(exc.headers) if exc.headers else {}
     headers["X-Request-ID"] = request_id
@@ -83,11 +83,11 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
     )
 
 
+# Handle request validation errors (422)
 async def validation_exception_handler(
     request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
-    """Unified handler for RequestValidationError (422 Unprocessable Content)."""
     request_id = get_request_id(request)
 
     return JSONResponse(
@@ -102,11 +102,11 @@ async def validation_exception_handler(
     )
 
 
+# Handle missing storage files (404)
 async def file_not_found_exception_handler(
     request: Request,
     exc: FileNotFoundError,
 ) -> JSONResponse:
-    """Unified handler for missing storage files (404 Not Found)."""
     request_id = get_request_id(request)
     logger.warning("File not found on storage: %s", exc)
 
@@ -122,11 +122,11 @@ async def file_not_found_exception_handler(
     )
 
 
+# Translate domain exceptions to HTTP responses
 async def domain_exception_handler(
     request: Request,
     exc: DomainError,
 ) -> JSONResponse:
-    """Unified handler for domain exceptions translated to HTTP responses."""
     request_id = get_request_id(request)
     http_status = get_http_status_for_domain_error(exc)
     error_code = get_error_code_name(http_status)
@@ -143,8 +143,8 @@ async def domain_exception_handler(
     )
 
 
+# Catch-all handler for unhandled exceptions (500)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Catch-all handler for unhandled exceptions (500 Internal Server Error)."""
     request_id = get_request_id(request)
     logger.exception("Unhandled server exception: %s", exc)
 
@@ -160,8 +160,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
+# Register custom exception handlers
 def register_error_handlers(application: FastAPI) -> None:
-    """Register all custom exception handlers on the FastAPI application."""
     application.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
     application.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
     application.add_exception_handler(FileNotFoundError, file_not_found_exception_handler)  # type: ignore[arg-type]

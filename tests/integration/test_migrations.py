@@ -5,8 +5,8 @@ from sqlalchemy import create_engine, inspect
 from app.core.config import get_settings
 
 
+# Check Alembic migrations run upgrade to head and downgrade to base cleanly
 def test_alembic_migrations_upgrade_and_downgrade() -> None:
-    """Verify that Alembic migrations run upgrade to head and downgrade to base cleanly."""
     settings = get_settings()
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", settings.test_database_url)

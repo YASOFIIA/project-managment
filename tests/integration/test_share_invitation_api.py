@@ -13,8 +13,8 @@ from app.models.project import ProjectMember
 from tests.factories import create_project, create_project_member, create_user
 
 
+# Check project owner can generate share invitation via email
 def test_owner_can_share_project(client: TestClient, db_session: Session) -> None:
-    """Verify project owner can generate share invitation via email."""
     owner = create_user(db_session, login="owner_share")
     project = create_project(db_session, name="Shareable Workspace")
     create_project_member(
@@ -47,8 +47,8 @@ def test_owner_can_share_project(client: TestClient, db_session: Session) -> Non
     assert len(invitation.token) >= 32
 
 
+# Check participant cannot generate share invitations (403 Forbidden)
 def test_participant_cannot_share(client: TestClient, db_session: Session) -> None:
-    """Verify participant cannot generate share invitations (403 Forbidden)."""
     owner = create_user(db_session, login="owner_for_part_share")
     participant = create_user(db_session, login="participant_share")
     project = create_project(db_session, name="Collab Project")
@@ -69,8 +69,8 @@ def test_participant_cannot_share(client: TestClient, db_session: Session) -> No
     assert response.status_code == 403
 
 
+# Check non-member receives 404 Not Found to prevent resource enumeration
 def test_non_member_cannot_share(client: TestClient, db_session: Session) -> None:
-    """Verify non-member receives 404 Not Found to prevent resource enumeration."""
     owner = create_user(db_session, login="owner_non_member_share")
     outsider = create_user(db_session, login="outsider_share")
     project = create_project(db_session, name="Private Workspace")
@@ -88,8 +88,8 @@ def test_non_member_cannot_share(client: TestClient, db_session: Session) -> Non
     assert response.status_code == 404
 
 
+# Check invited user can accept invitation and becomes participant
 def test_accept_invitation(client: TestClient, db_session: Session) -> None:
-    """Verify invited user can accept invitation and becomes participant."""
     owner = create_user(db_session, login="owner_accept")
     guest = create_user(db_session, login="guest_user")
     project = create_project(db_session, name="Target Project")
@@ -139,8 +139,8 @@ def test_accept_invitation(client: TestClient, db_session: Session) -> None:
     assert invitation.used is True
 
 
+# Check expired invitation token returns 410 Gone
 def test_expired_token(client: TestClient, db_session: Session) -> None:
-    """Verify expired invitation token returns 410 Gone."""
     owner = create_user(db_session, login="owner_expired")
     guest = create_user(db_session, login="guest_expired")
     project = create_project(db_session, name="Expired Token Project")
@@ -167,8 +167,8 @@ def test_expired_token(client: TestClient, db_session: Session) -> None:
     assert res.status_code == 410
 
 
+# Check accepting an already used token returns 404 Not Found
 def test_used_token(client: TestClient, db_session: Session) -> None:
-    """Verify accepting an already used token returns 404 Not Found."""
     owner = create_user(db_session, login="owner_used")
     guest1 = create_user(db_session, login="guest_first")
     guest2 = create_user(db_session, login="guest_second")
@@ -205,8 +205,8 @@ def test_used_token(client: TestClient, db_session: Session) -> None:
     assert r2.status_code == 404
 
 
+# Check nonexistent token returns 404 Not Found
 def test_invalid_token(client: TestClient, db_session: Session) -> None:
-    """Verify nonexistent token returns 404 Not Found."""
     guest = create_user(db_session, login="guest_invalid_tok")
     guest_token = create_access_token(user_id=guest.id, login=guest.login)
 
@@ -217,8 +217,8 @@ def test_invalid_token(client: TestClient, db_session: Session) -> None:
     assert res.status_code == 404
 
 
+# Check existing member attempting to accept invitation returns 409 Conflict
 def test_already_member_accepts(client: TestClient, db_session: Session) -> None:
-    """Verify existing member attempting to accept invitation returns 409 Conflict."""
     owner = create_user(db_session, login="owner_already_member")
     existing_member = create_user(db_session, login="already_in_project")
     project = create_project(db_session, name="Conflict Project")

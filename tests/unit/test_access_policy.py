@@ -1,20 +1,19 @@
-"""Unit tests for domain access policy and permission matrix."""
-
+# Tests for domain access policy
 import pytest
 
 from app.domain.access_policy import POLICY_MATRIX, Action, can_perform
 from app.domain.roles import ProjectRole
 
 
+# Check ProjectRole.OWNER has permission for every Action
 def test_owner_policy_allows_all_actions() -> None:
-    """Verify that ProjectRole.OWNER has permission for every Action."""
     assert POLICY_MATRIX[ProjectRole.OWNER] == frozenset(Action)
     for action in Action:
         assert can_perform(ProjectRole.OWNER, action) is True
 
 
+# Check ProjectRole.PARTICIPANT is forbidden strictly DELETE_PROJECT and INVITE_MEMBER
 def test_participant_policy_forbids_only_delete_and_invite() -> None:
-    """Verify ProjectRole.PARTICIPANT is forbidden strictly DELETE_PROJECT and INVITE_MEMBER."""
     forbidden = {Action.DELETE_PROJECT, Action.INVITE_MEMBER}
     expected_allowed = frozenset(action for action in Action if action not in forbidden)
 
@@ -23,15 +22,15 @@ def test_participant_policy_forbids_only_delete_and_invite() -> None:
     assert can_perform(ProjectRole.PARTICIPANT, Action.INVITE_MEMBER) is False
 
 
+# Parametrized check that OWNER can perform all actions
 @pytest.mark.parametrize("action", list(Action))
 def test_access_policy_owner_matrix_table(action: Action) -> None:
-    """Parametrized check that OWNER can perform all actions."""
     assert can_perform(ProjectRole.OWNER, action) is True
 
 
+# Parametrized check that PARTICIPANT can perform non-destructive, non-admin actions
 @pytest.mark.parametrize("action", list(Action))
 def test_access_policy_participant_matrix_table(action: Action) -> None:
-    """Parametrized check that PARTICIPANT can perform non-destructive, non-admin actions."""
     if action in (Action.DELETE_PROJECT, Action.INVITE_MEMBER):
         assert can_perform(ProjectRole.PARTICIPANT, action) is False
     else:

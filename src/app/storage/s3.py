@@ -9,9 +9,8 @@ from app.application.ports.storage import StorageBackend
 __all__ = ["S3Storage"]
 
 
+# S3 storage backend (works with LocalStack in dev)
 class S3Storage(StorageBackend):
-    """Storage backend implementing document persistence on AWS S3 or LocalStack."""
-
     def __init__(
         self,
         bucket_name: str,
@@ -37,8 +36,8 @@ class S3Storage(StorageBackend):
                 config=Config(s3={"addressing_style": "path"}),
             )
 
+    # Upload file to S3 bucket
     def save(self, filename: str, content: BinaryIO | bytes) -> str:
-        """Upload content to S3 bucket under the specified key."""
         body = content if isinstance(content, bytes) else content.read()
         self._client.put_object(
             Bucket=self.bucket_name,
@@ -47,8 +46,8 @@ class S3Storage(StorageBackend):
         )
         return filename
 
+    # Download file from S3 as stream
     def get(self, stored_filename: str) -> BinaryIO:
-        """Retrieve binary object from S3 as a readable stream."""
         try:
             response = self._client.get_object(
                 Bucket=self.bucket_name,
@@ -63,8 +62,8 @@ class S3Storage(StorageBackend):
                 ) from e
             raise
 
+    # Delete object from S3
     def delete(self, stored_filename: str) -> bool:
-        """Delete an object from S3 bucket."""
         if not self.exists(stored_filename):
             return False
         self._client.delete_object(
@@ -73,8 +72,8 @@ class S3Storage(StorageBackend):
         )
         return True
 
+    # Check if object exists in S3
     def exists(self, stored_filename: str) -> bool:
-        """Check whether an object exists in S3 via HEAD request."""
         try:
             self._client.head_object(
                 Bucket=self.bucket_name,

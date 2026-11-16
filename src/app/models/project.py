@@ -13,9 +13,8 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
+# Project model with members and attached documents
 class Project(Base):
-    """Project entity containing details, membership relations, and associated documents."""
-
     __tablename__ = "projects"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -58,9 +57,8 @@ class Project(Base):
         return f"<Project id={self.id} name={self.name!r}>"
 
 
+# Project membership linking user to project with a role
 class ProjectMember(Base):
-    """Association table linking users to projects with designated access roles."""
-
     __tablename__ = "project_members"
     __table_args__ = (
         UniqueConstraint("project_id", "user_id", name="uq_project_members_project_user"),

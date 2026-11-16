@@ -8,9 +8,8 @@ from app.application.ports.project_repository import ProjectRepository
 from app.application.ports.user_repository import UserRepository
 
 
+# Unit of Work interface coordinating transactions
 class UnitOfWork(Protocol):
-    """Unit of Work interface coordinating repository operations and transaction boundary."""
-
     @property
     def users(self) -> UserRepository: ...
 
@@ -32,10 +31,8 @@ class UnitOfWork(Protocol):
         exc_tb: object | None,
     ) -> None: ...
 
-    def commit(self) -> None:
-        """Commit current transaction boundary."""
-        ...
+    # Commit transaction
+    def commit(self) -> None: ...
 
-    def rollback(self) -> None:
-        """Rollback current transaction boundary."""
-        ...
+    # Rollback transaction
+    def rollback(self) -> None: ...

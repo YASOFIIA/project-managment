@@ -5,18 +5,8 @@ from fastapi.testclient import TestClient
 from app.core.security import create_access_token
 
 
+# Check the entire authentication lifecycle in an integrated end-to-end scenario:
 def test_full_auth_lifecycle_end_to_end(client: TestClient) -> None:
-    """Verify the entire authentication lifecycle in an integrated end-to-end scenario:
-
-    1. Register a new user (POST /auth -> 201).
-    2. Attempt duplicate registration (POST /auth -> 409).
-    3. Login with wrong password (POST /login -> 401).
-    4. Login with correct password (POST /login -> 200, JWT issued).
-    5. Access protected endpoint with valid JWT (GET /auth/me -> 200).
-    6. Access protected endpoint with tampered JWT (GET /auth/me -> 401).
-    7. Access protected endpoint with expired JWT (GET /auth/me -> 401).
-    8. Access protected endpoint without JWT (GET /auth/me -> 401).
-    """
     username = "e2e_student"
     password = "StrongPassword2026!"
 

@@ -8,12 +8,12 @@ from sqlalchemy.orm import Session
 from app.models.invitation import ProjectInvitation
 
 
+# SQLAlchemy adapter for project invitations
 class SqlAlchemyInvitationRepository:
-    """SQLAlchemy adapter for ProjectInvitation persistence."""
-
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    # Create and save project invitation
     def create(
         self,
         project_id: int,
@@ -21,7 +21,6 @@ class SqlAlchemyInvitationRepository:
         token: str,
         expires_at: datetime,
     ) -> ProjectInvitation:
-        """Create and persist a new project invitation."""
         invitation = ProjectInvitation(
             project_id=project_id,
             email=email,
@@ -33,7 +32,7 @@ class SqlAlchemyInvitationRepository:
         self._session.flush()
         return invitation
 
+    # Find invitation by token
     def get_by_token(self, token: str) -> ProjectInvitation | None:
-        """Find project invitation by unique token."""
         stmt = select(ProjectInvitation).where(ProjectInvitation.token == token)
         return self._session.scalars(stmt).first()

@@ -15,8 +15,8 @@ from app.storage.s3 import S3Storage
 from tests.factories import create_project, create_project_member, create_user
 
 
+# Create an in-memory mocked S3 client simulating put, get, head, delete
 def _build_mock_s3_client() -> tuple[MagicMock, dict[str, bytes]]:
-    """Create an in-memory mocked S3 client simulating put, get, head, delete."""
     in_memory: dict[str, bytes] = {}
 
     def mock_put_object(
@@ -58,8 +58,8 @@ def _build_mock_s3_client() -> tuple[MagicMock, dict[str, bytes]]:
     return mock_client, in_memory
 
 
+# Check S3Storage operations using projects/<project_id>/<document_id>/<name> layout
 def test_s3_storage_lifecycle_with_s3_key_format() -> None:
-    """Verify S3Storage operations using projects/<project_id>/<document_id>/<name> layout."""
     mock_client, _ = _build_mock_s3_client()
     storage = S3Storage(bucket_name="pm-documents", s3_client=mock_client)
 
@@ -86,12 +86,12 @@ def test_s3_storage_lifecycle_with_s3_key_format() -> None:
         storage.get(s3_key)
 
 
+# Check FastAPI endpoints seamlessly function when S3Storage is the active backend
 def test_api_integration_with_s3_storage_backend(
     client: TestClient,
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Verify FastAPI endpoints seamlessly function when S3Storage is the active backend."""
     mock_client, _ = _build_mock_s3_client()
     s3_storage = S3Storage(bucket_name="pm-documents", s3_client=mock_client)
 

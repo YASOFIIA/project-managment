@@ -7,8 +7,8 @@ from app.core.security import create_access_token
 from tests.factories import create_user
 
 
+# Check a valid JWT token retrieves the authenticated user's profile
 def test_get_current_user_valid_token(client: TestClient, db_session: Session) -> None:
-    """Verify that a valid JWT token retrieves the authenticated user's profile."""
     user = create_user(db_session, login="auth_me_user")
     token = create_access_token(user_id=user.id, login=user.login)
 
@@ -21,8 +21,8 @@ def test_get_current_user_valid_token(client: TestClient, db_session: Session) -
     assert data["login"] == "auth_me_user"
 
 
+# Check requests without an Authorization header return 401 Unauthorized
 def test_get_current_user_missing_header_returns_401(client: TestClient) -> None:
-    """Verify that requests without an Authorization header return 401 Unauthorized."""
     response = client.get("/auth/me")
 
     assert response.status_code == 401
@@ -30,19 +30,19 @@ def test_get_current_user_missing_header_returns_401(client: TestClient) -> None
     assert response.headers["WWW-Authenticate"] == "Bearer"
 
 
+# Check non-Bearer auth schemes return 401 Unauthorized
 def test_get_current_user_invalid_scheme_returns_401(client: TestClient) -> None:
-    """Verify that non-Bearer auth schemes return 401 Unauthorized."""
     headers = {"Authorization": "Basic dXNlcjpwYXNz"}
     response = client.get("/auth/me", headers=headers)
 
     assert response.status_code == 401
 
 
+# Check an expired JWT token returns 401 Unauthorized
 def test_get_current_user_expired_token_returns_401(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify that an expired JWT token returns 401 Unauthorized."""
     user = create_user(db_session, login="expired_token_user")
     token = create_access_token(
         user_id=user.id,
@@ -57,16 +57,16 @@ def test_get_current_user_expired_token_returns_401(
     assert "Token has expired" in response.json()["detail"]
 
 
+# Check a token with an invalid signature returns 401 Unauthorized
 def test_get_current_user_invalid_signature_returns_401(client: TestClient) -> None:
-    """Verify that a token with an invalid signature returns 401 Unauthorized."""
     headers = {"Authorization": "Bearer invalid.token.payload"}
     response = client.get("/auth/me", headers=headers)
 
     assert response.status_code == 401
 
 
+# Check a valid token pointing to a non-existent user returns 401 Unauthorized
 def test_get_current_user_nonexistent_user_returns_401(client: TestClient) -> None:
-    """Verify that a valid token pointing to a non-existent user returns 401 Unauthorized."""
     # Issue a token for user ID 999999 which does not exist in the DB
     token = create_access_token(user_id=999999, login="ghost_user")
 
@@ -77,8 +77,8 @@ def test_get_current_user_nonexistent_user_returns_401(client: TestClient) -> No
     assert "User not found" in response.json()["detail"]
 
 
+# Check a validly signed token with a non-numeric sub returns 401 Unauthorized
 def test_get_current_user_non_numeric_sub_returns_401(client: TestClient) -> None:
-    """Verify that a validly signed token with a non-numeric sub returns 401 Unauthorized."""
     from datetime import UTC, datetime
 
     import jwt

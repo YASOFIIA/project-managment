@@ -11,14 +11,14 @@ from app.storage import get_storage
 from app.storage.s3 import S3Storage
 
 
+# Check S3 key structure adheres to projects/<project_id>/<document_id>/<stored_name>
 def test_format_s3_key() -> None:
-    """Verify S3 key structure adheres to projects/<project_id>/<document_id>/<stored_name>."""
     key = format_s3_key(project_id=12, document_id=45, stored_name="specs.pdf")
     assert key == "projects/12/45/specs.pdf"
 
 
+# Check saving bytes and stream via S3Storage
 def test_s3_storage_save_bytes_and_stream() -> None:
-    """Verify saving bytes and stream via S3Storage."""
     mock_client = MagicMock()
     storage = S3Storage(bucket_name="test-bucket", s3_client=mock_client)
 
@@ -45,8 +45,8 @@ def test_s3_storage_save_bytes_and_stream() -> None:
     )
 
 
+# Check retrieving an existing object returns its Body stream
 def test_s3_storage_get_success() -> None:
-    """Verify retrieving an existing object returns its Body stream."""
     mock_client = MagicMock()
     fake_body = io.BytesIO(b"%PDF-1.4 downloaded data")
     mock_client.get_object.return_value = {"Body": fake_body}
@@ -61,8 +61,8 @@ def test_s3_storage_get_success() -> None:
     )
 
 
+# Check NoSuchKey error raises standard FileNotFoundError
 def test_s3_storage_get_not_found_raises_file_not_found() -> None:
-    """Verify NoSuchKey error raises standard FileNotFoundError."""
     mock_client = MagicMock()
     error_response: Any = {
         "Error": {"Code": "NoSuchKey", "Message": "The specified key does not exist."},
@@ -75,8 +75,8 @@ def test_s3_storage_get_not_found_raises_file_not_found() -> None:
         storage.get("missing.pdf")
 
 
+# Check exists returns True on success and False on 404/NotFound
 def test_s3_storage_exists() -> None:
-    """Verify exists returns True on success and False on 404/NotFound."""
     mock_client = MagicMock()
     storage = S3Storage(bucket_name="test-bucket", s3_client=mock_client)
 
@@ -93,8 +93,8 @@ def test_s3_storage_exists() -> None:
     assert storage.exists("missing.pdf") is False
 
 
+# Check delete checks existence before deleting from bucket
 def test_s3_storage_delete() -> None:
-    """Verify delete checks existence before deleting from bucket."""
     mock_client = MagicMock()
     storage = S3Storage(bucket_name="test-bucket", s3_client=mock_client)
 
@@ -117,8 +117,8 @@ def test_s3_storage_delete() -> None:
     mock_client.delete_object.assert_not_called()
 
 
+# Check get_storage returns S3Storage when STORAGE_BACKEND=s3
 def test_get_storage_factory_s3(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify that get_storage returns S3Storage when STORAGE_BACKEND=s3."""
     get_storage.cache_clear()
     monkeypatch.setenv("STORAGE_BACKEND", "s3")
     get_settings.cache_clear()

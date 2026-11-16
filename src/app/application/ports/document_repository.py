@@ -5,25 +5,19 @@ from typing import Protocol
 from app.models.document import Document
 
 
+# Document repository port
 class DocumentRepository(Protocol):
-    """Port for document persistence operations."""
+    # Find document by ID
+    def get_by_id(self, document_id: int) -> Document | None: ...
 
-    def get_by_id(self, document_id: int) -> Document | None:
-        """Find document by primary key."""
-        ...
+    # Find all documents in project
+    def list_by_project_id(self, project_id: int) -> list[Document]: ...
 
-    def list_by_project_id(self, project_id: int) -> list[Document]:
-        """Find all documents belonging to a project."""
-        ...
+    # Get stored filenames for a project
+    def list_stored_filenames(self, project_id: int) -> list[str]: ...
 
-    def list_stored_filenames(self, project_id: int) -> list[str]:
-        """Retrieve storage keys (stored_filename) for all documents in a project."""
-        ...
+    # Add and flush document
+    def add(self, document: Document) -> None: ...
 
-    def add(self, document: Document) -> None:
-        """Add and flush document entity."""
-        ...
-
-    def delete(self, document: Document) -> None:
-        """Delete document entity."""
-        ...
+    # Delete document
+    def delete(self, document: Document) -> None: ...

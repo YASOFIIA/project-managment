@@ -21,8 +21,8 @@ SessionLocal = sessionmaker(
 )
 
 
+# Provide database session per request
 def get_db() -> Generator[Session, None, None]:
-    """FastAPI dependency that provides a database session per request."""
     db = SessionLocal()
     try:
         yield db
@@ -30,8 +30,8 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+# Check database connectivity
 def check_db_connection() -> bool:
-    """Verify that the database engine can execute queries successfully."""
     with engine.connect() as connection:
         result = connection.execute(text("SELECT 1")).scalar()
         return result == 1

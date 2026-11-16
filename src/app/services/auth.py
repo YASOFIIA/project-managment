@@ -7,12 +7,8 @@ from app.models.user import User
 from app.schemas.auth import UserLoginRequest, UserRegisterRequest
 
 
+# Register user with unique login and hashed password
 def register_user(uow: UnitOfWork, data: UserRegisterRequest) -> User:
-    """Register a new user with unique login and Argon2-hashed password.
-
-    Raises:
-        LoginTaken: if the login is already taken (pre-checked or on concurrent commit).
-    """
     with uow:
         existing_user = uow.users.get_by_login(data.login)
         if existing_user is not None:
@@ -33,12 +29,8 @@ def register_user(uow: UnitOfWork, data: UserRegisterRequest) -> User:
         return new_user
 
 
+# Authenticate user and issue 1-hour JWT token
 def authenticate_user(uow: UnitOfWork, data: UserLoginRequest) -> str:
-    """Authenticate user credentials and issue a signed 1-hour JWT access token.
-
-    Raises:
-        InvalidCredentials: if the username or password is invalid.
-    """
     user = uow.users.get_by_login(data.login)
     if user is None or not verify_password(data.password, user.hashed_password):
         raise InvalidCredentials("Invalid login or password")

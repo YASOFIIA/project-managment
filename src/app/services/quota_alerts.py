@@ -18,6 +18,7 @@ class QuotaAlertResult:
     total_size_bytes: int
 
 
+# Process Lambda quota webhook and sync project size
 def process_quota_alert(
     uow: UnitOfWork,
     *,
@@ -26,7 +27,6 @@ def process_quota_alert(
     status: str,
     total_size_bytes: int,
 ) -> QuotaAlertResult:
-    """Process a size limit quota webhook from Lambda and synchronize project size."""
     with uow:
         project = uow.projects.get_by_id_for_update(project_id)
         if project is None:

@@ -1,5 +1,4 @@
-"""Integration tests for the internal Lambda callback API (/internal/lambda/quota-alert)."""
-
+# Integration tests for internal Lambda callback API
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
@@ -194,10 +193,10 @@ def test_lambda_callback_validation_error_returns_422(
     assert response.status_code == 422
 
 
+# Check an invalid or missing Lambda secret returns 403 without accessing DB/UoW
 def test_lambda_callback_invalid_or_missing_secret_does_not_touch_db(
     client: TestClient,
 ) -> None:
-    """Verify that an invalid or missing Lambda secret returns 403 without accessing DB/UoW."""
     from unittest.mock import patch
 
     payload = {

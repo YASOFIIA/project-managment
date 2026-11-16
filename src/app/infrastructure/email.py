@@ -12,21 +12,20 @@ from app.core.logging import get_logger
 logger = get_logger("app.email")
 
 
+# SMTP email sender (works with MailHog in dev)
 class SmtpEmailSender:
-    """SMTP adapter for sending transactional emails via aiosmtplib."""
-
     def __init__(self, settings: Settings) -> None:
         self._host = settings.smtp_host
         self._port = settings.smtp_port
         self._from = settings.smtp_from
 
+    # Send invitation HTML email
     def send_invitation(
         self,
         to_email: str,
         project_name: str,
         join_url: str,
     ) -> None:
-        """Send project invitation HTML email to recipient."""
         if not self._host:
             logger.warning(
                 "SMTP_HOST is not configured; skipping email dispatch to %s for project '%s'",

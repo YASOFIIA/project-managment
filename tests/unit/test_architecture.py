@@ -1,21 +1,12 @@
-"""Architecture enforcement tests.
-
-Guarantees clean layer separation according to Clean Architecture:
-- Services/Application and Domain layers must never import HTTPException or status.
-- Services and Application layers must never import sqlalchemy, starlette, boto3,
-  app.infrastructure, or app.api. (fastapi only in documents.py for UploadFile until R4).
-- Domain layer must never import web frameworks, ORM, config, services, api, or infrastructure.
-- API layer must only import app.infrastructure in deps.py.
-"""
-
+# Architecture enforcement tests
 from __future__ import annotations
 
 import ast
 from pathlib import Path
 
 
+# Get list of (lineno, module_name, [imported_names]) for each import in a Python file
 def _collect_module_imports(py_file: Path) -> list[tuple[int, str, list[str]]]:
-    """Return list of (lineno, module_name, [imported_names]) for each import in a Python file."""
     imports: list[tuple[int, str, list[str]]] = []
     tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
     for node in ast.walk(tree):
@@ -29,8 +20,8 @@ def _collect_module_imports(py_file: Path) -> list[tuple[int, str, list[str]]]:
     return imports
 
 
+# Check services, application, and domain layers do not depend on HTTP exceptions
 def test_services_and_domain_layers_do_not_import_http_exceptions_or_status() -> None:
-    """Verify services, application, and domain layers do not depend on HTTP exceptions."""
     repo_root = Path(__file__).resolve().parent.parent.parent
     src_app = repo_root / "src" / "app"
 
@@ -53,8 +44,8 @@ def test_services_and_domain_layers_do_not_import_http_exceptions_or_status() ->
     assert not violations, msg
 
 
+# Check services/application do not import sqlalchemy, starlette, boto3, infra, or api
 def test_services_and_application_layers_do_not_import_frameworks_or_lower_layers() -> None:
-    """Verify services/application do not import sqlalchemy, starlette, boto3, infra, or api."""
     repo_root = Path(__file__).resolve().parent.parent.parent
     src_app = repo_root / "src" / "app"
 
@@ -81,8 +72,8 @@ def test_services_and_application_layers_do_not_import_frameworks_or_lower_layer
     assert not violations, msg
 
 
+# Check domain layer has zero dependencies on frameworks, ORM, config, or other layers
 def test_domain_layer_has_zero_external_dependencies() -> None:
-    """Verify domain layer has zero dependencies on frameworks, ORM, config, or other layers."""
     repo_root = Path(__file__).resolve().parent.parent.parent
     domain_dir = repo_root / "src" / "app" / "domain"
     if not domain_dir.exists():
@@ -108,8 +99,8 @@ def test_domain_layer_has_zero_external_dependencies() -> None:
     assert not violations, msg
 
 
+# Check api controllers never import infrastructure directly, except in deps.py for DI
 def test_api_layer_imports_infrastructure_only_in_deps() -> None:
-    """Verify api controllers never import infrastructure directly, except in deps.py for DI."""
     repo_root = Path(__file__).resolve().parent.parent.parent
     api_dir = repo_root / "src" / "app" / "api"
     if not api_dir.exists():
@@ -129,8 +120,8 @@ def test_api_layer_imports_infrastructure_only_in_deps() -> None:
     assert not violations, msg
 
 
+# Check api controllers never import sqlalchemy, except in deps.py for DI wiring
 def test_api_layer_does_not_import_sqlalchemy_except_deps() -> None:
-    """Verify api controllers never import sqlalchemy, except in deps.py for DI wiring."""
     repo_root = Path(__file__).resolve().parent.parent.parent
     api_dir = repo_root / "src" / "app" / "api"
     if not api_dir.exists():

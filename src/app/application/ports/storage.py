@@ -4,71 +4,31 @@ import abc
 from typing import Any, BinaryIO
 
 
+# Generate S3 storage key: projects/<project_id>/<document_id>/<name>
 def format_s3_key(
     project_id: int,
     document_id: int,
     stored_name: str = "",
     **kwargs: Any,
 ) -> str:
-    """Generate canonical S3/storage object key layout.
-
-    Format: projects/<project_id>/<document_id>/<stored_name>
-    """
     name = stored_name or str(kwargs.get("filename", ""))
     return f"projects/{project_id}/{document_id}/{name}"
 
 
+# Storage backend interface
 class StorageBackend(abc.ABC):
-    """Abstract interface for document file storage (Local disk, AWS S3, etc.)."""
-
+    # Save file into storage and return key
     @abc.abstractmethod
-    def save(self, filename: str, content: BinaryIO | bytes) -> str:
-        """Save a file into storage and return its unique stored filename/key.
+    def save(self, filename: str, content: BinaryIO | bytes) -> str: ...
 
-        Args:
-            filename: Target filename or key under which the content should be stored.
-            content: File content as raw bytes or a readable binary file-like object.
-
-        Returns:
-            The stored filename/key that can be used to retrieve or delete the file.
-        """
-        ...
-
+    # Read file from storage as binary stream
     @abc.abstractmethod
-    def get(self, stored_filename: str) -> BinaryIO:
-        """Retrieve a stored file as a readable binary stream.
+    def get(self, stored_filename: str) -> BinaryIO: ...
 
-        Args:
-            stored_filename: The unique key/filename of the stored file.
-
-        Returns:
-            A readable binary file-like object (BinaryIO).
-
-        Raises:
-            FileNotFoundError: If the stored file does not exist in the backend.
-        """
-        ...
-
+    # Delete file from storage
     @abc.abstractmethod
-    def delete(self, stored_filename: str) -> bool:
-        """Delete a stored file from the backend.
+    def delete(self, stored_filename: str) -> bool: ...
 
-        Args:
-            stored_filename: The unique key/filename of the stored file.
-
-        Returns:
-            True if the file existed and was deleted, False if it was not found.
-        """
-        ...
-
+    # Check if file exists in storage
     @abc.abstractmethod
-    def exists(self, stored_filename: str) -> bool:
-        """Check whether a stored file exists in the backend.
-
-        Args:
-            stored_filename: The unique key/filename to check.
-
-        Returns:
-            True if the file exists, False otherwise.
-        """
-        ...
+    def exists(self, stored_filename: str) -> bool: ...

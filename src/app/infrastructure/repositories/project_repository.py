@@ -35,32 +35,31 @@ ORDER BY p.created_at DESC, d.created_at ASC
 """
 
 
+# SQLAlchemy adapter for project persistence
 class SqlAlchemyProjectRepository:
-    """SQLAlchemy adapter for project persistence."""
-
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    # Find project by primary key
     def get_by_id(self, project_id: int) -> Project | None:
-        """Find project by primary key."""
         return self._session.get(Project, project_id)
 
+    # Find project with row lock
     def get_by_id_for_update(self, project_id: int) -> Project | None:
-        """Find project by primary key with exclusive row lock."""
         stmt = select(Project).where(Project.id == project_id).with_for_update()
         return self._session.scalar(stmt)
 
+    # Add and flush project
     def add(self, project: Project) -> None:
-        """Add and flush project entity."""
         self._session.add(project)
         self._session.flush()
 
+    # Delete project
     def delete(self, project: Project) -> None:
-        """Delete project entity."""
         self._session.delete(project)
 
+    # Add and flush project membership
     def add_member(self, member: ProjectMember) -> None:
-        """Add and flush project membership entity."""
         self._session.add(member)
         try:
             self._session.flush()
@@ -71,16 +70,16 @@ class SqlAlchemyProjectRepository:
                 raise UserAlreadyMember("User is already a member of this project") from None
             raise
 
+    # Find user membership in project
     def get_membership(self, project_id: int, user_id: int) -> ProjectMember | None:
-        """Find project membership for specified user."""
         stmt = select(ProjectMember).where(
             ProjectMember.project_id == project_id,
             ProjectMember.user_id == user_id,
         )
         return self._session.scalar(stmt)
 
+    # List user projects with documents
     def list_for_user_with_documents(self, user_id: int) -> list[ProjectWithDocuments]:
-        """Retrieve all projects accessible to user with preloaded document metadata."""
         result = self._session.execute(
             text(USER_PROJECTS_WITH_DOCUMENTS_SQL),
             {"user_id": user_id},

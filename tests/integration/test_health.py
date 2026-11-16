@@ -3,8 +3,8 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 
 
+# Check GET /health responds with 200 OK and expected status payload
 def test_health_check_returns_ok() -> None:
-    """Verify that GET /health responds with 200 OK and expected status payload."""
     app = create_app()
     client = TestClient(app)
 

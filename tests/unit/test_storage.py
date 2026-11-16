@@ -7,8 +7,8 @@ from app.core.config import Settings
 from app.storage import LocalStorage, get_storage
 
 
+# Check saving and reading binary data using bytes
 def test_local_storage_save_and_get_bytes(tmp_path: Path) -> None:
-    """Verify saving and reading binary data using bytes."""
     storage = LocalStorage(base_dir=tmp_path)
     content = b"Hello, secure local storage!"
     filename = "documents/test_file.txt"
@@ -25,8 +25,8 @@ def test_local_storage_save_and_get_bytes(tmp_path: Path) -> None:
         stream.close()
 
 
+# Check saving and reading binary data using a binary stream
 def test_local_storage_save_and_get_stream(tmp_path: Path) -> None:
-    """Verify saving and reading binary data using a binary stream."""
     storage = LocalStorage(base_dir=tmp_path)
     content = b"Streamed report contents for project"
     stream_in = io.BytesIO(content)
@@ -42,8 +42,8 @@ def test_local_storage_save_and_get_stream(tmp_path: Path) -> None:
         stream_out.close()
 
 
+# Check file deletion and return codes
 def test_local_storage_delete(tmp_path: Path) -> None:
-    """Verify file deletion and return codes."""
     storage = LocalStorage(base_dir=tmp_path)
     filename = "temp_doc.bin"
 
@@ -59,15 +59,15 @@ def test_local_storage_delete(tmp_path: Path) -> None:
     assert storage.delete(filename) is False
 
 
+# Check attempting to get a non-existent file raises FileNotFoundError
 def test_local_storage_get_nonexistent_raises_file_not_found(tmp_path: Path) -> None:
-    """Verify that attempting to get a non-existent file raises FileNotFoundError."""
     storage = LocalStorage(base_dir=tmp_path)
     with pytest.raises(FileNotFoundError, match="Stored file 'missing.txt' not found"):
         storage.get("missing.txt")
 
 
+# Check path traversal attempts raise ValueError
 def test_local_storage_path_traversal_prevention(tmp_path: Path) -> None:
-    """Verify that path traversal attempts raise ValueError."""
     storage = LocalStorage(base_dir=tmp_path)
 
     traversal_filenames = [
@@ -90,8 +90,8 @@ def test_local_storage_path_traversal_prevention(tmp_path: Path) -> None:
             storage.exists(fname)
 
 
+# Check the get_storage factory returns LocalStorage and handles configs
 def test_get_storage_factory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Verify the get_storage factory returns LocalStorage and handles configs."""
     # Test local backend
     custom_settings = Settings(
         jwt_secret_key="test-secret-32-chars-long-minimum!",

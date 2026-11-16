@@ -26,12 +26,8 @@ from app.services.file_validation import (
 )
 
 
+# Read uploaded file content up to max bytes
 def read_upload_file_limited(file: UploadedFile, max_bytes: int) -> bytes:
-    """Read upload file content in chunks up to max_bytes without exceeding memory limits.
-
-    Raises:
-        FileTooLarge: If file content exceeds max_bytes.
-    """
     chunks: list[bytes] = []
     total_read = 0
     chunk_size = 64 * 1024  # 64 KB chunks
@@ -47,6 +43,7 @@ def read_upload_file_limited(file: UploadedFile, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+# Upload and attach documents to project
 def upload_documents(
     uow: UnitOfWork,
     storage: StorageBackend,
@@ -54,17 +51,6 @@ def upload_documents(
     user_id: int,
     files: Sequence[UploadedFile],
 ) -> list[Document]:
-    """Upload and attach one or more documents to a project.
-
-    Permitted for project owners and participants.
-    Validates file extension, magic bytes, project total size limit,
-    saves binary contents to the storage backend, and records metadata in the database.
-
-    Raises:
-        ProjectNotFound: if project does not exist OR user is not a member.
-        ValidationError: if no files provided, empty file, invalid type, or spoofed bytes.
-        ProjectQuotaExceeded: if upload would exceed the project size limit.
-    """
     require_project_access(
         uow, project_id=project_id, user_id=user_id, action=Action.UPLOAD_DOCUMENT
     )
@@ -143,38 +129,25 @@ def upload_documents(
         raise
 
 
+# List documents attached to project
 def list_project_documents(
     uow: UnitOfWork,
     project_id: int,
     user_id: int,
 ) -> list[Document]:
-    """Retrieve all documents attached to a project.
-
-    Permitted for project owners and participants.
-
-    Raises:
-        ProjectNotFound: if project does not exist OR user is not a member.
-    """
     require_project_access(
         uow, project_id=project_id, user_id=user_id, action=Action.LIST_DOCUMENTS
     )
     return uow.documents.list_by_project_id(project_id)
 
 
+# Get document metadata and download stream
 def get_document_for_download(
     uow: UnitOfWork,
     storage: StorageBackend,
     document_id: int,
     user_id: int,
 ) -> tuple[Document, BinaryIO]:
-    """Retrieve document metadata and open binary stream for file download.
-
-    Permitted for project owners and participants.
-
-    Raises:
-        DocumentNotFound: if document does not exist OR user lacks access.
-        StorageFileNotFound: if file is missing from storage.
-    """
     doc, _ = require_document_access(
         uow, document_id=document_id, user_id=user_id, action=Action.DOWNLOAD_DOCUMENT
     )
@@ -187,6 +160,7 @@ def get_document_for_download(
     return doc, stream
 
 
+# Replace document file with new upload
 def replace_document(
     uow: UnitOfWork,
     storage: StorageBackend,
@@ -194,17 +168,6 @@ def replace_document(
     user_id: int,
     file: UploadedFile,
 ) -> Document:
-    """Replace a document's file contents with a new upload.
-
-    Permitted for project owners and participants.
-    Validates the replacement file, checks project quota with the size delta,
-    saves the new file, updates the database, and removes the old file from storage.
-
-    Raises:
-        DocumentNotFound: if document does not exist OR user lacks access.
-        ValidationError: if file is empty, invalid type, or magic bytes mismatch.
-        ProjectQuotaExceeded: if replaced file exceeds the project size limit.
-    """
     doc, _ = require_document_access(
         uow, document_id=document_id, user_id=user_id, action=Action.REPLACE_DOCUMENT
     )
@@ -265,20 +228,13 @@ def replace_document(
     return doc
 
 
+# Delete document from database and storage
 def delete_document(
     uow: UnitOfWork,
     storage: StorageBackend,
     document_id: int,
     user_id: int,
 ) -> None:
-    """Delete a document from database and storage backend.
-
-    Permitted for project owners and participants.
-    Adjusts the project total_size_bytes accordingly.
-
-    Raises:
-        DocumentNotFound: if document does not exist OR user lacks access.
-    """
     doc, _ = require_document_access(
         uow, document_id=document_id, user_id=user_id, action=Action.DELETE_DOCUMENT
     )

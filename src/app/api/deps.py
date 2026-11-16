@@ -21,27 +21,18 @@ bearer_scheme = HTTPBearer(
 )
 
 
+# Provide a UnitOfWork tied to the current DB session
 def get_uow(
     db: Annotated[Session, Depends(get_db)],
 ) -> Generator[UnitOfWork, None, None]:
-    """Provide a UnitOfWork bound to the current database session.
-
-    FastAPI caches dependencies per request by default (use_cache=True).
-    Therefore, get_current_user and endpoint route handlers share the exact same
-    UnitOfWork and database session instance within a single HTTP request.
-    """
     yield SqlAlchemyUnitOfWork(db)
 
 
+# Authenticate user via JWT Bearer token
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     uow: Annotated[UnitOfWork, Depends(get_uow)],
 ) -> User:
-    """FastAPI dependency to extract and validate the JWT Bearer token and return the User.
-
-    Raises:
-        HTTPException(401): if the token is missing, invalid, expired, or user not found.
-    """
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -95,15 +86,11 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 UowDep = Annotated[UnitOfWork, Depends(get_uow)]
 
 
+# Verify Lambda callback secret header
 def require_lambda_secret(
     x_lambda_secret: Annotated[str | None, Header(alias="X-Lambda-Secret")] = None,
     settings: Annotated[Settings, Depends(get_settings)] = None,  # type: ignore[assignment]
 ) -> str:
-    """FastAPI dependency to verify incoming internal webhook requests carry the secret header.
-
-    Raises:
-        HTTPException(403): If the secret header is missing or does not match.
-    """
     if settings is None:
         settings = get_settings()
 
@@ -119,10 +106,10 @@ def require_lambda_secret(
     return x_lambda_secret
 
 
+# Provide EmailSender instance
 def get_email_sender(
     settings: Annotated[Settings, Depends(get_settings)] = None,  # type: ignore[assignment]
 ) -> EmailSender:
-    """Provide EmailSender implementation for transactional emails."""
     if settings is None:
         settings = get_settings()
     return SmtpEmailSender(settings)

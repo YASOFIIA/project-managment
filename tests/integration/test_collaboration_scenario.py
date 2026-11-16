@@ -7,28 +7,11 @@ from app.models.user import User
 from app.storage import get_storage
 
 
+# Check complete end-to-end multi-user collaboration workflow:
 def test_full_collaboration_lifecycle_scenario(
     client: TestClient,
     db_session: Session,
 ) -> None:
-    """Verify complete end-to-end multi-user collaboration workflow:
-
-    1. Register User A (Alice) and User B (Bob).
-    2. Authenticate User A and User B via /login to obtain JWT tokens.
-    3. User A creates a project; User B cannot see it (information hiding).
-    4. User A uploads a document; project total size updates atomically.
-    5. User A invites User B to the project; User B receives participant role.
-    6. User B lists projects, sees the project and its attached document.
-    7. User B downloads the document binary content.
-    8. User B replaces the document with a revised version; storage and size update.
-    9. User B updates project metadata (name, description).
-    10. User B attempts to invite a third user -> 403 Forbidden.
-    11. User B attempts to delete the project -> 403 Forbidden.
-    12. User A deletes the project -> 204 No Content.
-    13. Database rows (project, members, documents) are cascaded and removed.
-    14. Physical files in StorageBackend are completely cleaned up.
-    15. Both users receive 404 Not Found on subsequent access.
-    """
     storage = get_storage()
 
     # --- Step 1: Register User A and User B ---

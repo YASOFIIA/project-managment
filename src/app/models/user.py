@@ -10,9 +10,8 @@ if TYPE_CHECKING:
     from app.models.project import ProjectMember
 
 
+# User model for authentication and access control
 class User(Base):
-    """User account model for authentication and access control."""
-
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

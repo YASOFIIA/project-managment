@@ -11,6 +11,7 @@ from app.services.invitations import accept_invitation
 router = APIRouter(tags=["Invitations"])
 
 
+# Join project endpoint via invitation token
 @router.get(
     "/join",
     response_model=ProjectMemberResponse,
@@ -23,7 +24,6 @@ def join_project_via_token(
     uow: UowDep,
     token: Annotated[str, Query(min_length=1, description="Invitation share token")],
 ) -> ProjectMemberResponse:
-    """Join project endpoint via email invitation token."""
     membership = accept_invitation(
         uow=uow,
         token=token,

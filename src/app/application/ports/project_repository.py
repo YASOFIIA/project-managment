@@ -7,10 +7,9 @@ from typing import Protocol
 from app.models.project import Project, ProjectMember
 
 
+# Read model for document metadata
 @dataclass(frozen=True)
 class DocumentSummary:
-    """Read model for attached document metadata."""
-
     id: int
     project_id: int
     filename: str
@@ -19,10 +18,9 @@ class DocumentSummary:
     created_at: datetime
 
 
+# Read model for project with documents
 @dataclass(frozen=True)
 class ProjectWithDocuments:
-    """Read model for project with preloaded document metadata."""
-
     id: int
     name: str
     description: str | None
@@ -32,33 +30,25 @@ class ProjectWithDocuments:
     documents: list[DocumentSummary] = field(default_factory=list)
 
 
+# Project repository port
 class ProjectRepository(Protocol):
-    """Port for project and project membership persistence operations."""
+    # Find project by primary key
+    def get_by_id(self, project_id: int) -> Project | None: ...
 
-    def get_by_id(self, project_id: int) -> Project | None:
-        """Find project by primary key."""
-        ...
+    # Find project with row lock (FOR UPDATE)
+    def get_by_id_for_update(self, project_id: int) -> Project | None: ...
 
-    def get_by_id_for_update(self, project_id: int) -> Project | None:
-        """Find project by primary key with exclusive row lock (FOR UPDATE)."""
-        ...
+    # Add and flush project
+    def add(self, project: Project) -> None: ...
 
-    def add(self, project: Project) -> None:
-        """Add and flush project entity."""
-        ...
+    # Delete project
+    def delete(self, project: Project) -> None: ...
 
-    def delete(self, project: Project) -> None:
-        """Delete project entity."""
-        ...
+    # Add and flush project membership
+    def add_member(self, member: ProjectMember) -> None: ...
 
-    def add_member(self, member: ProjectMember) -> None:
-        """Add and flush project membership entity."""
-        ...
+    # Find user membership in project
+    def get_membership(self, project_id: int, user_id: int) -> ProjectMember | None: ...
 
-    def get_membership(self, project_id: int, user_id: int) -> ProjectMember | None:
-        """Find project membership for specified user."""
-        ...
-
-    def list_for_user_with_documents(self, user_id: int) -> list[ProjectWithDocuments]:
-        """Retrieve all projects accessible to user with preloaded document metadata."""
-        ...
+    # List user projects with documents
+    def list_for_user_with_documents(self, user_id: int) -> list[ProjectWithDocuments]: ...
