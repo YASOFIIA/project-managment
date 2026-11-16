@@ -16,6 +16,7 @@ def test_get_settings_defaults() -> None:
     assert settings.project_size_limit_bytes == 52428800
     assert settings.jwt_secret_key is not None
     assert settings.lambda_callback_secret is not None
+    assert settings.invitation_expire_hours == 48
 
 
 # Check environment variables override default settings
