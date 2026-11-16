@@ -1,9 +1,16 @@
 import { api } from './client';
 import type { TokenResponse, User } from '../types';
 
-export async function registerUser(login: string, password: string): Promise<User> {
-  const { data } = await api.post<User>('/auth', { login, password, repeat_password: password });
-  return data;
+export interface RegisterPayload {
+  login: string;
+  email: string;
+  password: string;
+  repeat_password: string;
+}
+
+export async function registerUser(data: RegisterPayload): Promise<User> {
+  const res = await api.post<User>('/auth', data);
+  return res.data;
 }
 
 export async function loginUser(login: string, password: string): Promise<TokenResponse> {

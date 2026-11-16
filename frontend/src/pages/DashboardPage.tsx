@@ -26,17 +26,17 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const stats = [
-    { icon: FolderKanban, label: 'Проєкти', value: projects.length },
-    { icon: FileText, label: 'Документи', value: documents.length },
-    { icon: HardDrive, label: 'Використано', value: formatBytes(totalBytes) },
-    { icon: Users, label: 'Колеги', value: Math.max(people.size - 1, 0) },
+    { icon: FolderKanban, label: 'Projects', value: projects.length },
+    { icon: FileText, label: 'Documents', value: documents.length },
+    { icon: HardDrive, label: 'Used', value: formatBytes(totalBytes) },
+    { icon: Users, label: 'Members', value: Math.max(people.size - 1, 0) },
   ];
 
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h2 className="text-2xl">Привіт, {user?.login} 👋</h2>
-        <p className="mt-1 text-sm text-ink-soft">Ось що відбувається у ваших проєктах.</p>
+        <h2 className="text-2xl">Hello, {user?.login} 👋</h2>
+        <p className="mt-1 text-sm text-ink-soft">Here&apos;s what&apos;s happening in your projects.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -55,15 +55,15 @@ export default function DashboardPage() {
 
       <section aria-labelledby="dash-projects">
         <div className="mb-4 flex items-center justify-between">
-          <h2 id="dash-projects" className="text-lg">Проєкти</h2>
+          <h2 id="dash-projects" className="text-lg">Projects</h2>
           <div className="flex items-center gap-2">
             {projects.length > 6 && (
               <Link to="/projects" className="text-sm text-accent hover:text-accent-hover">
-                Усі проєкти
+                All projects
               </Link>
             )}
-            <Button size="sm" onClick={() => setCreating(true)} aria-label="Створити проєкт">
-              <Plus size={16} strokeWidth={1.5} aria-hidden /> Створити
+            <Button size="sm" onClick={() => setCreating(true)} aria-label="Create project">
+              <Plus size={16} strokeWidth={1.5} aria-hidden /> Create
             </Button>
           </div>
         </div>
@@ -71,9 +71,9 @@ export default function DashboardPage() {
           <Card>
             <EmptyState
               icon={FolderKanban}
-              title="Створіть перший проєкт"
-              description="Проєкт обʼєднує документи та команду в одному місці."
-              action={<Button onClick={() => setCreating(true)}>Новий проєкт</Button>}
+              title="Create your first project"
+              description="A project brings your documents and team together in one place."
+              action={<Button onClick={() => setCreating(true)}>New Project</Button>}
             />
           </Card>
         ) : (
@@ -91,10 +91,10 @@ export default function DashboardPage() {
       </section>
 
       <section aria-labelledby="dash-recent">
-        <h2 id="dash-recent" className="mb-4 text-lg">Нещодавні документи</h2>
+        <h2 id="dash-recent" className="mb-4 text-lg">Recent Documents</h2>
         <Card className="overflow-hidden">
           {recent.length === 0 ? (
-            <EmptyState icon={FileText} title="Документів поки немає" description="Завантажені файли зʼявляться тут." />
+            <EmptyState icon={FileText} title="No documents yet" description="Uploaded files will appear here." />
           ) : (
             <ul>
               {recent.map((d, i) => (

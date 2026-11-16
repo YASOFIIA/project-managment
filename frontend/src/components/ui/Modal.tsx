@@ -58,7 +58,8 @@ export function Modal({ open, onClose, title, children }: Props) {
             <button
               type="button"
               onClick={() => ref.current?.close()}
-              aria-label="Закрити"
+              aria-label="Close"
+              title="Close"
               className="rounded-btn p-1 text-ink-soft transition-colors hover:bg-black/5 hover:text-ink"
             >
               <X size={18} strokeWidth={1.5} />

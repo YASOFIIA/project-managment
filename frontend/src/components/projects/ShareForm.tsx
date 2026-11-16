@@ -7,7 +7,7 @@ import { getErrorMessage } from '../../utils/errors';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
-const schema = z.object({ email: z.string().trim().email('Некоректний email') });
+const schema = z.object({ email: z.string().trim().email('Please enter a valid email address') });
 
 // Send an email invitation with a join link
 export function ShareForm({ projectId, onDone }: { projectId: number; onDone?: () => void }) {
@@ -21,7 +21,7 @@ export function ShareForm({ projectId, onDone }: { projectId: number; onDone?: (
   const submit = handleSubmit(async ({ email }) => {
     try {
       const res = await shareByEmail(projectId, email);
-      toast.success(`Запрошення надіслано на ${res.email} (діє ${res.expires_in_hours} год)`);
+      toast.success(`Invitation sent to ${res.email} (expires in ${res.expires_in_hours}h)`);
       reset();
       onDone?.();
     } catch (error) {
@@ -35,13 +35,14 @@ export function ShareForm({ projectId, onDone }: { projectId: number; onDone?: (
         className="flex-1"
         type="email"
         placeholder="name@example.com"
-        aria-label="Email отримувача"
+        aria-label="Recipient email"
         autoComplete="off"
+        spellCheck={false}
         error={errors.email?.message}
         {...register('email')}
       />
       <Button type="submit" loading={isSubmitting}>
-        Надіслати
+        Send
       </Button>
     </form>
   );

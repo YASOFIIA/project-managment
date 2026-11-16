@@ -10,7 +10,7 @@ export function UploadProgress({ percent, label }: { percent: number; label: str
         </span>
         <span className="tabular-nums text-ink-soft">{percent}%</span>
       </div>
-      <ProgressBar value={percent} label="Прогрес завантаження" />
+      <ProgressBar value={percent} label="Upload progress" />
     </div>
   );
 }

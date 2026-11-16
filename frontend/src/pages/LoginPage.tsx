@@ -13,8 +13,8 @@ import { getErrorMessage } from '../utils/errors';
 import { safeRedirect } from '../utils/redirect';
 
 const schema = z.object({
-  login: z.string().trim().min(1, 'Введіть логін'),
-  password: z.string().min(1, 'Введіть пароль'),
+  login: z.string().trim().min(1, 'Please enter your username'),
+  password: z.string().min(1, 'Please enter your password'),
 });
 type Values = z.infer<typeof schema>;
 
@@ -42,17 +42,20 @@ export default function LoginPage() {
   });
 
   return (
-    <AuthShell title="З поверненням" subtitle="Увійдіть, щоб керувати проєктами">
+    <AuthShell title="Welcome back" subtitle="Sign in to manage your projects">
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <Input
-          label="Логін"
+          label="Username"
           autoComplete="username"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="none"
           autoFocus
           error={errors.login?.message}
           {...register('login')}
         />
         <Input
-          label="Пароль"
+          label="Password"
           type={show ? 'text' : 'password'}
           autoComplete="current-password"
           error={errors.password?.message}
@@ -60,7 +63,8 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShow((v) => !v)}
-              aria-label={show ? 'Сховати пароль' : 'Показати пароль'}
+              aria-label={show ? 'Hide password' : 'Show password'}
+              title={show ? 'Hide password' : 'Show password'}
               className="rounded p-1 text-ink-soft hover:text-ink"
             >
               {show ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
@@ -71,23 +75,23 @@ export default function LoginPage() {
         <div className="-mt-1 text-right">
           <button
             type="button"
-            onClick={() => toast('Відновлення пароля ще не реалізовано')}
+            onClick={() => toast('Password recovery is not implemented yet')}
             className="text-xs text-ink-soft hover:text-accent"
           >
-            Забули пароль?
+            Forgot password?
           </button>
         </div>
         <Button type="submit" fullWidth loading={isSubmitting}>
-          Увійти
+          Sign In
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-ink-soft">
-        Немає акаунта?{' '}
+        Don&apos;t have an account?{' '}
         <Link
           to={`/register${params.get('redirect') ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
           className="font-medium text-accent hover:text-accent-hover"
         >
-          Реєстрація
+          Sign Up
         </Link>
       </p>
     </AuthShell>

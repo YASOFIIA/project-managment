@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { FileText, FolderX, Settings, Users } from 'lucide-react';
-import { deleteProject, updateProject } from '../api/projects';
+import { FileText, FolderX, Settings, Trash2, Users } from 'lucide-react';
+import { deleteProject, removeMember, updateProject } from '../api/projects';
 import { deleteDocument, downloadDocument, replaceDocument, uploadDocuments } from '../api/documents';
 import { DocumentTable } from '../components/documents/DocumentTable';
 import { UploadProgress } from '../components/documents/UploadProgress';
-import { InviteForm } from '../components/projects/InviteForm';
 import { ProjectForm } from '../components/projects/ProjectForm';
 import { ShareForm } from '../components/projects/ShareForm';
 import { Avatar } from '../components/ui/Avatar';
@@ -19,7 +18,7 @@ import { FileDropZone } from '../components/ui/FileDropZone';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { useDocuments } from '../hooks/useDocuments';
 import { useProjectRole, useProjects } from '../hooks/useProjects';
-import type { Document } from '../types';
+import type { Document, ProjectMember } from '../types';
 import { getErrorMessage } from '../utils/errors';
 import { isAllowedFile } from '../utils/fileType';
 import { formatBytes, MAX_FILE_BYTES, PROJECT_LIMIT_BYTES } from '../utils/formatBytes';
@@ -27,9 +26,9 @@ import { formatDate } from '../utils/formatDate';
 import { getProjectStatus } from '../utils/projectStatus';
 
 const TABS = [
-  { id: 'documents', label: 'Документи', icon: FileText },
-  { id: 'team', label: 'Команда', icon: Users },
-  { id: 'settings', label: 'Налаштування', icon: Settings },
+  { id: 'documents', label: 'Documents', icon: FileText },
+  { id: 'team', label: 'Team', icon: Users },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
@@ -45,9 +44,9 @@ export default function ProjectDetailPage() {
       <Card>
         <EmptyState
           icon={FolderX}
-          title="Проєкт не знайдено"
-          description="Його не існує, або у вас немає до нього доступу."
-          action={<Link to="/projects"><Button variant="secondary">До списку проєктів</Button></Link>}
+          title="Project not found"
+          description="It does not exist, or you do not have access to it."
+          action={<Link to="/projects"><Button variant="secondary">Back to Projects</Button></Link>}
         />
       </Card>
     );
@@ -67,13 +66,13 @@ export default function ProjectDetailPage() {
         <div className="mt-4 max-w-sm">
           <div className="mb-1.5 flex justify-between text-xs text-ink-soft">
             <span>{formatBytes(project.total_size_bytes)}</span>
-            <span>з {formatBytes(PROJECT_LIMIT_BYTES)}</span>
+            <span>of {formatBytes(PROJECT_LIMIT_BYTES)}</span>
           </div>
-          <ProgressBar value={(project.total_size_bytes / PROJECT_LIMIT_BYTES) * 100} tone="auto" label="Використано місця" />
+          <ProgressBar value={(project.total_size_bytes / PROJECT_LIMIT_BYTES) * 100} tone="auto" label="Storage used" />
         </div>
       </div>
 
-      <div role="tablist" aria-label="Розділи проєкту" className="flex gap-1 border-b border-line">
+      <div role="tablist" aria-label="Project sections" className="flex gap-1 border-b border-line">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -114,20 +113,20 @@ function DocumentsTab({ projectId }: { projectId: number }) {
   const handleUpload = async (files: File[]) => {
     const valid = files.filter((f) => {
       if (!isAllowedFile(f)) {
-        toast.error(`«${f.name}»: дозволені лише PDF, DOCX, PNG, JPG`);
+        toast.error(`"${f.name}": only PDF, DOCX, PNG, JPG are allowed`);
         return false;
       }
       if (f.size > MAX_FILE_BYTES) {
-        toast.error(`«${f.name}»: файл більший за 50 МБ`);
+        toast.error(`"${f.name}": file exceeds 50 MB`);
         return false;
       }
       return true;
     });
     if (!valid.length) return;
-    setProgress({ percent: 0, label: valid.length > 1 ? `Завантаження ${valid.length} файлів…` : valid[0].name });
+    setProgress({ percent: 0, label: valid.length > 1 ? `Uploading ${valid.length} files…` : valid[0].name });
     try {
       await uploadDocuments(projectId, valid, (percent) => setProgress((p) => p && { ...p, percent }));
-      toast.success(valid.length > 1 ? 'Файли завантажено' : 'Файл завантажено');
+      toast.success(valid.length > 1 ? 'Files uploaded' : 'File uploaded');
       await refresh();
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -137,12 +136,12 @@ function DocumentsTab({ projectId }: { projectId: number }) {
   };
 
   const handleReplace = async (doc: Document, file: File) => {
-    if (!isAllowedFile(file)) return void toast.error('Дозволені лише PDF, DOCX, PNG, JPG');
-    if (file.size > MAX_FILE_BYTES) return void toast.error('Файл більший за 50 МБ');
-    setProgress({ percent: 0, label: `Заміна «${doc.filename}»…` });
+    if (!isAllowedFile(file)) return void toast.error('Only PDF, DOCX, PNG, JPG are allowed');
+    if (file.size > MAX_FILE_BYTES) return void toast.error('File exceeds 50 MB');
+    setProgress({ percent: 0, label: `Replacing "${doc.filename}"…` });
     try {
       await replaceDocument(doc.id, file, (percent) => setProgress((p) => p && { ...p, percent }));
-      toast.success('Файл замінено');
+      toast.success('File replaced');
       await refresh();
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -163,7 +162,7 @@ function DocumentsTab({ projectId }: { projectId: number }) {
     if (!toDelete) return;
     try {
       await deleteDocument(toDelete.id);
-      toast.success('Документ видалено');
+      toast.success('Document deleted');
       await refresh();
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -176,7 +175,7 @@ function DocumentsTab({ projectId }: { projectId: number }) {
       {progress && <UploadProgress {...progress} />}
       <Card className="overflow-hidden">
         {!loading && documents.length === 0 ? (
-          <EmptyState icon={FileText} title="Документів ще немає" description="Завантажте перший файл, перетягнувши його у зону вище." />
+          <EmptyState icon={FileText} title="No documents yet" description="Upload your first file by dropping it into the area above." />
         ) : (
           <DocumentTable
             documents={documents}
@@ -188,9 +187,9 @@ function DocumentsTab({ projectId }: { projectId: number }) {
       </Card>
       <ConfirmDialog
         open={!!toDelete}
-        title="Видалити документ?"
-        message={`Файл «${toDelete?.filename ?? ''}» буде видалено без можливості відновлення.`}
-        confirmLabel="Видалити"
+        title="Delete document?"
+        message={`File "${toDelete?.filename ?? ''}" will be permanently deleted.`}
+        confirmLabel="Delete"
         onConfirm={handleDelete}
         onClose={() => setToDelete(null)}
       />
@@ -202,19 +201,26 @@ function TeamTab({ projectId }: { projectId: number }) {
   const { membersByProject, reload } = useProjects();
   const isOwner = useProjectRole(projectId) === 'owner';
   const members = membersByProject[projectId] ?? [];
+  const [toRemove, setToRemove] = useState<ProjectMember | null>(null);
+
+  const handleRemoveMember = async () => {
+    if (!toRemove) return;
+    try {
+      await removeMember(projectId, toRemove.id);
+      toast.success('Member removed');
+      await reload();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
       {isOwner && (
-        <Card className="grid gap-6 p-5 md:grid-cols-2">
-          <section aria-labelledby="invite-title">
-            <h3 id="invite-title" className="text-sm">Запросити за логіном</h3>
-            <p className="mb-3 mt-1 text-xs text-ink-soft">Користувач одразу стане учасником.</p>
-            <InviteForm projectId={projectId} onDone={() => void reload()} />
-          </section>
-          <section aria-labelledby="share-title">
-            <h3 id="share-title" className="text-sm">Запросити електронною поштою</h3>
-            <p className="mb-3 mt-1 text-xs text-ink-soft">Надішлемо посилання, що діє обмежений час.</p>
+        <Card className="p-5">
+          <section aria-labelledby="share-title" className="max-w-lg">
+            <h3 id="share-title" className="text-sm font-semibold">Invite by Email</h3>
+            <p className="mb-3 mt-1 text-xs text-ink-soft">Send a time-limited invitation link.</p>
             <ShareForm projectId={projectId} />
           </section>
         </Card>
@@ -223,9 +229,14 @@ function TeamTab({ projectId }: { projectId: number }) {
         <table className="w-full text-sm">
           <thead>
             <tr>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-soft">Учасник</th>
-              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-soft">Роль</th>
-              <th scope="col" className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-soft sm:table-cell">Додано</th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-soft">Member</th>
+              <th scope="col" className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-soft">Role</th>
+              <th scope="col" className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-ink-soft sm:table-cell">Added</th>
+              {isOwner && (
+                <th scope="col" className="w-16 px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-ink-soft">
+                  <span className="sr-only">Actions</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -239,15 +250,39 @@ function TeamTab({ projectId }: { projectId: number }) {
                 </td>
                 <td className="px-4 py-3">
                   <Badge tone={m.role === 'owner' ? 'accent' : 'neutral'}>
-                    {m.role === 'owner' ? 'Власник' : 'Учасник'}
+                    {m.role === 'owner' ? 'Owner' : 'Participant'}
                   </Badge>
                 </td>
                 <td className="hidden px-4 py-3 text-ink-soft sm:table-cell">{formatDate(m.created_at)}</td>
+                {isOwner && (
+                  <td className="px-4 py-3 text-right">
+                    {m.role !== 'owner' && (
+                      <button
+                        type="button"
+                        title={`Remove ${m.login}`}
+                        aria-label={`Remove ${m.login}`}
+                        onClick={() => setToRemove(m)}
+                        className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-50 hover:text-danger"
+                      >
+                        <Trash2 size={18} strokeWidth={1.5} />
+                      </button>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
+
+      <ConfirmDialog
+        open={!!toRemove}
+        title="Remove member?"
+        message={`Remove ${toRemove?.login ?? ''} from this project?`}
+        confirmLabel="Remove"
+        onConfirm={handleRemoveMember}
+        onClose={() => setToRemove(null)}
+      />
     </div>
   );
 }
@@ -263,7 +298,7 @@ function SettingsTab({ projectId }: { projectId: number }) {
   if (!isOwner) {
     return (
       <Card>
-        <EmptyState icon={Settings} title="Лише для власника" description="Редагувати та видаляти проєкт може тільки його власник." />
+        <EmptyState icon={Settings} title="Owner only" description="Only the project owner can edit settings or delete this project." />
       </Card>
     );
   }
@@ -271,18 +306,18 @@ function SettingsTab({ projectId }: { projectId: number }) {
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <Card className="p-5">
-        <h3 className="mb-4 text-base">Загальні</h3>
+        <h3 className="mb-4 text-base">General</h3>
         <ProjectForm
           key={project.updated_at}
           initial={project}
-          submitLabel="Зберегти зміни"
+          submitLabel="Save Changes"
           onSubmit={async (values) => {
             try {
               await updateProject(projectId, {
                 name: values.name.trim(),
                 description: values.description?.trim() || null,
               });
-              toast.success('Зміни збережено');
+              toast.success('Changes saved');
               await reload();
             } catch (error) {
               toast.error(getErrorMessage(error));
@@ -292,22 +327,22 @@ function SettingsTab({ projectId }: { projectId: number }) {
       </Card>
 
       <Card className="border-danger/30 p-5">
-        <h3 className="text-base text-danger">Небезпечна зона</h3>
+        <h3 className="text-base text-danger">Danger Zone</h3>
         <p className="mb-4 mt-1 text-sm text-ink-soft">
-          Видалення проєкту прибере всі його документи та учасників. Цю дію не можна скасувати.
+          Deleting a project permanently removes all of its documents and members. This action cannot be undone.
         </p>
-        <Button variant="danger" onClick={() => setConfirming(true)}>Видалити проєкт</Button>
+        <Button variant="danger" onClick={() => setConfirming(true)}>Delete Project</Button>
       </Card>
 
       <ConfirmDialog
         open={confirming}
-        title="Видалити проєкт?"
-        message={`Проєкт «${project.name}» разом з усіма документами буде видалено назавжди.`}
-        confirmLabel="Видалити"
+        title="Delete project?"
+        message={`Project "${project.name}" and all of its documents will be permanently deleted.`}
+        confirmLabel="Delete"
         onConfirm={async () => {
           try {
             await deleteProject(projectId);
-            toast.success('Проєкт видалено');
+            toast.success('Project deleted');
             await reload();
             navigate('/projects', { replace: true });
           } catch (error) {

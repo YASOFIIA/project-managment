@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { FolderKanban, Plus, SearchX } from 'lucide-react';
 import { deleteProject } from '../api/projects';
-import { InviteForm } from '../components/projects/InviteForm';
 import { ProjectCard, type ProjectAction } from '../components/projects/ProjectCard';
 import { ProjectFormModal } from '../components/projects/ProjectFormModal';
 import { ShareForm } from '../components/projects/ShareForm';
@@ -32,7 +31,7 @@ export default function ProjectsPage() {
       (p) => !query || p.name.toLowerCase().includes(query) || (p.description ?? '').toLowerCase().includes(query),
     );
     return [...filtered].sort((a, b) => {
-      if (sort === 'name') return a.name.localeCompare(b.name, 'uk');
+      if (sort === 'name') return a.name.localeCompare(b.name, 'en');
       if (sort === 'size') return b.total_size_bytes - a.total_size_bytes;
       return b.updated_at.localeCompare(a.updated_at);
     });
@@ -45,7 +44,7 @@ export default function ProjectsPage() {
     if (!project) return;
     try {
       await deleteProject(project.id);
-      toast.success('Проєкт видалено');
+      toast.success('Project deleted');
       await reload();
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -56,25 +55,25 @@ export default function ProjectsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl">Проєкти</h2>
+          <h2 className="text-2xl">Projects</h2>
           <p className="mt-1 text-sm text-ink-soft">
-            {query ? `Результати за запитом «${params.get('q')}»` : 'Усі проєкти, до яких у вас є доступ'}
+            {query ? `Results for "${params.get('q')}"` : 'All projects you have access to'}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <label className="sr-only" htmlFor="sort">Сортування</label>
+          <label className="sr-only" htmlFor="sort">Sort by</label>
           <select
             id="sort"
             value={sort}
             onChange={(e) => setSort(e.target.value as Sort)}
             className="h-10 rounded-input border border-black/10 bg-white/80 px-3 text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
           >
-            <option value="updated">Нещодавно оновлені</option>
-            <option value="name">За назвою</option>
-            <option value="size">За розміром</option>
+            <option value="updated">Recently updated</option>
+            <option value="name">By name</option>
+            <option value="size">By size</option>
           </select>
           <Button onClick={() => setModal({ action: 'create' })}>
-            <Plus size={16} strokeWidth={1.5} aria-hidden /> Створити проєкт
+            <Plus size={16} strokeWidth={1.5} aria-hidden /> Create
           </Button>
         </div>
       </div>
@@ -84,16 +83,16 @@ export default function ProjectsPage() {
           {query ? (
             <EmptyState
               icon={SearchX}
-              title="Нічого не знайдено"
-              description="Спробуйте змінити пошуковий запит."
-              action={<Button variant="secondary" onClick={() => setParams({})}>Скинути пошук</Button>}
+              title="No matching projects"
+              description="Try adjusting your search query."
+              action={<Button variant="secondary" onClick={() => setParams({})}>Clear Search</Button>}
             />
           ) : (
             <EmptyState
               icon={FolderKanban}
-              title="Створіть перший проєкт"
-              description="Проєкт обʼєднує документи та команду в одному місці."
-              action={<Button onClick={() => setModal({ action: 'create' })}>Новий проєкт</Button>}
+              title="Create your first project"
+              description="A project brings your documents and team together in one place."
+              action={<Button onClick={() => setModal({ action: 'create' })}>New Project</Button>}
             />
           )}
         </Card>
@@ -116,27 +115,19 @@ export default function ProjectsPage() {
         project={modal?.action === 'edit' ? project : null}
         onClose={close}
       />
-      <Modal open={modal?.action === 'invite'} onClose={close} title={`Запросити в «${project?.name ?? ''}»`}>
+      <Modal open={modal?.action === 'share'} onClose={close} title={`Invite to "${project?.name ?? ''}"`}>
         {project && (
           <>
-            <p className="mb-3 text-sm text-ink-soft">Додайте користувача за його логіном — він одразу стане учасником.</p>
-            <InviteForm projectId={project.id} onDone={() => { void reload(); close(); }} />
-          </>
-        )}
-      </Modal>
-      <Modal open={modal?.action === 'share'} onClose={close} title={`Email-запрошення в «${project?.name ?? ''}»`}>
-        {project && (
-          <>
-            <p className="mb-3 text-sm text-ink-soft">Ми надішлемо лист із посиланням, яке діє обмежений час.</p>
+            <p className="mb-3 text-sm text-ink-soft">Send a time-limited invitation link by email.</p>
             <ShareForm projectId={project.id} onDone={close} />
           </>
         )}
       </Modal>
       <ConfirmDialog
         open={modal?.action === 'delete'}
-        title="Видалити проєкт?"
-        message={`Проєкт «${project?.name ?? ''}» разом з усіма документами буде видалено назавжди.`}
-        confirmLabel="Видалити"
+        title="Delete project?"
+        message={`Project "${project?.name ?? ''}" and all of its documents will be permanently deleted.`}
+        confirmLabel="Delete"
         onConfirm={handleDelete}
         onClose={close}
       />

@@ -20,22 +20,22 @@ export default function DocumentsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-2xl">Документи</h2>
-        <p className="mt-1 text-sm text-ink-soft">Усі файли з ваших проєктів</p>
+        <h2 className="text-2xl">Documents</h2>
+        <p className="mt-1 text-sm text-ink-soft">All files across your projects</p>
       </div>
       <Card className="overflow-hidden">
         {!loading && rows.length === 0 ? (
-          <EmptyState icon={FileText} title="Документів поки немає" description="Завантажте файли на сторінці проєкту." />
+          <EmptyState icon={FileText} title="No documents yet" description="Upload files inside any of your projects." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs font-medium uppercase tracking-wide text-ink-soft">
-                  <th scope="col" className="px-4 py-3">Назва</th>
-                  <th scope="col" className="hidden px-4 py-3 sm:table-cell">Проєкт</th>
-                  <th scope="col" className="px-4 py-3">Розмір</th>
-                  <th scope="col" className="hidden px-4 py-3 md:table-cell">Дата</th>
-                  <th scope="col" className="px-4 py-3"><span className="sr-only">Дії</span></th>
+                  <th scope="col" className="px-4 py-3">Name</th>
+                  <th scope="col" className="hidden px-4 py-3 sm:table-cell">Project</th>
+                  <th scope="col" className="px-4 py-3">Size</th>
+                  <th scope="col" className="hidden px-4 py-3 md:table-cell">Date</th>
+                  <th scope="col" className="px-4 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -55,9 +55,9 @@ export default function DocumentsPage() {
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        aria-label={`Завантажити ${doc.filename}`}
-                        title="Скачати"
-                        className="rounded-btn p-1.5 text-ink-soft transition-colors hover:bg-black/5 hover:text-ink"
+                        aria-label={`Download ${doc.filename}`}
+                        title="Download"
+                        className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
                         onClick={() => downloadDocument(doc.id, doc.filename).catch((e) => toast.error(getErrorMessage(e)))}
                       >
                         <Download size={18} strokeWidth={1.5} />
