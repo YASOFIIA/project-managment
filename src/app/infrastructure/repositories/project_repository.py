@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.application.ports.project_repository import (
     DocumentSummary,
@@ -77,6 +77,16 @@ class SqlAlchemyProjectRepository:
             ProjectMember.user_id == user_id,
         )
         return self._session.scalar(stmt)
+
+    # List all members of a project (with users loaded)
+    def list_members(self, project_id: int) -> list[ProjectMember]:
+        stmt = (
+            select(ProjectMember)
+            .options(joinedload(ProjectMember.user))
+            .where(ProjectMember.project_id == project_id)
+            .order_by(ProjectMember.created_at.asc(), ProjectMember.id.asc())
+        )
+        return list(self._session.scalars(stmt).all())
 
     # List user projects with documents
     def list_for_user_with_documents(self, user_id: int) -> list[ProjectWithDocuments]:

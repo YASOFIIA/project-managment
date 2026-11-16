@@ -44,3 +44,6 @@ docs/
 AGENTS.md
 PROMPTS.md
 REFERENCE_NOTES.md
+
+# Frontend (built separately)
+frontend/

@@ -122,10 +122,18 @@ data/storage/
 .localstack/
 
 # ==============================================================================
+# Frontend dependencies & build artifacts
+# ==============================================================================
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# ==============================================================================
 # Documentation & Agent / AI development files (never commit)
 # ==============================================================================
 docs/
 AGENTS.md
 CLAUDE.md
 .claude/
-docs/REFERENCE_NOTES.md
+PROMPTS.md
+REFERENCE_NOTES.md

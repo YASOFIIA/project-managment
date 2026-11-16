@@ -52,6 +52,16 @@ class ProjectMemberResponse(BaseModel):
     created_at: datetime
 
 
+# Project member with login, for the team list
+class ProjectMemberDetailResponse(BaseModel):
+    id: int
+    project_id: int
+    user_id: int
+    login: str
+    role: ProjectRole
+    created_at: datetime
+
+
 # Response after sending email invitation
 class InvitationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

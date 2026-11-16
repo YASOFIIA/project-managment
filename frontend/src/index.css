@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg font-sans text-[15px] leading-normal text-ink antialiased;
+    background-image:
+      radial-gradient(900px 500px at 100% -10%, rgba(232, 115, 74, 0.1), transparent 60%),
+      radial-gradient(700px 400px at -10% 110%, rgba(255, 190, 150, 0.14), transparent 60%);
+    background-attachment: fixed;
+  }
+  h1, h2, h3 {
+    @apply font-semibold tracking-tight;
+  }
+  :focus-visible {
+    outline: 2px solid #e8734a;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.75);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+}
+
+/* Native modal dialog */
+dialog.pm-dialog {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: min(92vw, 30rem);
+  width: 100%;
+  color: inherit;
+}
+dialog.pm-dialog[open] {
+  animation: pm-pop 160ms ease-out;
+}
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  background: rgba(26, 26, 26, 0.32);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+@keyframes pm-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@keyframes pm-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.pm-enter {
+  animation: pm-fade-up 240ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.pm-dialog[open],
+  .pm-enter {
+    animation: none;
+  }
+}

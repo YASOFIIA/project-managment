@@ -11,6 +11,7 @@ from app.schemas.project import (
     InvitationResponse,
     ProjectCreateRequest,
     ProjectDetailResponse,
+    ProjectMemberDetailResponse,
     ProjectMemberResponse,
     ProjectResponse,
     ProjectUpdateRequest,
@@ -21,6 +22,7 @@ from app.services.projects import (
     delete_project,
     get_project_info,
     invite_member,
+    list_project_members,
     list_user_projects,
     update_project_info,
 )
@@ -179,3 +181,30 @@ def share_project_via_email(
         base_url=settings.app_base_url,
         expire_hours=settings.invitation_expire_hours,
     )
+
+
+# List project members endpoint
+@router.get(
+    "/project/{project_id}/members",
+    response_model=list[ProjectMemberDetailResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List project members",
+    description="List project members with their roles. Permitted for owners and participants.",
+)
+def get_members(
+    project_id: int,
+    current_user: CurrentUser,
+    uow: UowDep,
+) -> list[ProjectMemberDetailResponse]:
+    members = list_project_members(uow=uow, project_id=project_id, user_id=current_user.id)
+    return [
+        ProjectMemberDetailResponse(
+            id=m.id,
+            project_id=m.project_id,
+            user_id=m.user_id,
+            login=m.user.login,
+            role=m.role,
+            created_at=m.created_at,
+        )
+        for m in members
+    ]

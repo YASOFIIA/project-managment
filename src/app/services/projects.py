@@ -63,6 +63,16 @@ def get_project_info(
     return project
 
 
+# List project members, visible to owner and participants
+def list_project_members(
+    uow: UnitOfWork,
+    project_id: int,
+    user_id: int,
+) -> list[ProjectMember]:
+    require_project_access(uow, project_id=project_id, user_id=user_id, action=Action.VIEW)
+    return uow.projects.list_members(project_id)
+
+
 # Update project details (name, description)
 def update_project_info(
     uow: UnitOfWork,

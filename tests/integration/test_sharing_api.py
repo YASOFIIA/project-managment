@@ -190,3 +190,32 @@ def test_invite_missing_or_empty_param_returns_422(client: TestClient, db_sessio
     # Empty query param
     resp2 = client.post(f"/project/{project.id}/invite?user=", headers=headers)
     assert resp2.status_code == 422
+
+
+# Members list shows owner and invited participant, hidden from non-members
+def test_list_members(client: TestClient, db_session: Session) -> None:
+    owner = create_user(db_session, login="m_owner")
+    guest = create_user(db_session, login="m_guest")
+    outsider = create_user(db_session, login="m_outsider")
+    project = create_project(db_session)
+    create_project_member(
+        db_session, project_id=project.id, user_id=owner.id, role=ProjectRole.OWNER
+    )
+    create_project_member(
+        db_session, project_id=project.id, user_id=guest.id, role=ProjectRole.PARTICIPANT
+    )
+
+    def headers(user_id: int, login: str) -> dict[str, str]:
+        return {"Authorization": f"Bearer {create_access_token(user_id=user_id, login=login)}"}
+
+    ok = client.get(f"/project/{project.id}/members", headers=headers(owner.id, owner.login))
+    assert ok.status_code == 200
+    assert {(m["login"], m["role"]) for m in ok.json()} == {
+        ("m_owner", "owner"),
+        ("m_guest", "participant"),
+    }
+
+    hidden = client.get(
+        f"/project/{project.id}/members", headers=headers(outsider.id, outsider.login)
+    )
+    assert hidden.status_code == 404
