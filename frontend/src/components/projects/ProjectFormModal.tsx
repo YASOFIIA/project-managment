@@ -20,7 +20,7 @@ export function ProjectFormModal({ open, project, onClose, onSaved }: Props) {
     const payload = { name: values.name.trim(), description: values.description?.trim() || null };
     try {
       const saved = project ? await updateProject(project.id, payload) : await createProject(payload);
-      toast.success(project ? 'Проєкт оновлено' : 'Проєкт створено');
+      toast.success(project ? 'Project updated' : 'Project created');
       await reload();
       onSaved?.(saved);
       onClose();
@@ -30,10 +30,10 @@ export function ProjectFormModal({ open, project, onClose, onSaved }: Props) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={project ? 'Редагувати проєкт' : 'Новий проєкт'}>
+    <Modal open={open} onClose={onClose} title={project ? 'Edit Project' : 'New Project'}>
       <ProjectForm
         initial={project ?? undefined}
-        submitLabel={project ? 'Зберегти' : 'Створити'}
+        submitLabel={project ? 'Save' : 'Create'}
         onSubmit={submit}
         onCancel={onClose}
       />

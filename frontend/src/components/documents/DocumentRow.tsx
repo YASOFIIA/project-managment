@@ -21,12 +21,10 @@ export function FileTypeIcon({ filename, size = 18 }: { filename: string; size?:
   return <FileIcon {...props} className="text-ink-soft" />;
 }
 
-const KIND_LABEL = { pdf: 'PDF', doc: 'DOCX', image: 'Зображення', other: 'Файл' } as const;
+const KIND_LABEL = { pdf: 'PDF', doc: 'DOCX', image: 'Image', other: 'File' } as const;
 
 export function DocumentRow({ doc, onDownload, onReplace, onDelete }: Props) {
   const replaceRef = useRef<HTMLInputElement>(null);
-  const action =
-    'rounded-btn p-1.5 text-ink-soft transition-colors hover:bg-black/5 hover:text-ink';
 
   return (
     <tr className="border-t border-line transition-colors hover:bg-white/50">
@@ -46,14 +44,32 @@ export function DocumentRow({ doc, onDownload, onReplace, onDelete }: Props) {
         {formatDate(doc.created_at)}
       </td>
       <td className="whitespace-nowrap px-4 py-3">
-        <div className="flex justify-end gap-0.5">
-          <button type="button" className={action} aria-label={`Завантажити ${doc.filename}`} title="Скачати" onClick={() => onDownload(doc)}>
+        <div className="flex justify-end gap-1">
+          <button
+            type="button"
+            title="Download"
+            aria-label={`Download ${doc.filename}`}
+            onClick={() => onDownload(doc)}
+            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+          >
             <Download size={18} strokeWidth={1.5} />
           </button>
-          <button type="button" className={action} aria-label={`Замінити ${doc.filename}`} title="Замінити" onClick={() => replaceRef.current?.click()}>
+          <button
+            type="button"
+            title="Replace"
+            aria-label={`Replace ${doc.filename}`}
+            onClick={() => replaceRef.current?.click()}
+            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+          >
             <RefreshCw size={18} strokeWidth={1.5} />
           </button>
-          <button type="button" className={`${action} hover:!text-danger`} aria-label={`Видалити ${doc.filename}`} title="Видалити" onClick={() => onDelete(doc)}>
+          <button
+            type="button"
+            title="Delete"
+            aria-label={`Delete ${doc.filename}`}
+            onClick={() => onDelete(doc)}
+            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-danger"
+          >
             <Trash2 size={18} strokeWidth={1.5} />
           </button>
           <input

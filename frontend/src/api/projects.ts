@@ -31,9 +31,9 @@ export const deleteProject = async (id: number): Promise<void> => {
 export const listMembers = async (id: number): Promise<ProjectMember[]> =>
   (await api.get<ProjectMember[]>(`/project/${id}/members`)).data;
 
-export const inviteByLogin = async (id: number, login: string): Promise<MembershipResponse> =>
-  (await api.post<MembershipResponse>(`/project/${id}/invite`, null, { params: { user: login } }))
-    .data;
+export const removeMember = async (projectId: number, memberId: number): Promise<void> => {
+  await api.delete(`/project/${projectId}/members/${memberId}`);
+};
 
 export const shareByEmail = async (id: number, email: string): Promise<InvitationResponse> =>
   (await api.get<InvitationResponse>(`/project/${id}/share`, { params: { with: email } })).data;
