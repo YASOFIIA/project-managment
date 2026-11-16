@@ -7,6 +7,7 @@ from app.schemas.auth import (
 from app.schemas.document import DocumentResponse
 from app.schemas.project import (
     InvitationResponse,
+    PendingInvitationResponse,
     ProjectCreateRequest,
     ProjectDetailResponse,
     ProjectMemberDetailResponse,
@@ -18,6 +19,7 @@ from app.schemas.project import (
 __all__ = [
     "DocumentResponse",
     "InvitationResponse",
+    "PendingInvitationResponse",
     "ProjectCreateRequest",
     "ProjectDetailResponse",
     "ProjectMemberDetailResponse",

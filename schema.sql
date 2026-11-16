@@ -18,11 +18,13 @@ DROP TABLE IF EXISTS users CASCADE;
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     login VARCHAR(64) NOT NULL,
+    email VARCHAR(255) NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE UNIQUE INDEX ix_users_login ON users (login);
+CREATE UNIQUE INDEX ix_users_email ON users (email);
 
 -- -----------------------------------------------------------------------------
 -- Table: projects

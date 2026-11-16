@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.application.ports.unit_of_work import UnitOfWork
 from app.core.security import decode_access_token
-from app.domain.errors import AlreadyExistsError, LoginTaken
+from app.domain.errors import AlreadyExistsError, EmailTaken, LoginTaken
 from app.schemas.auth import UserRegisterRequest
 from app.services.auth import register_user
 from tests.factories import create_user
@@ -16,6 +16,7 @@ from tests.factories import create_user
 def test_register_user_success(client: TestClient) -> None:
     payload = {
         "login": "newuser",
+        "email": "newuser@example.com",
         "password": "SecretPassword123!",
         "repeat_password": "SecretPassword123!",
     }
@@ -25,6 +26,7 @@ def test_register_user_success(client: TestClient) -> None:
     assert response.status_code == 201
     data = response.json()
     assert data["login"] == "newuser"
+    assert data["email"] == "newuser@example.com"
     assert "id" in data
     assert "created_at" in data
     # Password must NEVER be returned in response
@@ -36,6 +38,7 @@ def test_register_user_success(client: TestClient) -> None:
 def test_register_user_mismatched_passwords_returns_422(client: TestClient) -> None:
     payload = {
         "login": "mismatch_user",
+        "email": "mismatch@example.com",
         "password": "Password123!",
         "repeat_password": "DifferentPassword123!",
     }
@@ -51,6 +54,7 @@ def test_register_user_mismatched_passwords_returns_422(client: TestClient) -> N
 def test_register_duplicate_login_returns_409(client: TestClient) -> None:
     payload = {
         "login": "duplicate_user",
+        "email": "dup1@example.com",
         "password": "ValidPassword123!",
         "repeat_password": "ValidPassword123!",
     }
@@ -58,19 +62,43 @@ def test_register_duplicate_login_returns_409(client: TestClient) -> None:
     resp1 = client.post("/auth", json=payload)
     assert resp1.status_code == 201
 
-    resp2 = client.post("/auth", json=payload)
+    resp2 = client.post("/auth", json={**payload, "email": "dup2@example.com"})
     assert resp2.status_code == 409
     assert "already taken" in resp2.json()["detail"]
 
 
-# Check register_user catches database IntegrityError on race condition and returns 409
+# Check POST /auth returns 409 Conflict if email is already registered
+def test_register_duplicate_email_returns_409(client: TestClient) -> None:
+    payload1 = {
+        "login": "user_one_email",
+        "email": "taken@example.com",
+        "password": "ValidPassword123!",
+        "repeat_password": "ValidPassword123!",
+    }
+    payload2 = {
+        "login": "user_two_email",
+        "email": "taken@example.com",
+        "password": "ValidPassword123!",
+        "repeat_password": "ValidPassword123!",
+    }
+
+    resp1 = client.post("/auth", json=payload1)
+    assert resp1.status_code == 201
+
+    resp2 = client.post("/auth", json=payload2)
+    assert resp2.status_code == 409
+    assert "already taken" in resp2.json()["detail"]
+
+
+# Check register_user catches database IntegrityError on login race condition and returns 409
 def test_register_user_catches_integrity_error_on_race_condition(
     uow: UnitOfWork,
     db_session: Session,
 ) -> None:
-    create_user(db_session, login="concurrent_login")
+    create_user(db_session, login="concurrent_login", email="concurrent@example.com")
     data = UserRegisterRequest(
         login="concurrent_login",
+        email="other_concurrent@example.com",
         password="ValidPassword123!",
         repeat_password="ValidPassword123!",
     )
@@ -82,11 +110,31 @@ def test_register_user_catches_integrity_error_on_race_condition(
         assert "concurrent_login" in exc_info.value.detail
 
 
+# Check register_user catches database IntegrityError on email race condition and returns 409
+def test_register_user_catches_email_integrity_error_on_race_condition(
+    uow: UnitOfWork,
+    db_session: Session,
+) -> None:
+    create_user(db_session, login="concurrent_login", email="concurrent@example.com")
+    data_email = UserRegisterRequest(
+        login="unique_concurrent_login",
+        email="concurrent@example.com",
+        password="ValidPassword123!",
+        repeat_password="ValidPassword123!",
+    )
+    with patch.object(uow.users, "get_by_email", return_value=None):
+        with pytest.raises(EmailTaken) as exc_email_info:
+            register_user(uow, data_email)
+        assert isinstance(exc_email_info.value, AlreadyExistsError)
+        assert "concurrent@example.com" in exc_email_info.value.detail
+
+
 # Check POST /login with valid credentials returns 200 and a decodable JWT
 def test_login_success_returns_jwt_token(client: TestClient) -> None:
     # First register user
     register_payload = {
         "login": "login_success_user",
+        "email": "login_success@example.com",
         "password": "CorrectPassword123!",
         "repeat_password": "CorrectPassword123!",
     }
@@ -113,6 +161,7 @@ def test_login_success_returns_jwt_token(client: TestClient) -> None:
 def test_login_invalid_password_returns_401(client: TestClient) -> None:
     register_payload = {
         "login": "wrong_pw_user",
+        "email": "wrong_pw@example.com",
         "password": "RealPassword123!",
         "repeat_password": "RealPassword123!",
     }

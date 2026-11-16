@@ -6,15 +6,12 @@ from app.application.ports.project_repository import ProjectWithDocuments
 from app.application.ports.storage import StorageBackend
 from app.application.ports.unit_of_work import UnitOfWork
 from app.domain.access_policy import Action
-from app.domain.errors import UserAlreadyMember, UserNotFound
+from app.domain.errors import PermissionDenied, ProjectNotFound
 from app.domain.roles import ProjectRole
 from app.models.project import Project, ProjectMember
 from app.models.user import User
 from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
-from app.services.access import (
-    get_project_membership,
-    require_project_access,
-)
+from app.services.access import require_project_access
 
 logger = logging.getLogger(__name__)
 
@@ -122,36 +119,29 @@ def delete_project(
             )
 
 
-# Invite user to project as participant (owner only)
-def invite_member(
+# Remove a participant from a project (owner only)
+def remove_member(
     uow: UnitOfWork,
     project_id: int,
     owner_id: int,
-    invitee_login: str,
-) -> ProjectMember:
+    member_id: int,
+) -> None:
     require_project_access(
-        uow, project_id=project_id, user_id=owner_id, action=Action.INVITE_MEMBER
+        uow, project_id=project_id, user_id=owner_id, action=Action.REMOVE_MEMBER
     )
 
-    invitee = uow.users.get_by_login(invitee_login)
-    if invitee is None:
-        raise UserNotFound(f"User '{invitee_login}' not found")
+    member = uow.projects.get_member_by_id(member_id)
+    if member is None or member.project_id != project_id:
+        raise ProjectNotFound(f"Member {member_id} not found in project {project_id}")
 
-    existing = get_project_membership(uow, project_id=project_id, user_id=invitee.id)
-    if existing is not None:
-        raise UserAlreadyMember(f"User '{invitee_login}' is already a member of this project")
+    # Owner cannot remove themselves
+    if member.user_id == owner_id:
+        raise PermissionDenied("Cannot remove yourself from the project")
 
-    membership = ProjectMember(
-        project_id=project_id,
-        user_id=invitee.id,
-        role=ProjectRole.PARTICIPANT,
-    )
+    # Cannot remove another owner (safety check)
+    if member.role == ProjectRole.OWNER:
+        raise PermissionDenied("Cannot remove a project owner")
+
     with uow:
-        try:
-            uow.projects.add_member(membership)
-            uow.commit()
-        except UserAlreadyMember:
-            uow.rollback()
-            raise
-
-    return membership
+        uow.projects.remove_member(member)
+        uow.commit()

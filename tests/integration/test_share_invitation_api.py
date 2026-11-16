@@ -249,3 +249,63 @@ def test_already_member_accepts(client: TestClient, db_session: Session) -> None
         headers={"Authorization": f"Bearer {token}"},
     )
     assert res.status_code == 409
+
+
+# Check GET /invitations lists pending invitations for current user's email
+def test_list_and_accept_or_decline_pending_invitations(
+    client: TestClient, db_session: Session
+) -> None:
+    owner = create_user(db_session, login="inv_owner", email="inv_owner@example.com")
+    invitee = create_user(db_session, login="inv_target", email="target@example.com")
+    other = create_user(db_session, login="inv_other", email="other@example.com")
+    proj1 = create_project(db_session, name="Project One")
+    proj2 = create_project(db_session, name="Project Two")
+    create_project_member(db_session, project_id=proj1.id, user_id=owner.id, role=ProjectRole.OWNER)
+    create_project_member(db_session, project_id=proj2.id, user_id=owner.id, role=ProjectRole.OWNER)
+
+    owner_headers = {"Authorization": f"Bearer {create_access_token(owner.id, owner.login)}"}
+    invitee_headers = {"Authorization": f"Bearer {create_access_token(invitee.id, invitee.login)}"}
+    other_headers = {"Authorization": f"Bearer {create_access_token(other.id, other.login)}"}
+
+    # Share both projects with target@example.com
+    assert (
+        client.get(
+            f"/project/{proj1.id}/share?with=target@example.com", headers=owner_headers
+        ).status_code
+        == 200
+    )
+    assert (
+        client.get(
+            f"/project/{proj2.id}/share?with=target@example.com", headers=owner_headers
+        ).status_code
+        == 200
+    )
+
+    # Other user sees empty list
+    assert client.get("/invitations", headers=other_headers).json() == []
+
+    # Target user sees 2 pending invitations
+    pending = client.get("/invitations", headers=invitee_headers).json()
+    assert len(pending) == 2
+    by_proj = {item["project_id"]: item for item in pending}
+    assert by_proj[proj1.id]["project_name"] == "Project One"
+    assert by_proj[proj2.id]["project_name"] == "Project Two"
+
+    # Other user cannot accept or decline target's invitation -> 404
+    inv1_id = by_proj[proj1.id]["id"]
+    inv2_id = by_proj[proj2.id]["id"]
+    assert client.post(f"/invitations/{inv1_id}/accept", headers=other_headers).status_code == 404
+    assert client.post(f"/invitations/{inv2_id}/decline", headers=other_headers).status_code == 404
+
+    # Target accepts proj1 invitation -> 200
+    acc = client.post(f"/invitations/{inv1_id}/accept", headers=invitee_headers)
+    assert acc.status_code == 200
+    assert acc.json()["project_id"] == proj1.id
+    assert acc.json()["role"] == "participant"
+
+    # Target declines proj2 invitation -> 204
+    dec = client.post(f"/invitations/{inv2_id}/decline", headers=invitee_headers)
+    assert dec.status_code == 204
+
+    # Pending list is now empty
+    assert client.get("/invitations", headers=invitee_headers).json() == []

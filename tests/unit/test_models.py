@@ -38,7 +38,7 @@ def db_session() -> Generator[Session, None, None]:
 
 # Check standard creation of User, Project, and ProjectMember
 def test_create_user_project_and_membership(db_session: Session) -> None:
-    user = User(login="alice", hashed_password="hashed_pw_alice")
+    user = User(login="alice", email="alice@example.com", hashed_password="hashed_pw_alice")
     db_session.add(user)
     db_session.commit()
 
@@ -62,7 +62,7 @@ def test_create_user_project_and_membership(db_session: Session) -> None:
 
 # Check a user cannot be added twice to the same project
 def test_unique_project_member_constraint(db_session: Session) -> None:
-    user = User(login="bob", hashed_password="hashed_pw_bob")
+    user = User(login="bob", email="bob@example.com", hashed_password="hashed_pw_bob")
     project = Project(name="Project Beta")
     db_session.add_all([user, project])
     db_session.commit()
@@ -81,7 +81,7 @@ def test_unique_project_member_constraint(db_session: Session) -> None:
 
 # Check deleting a project cascades to its documents and project_members
 def test_cascade_delete_project_removes_documents_and_members(db_session: Session) -> None:
-    user = User(login="charlie", hashed_password="hashed_pw_charlie")
+    user = User(login="charlie", email="charlie@example.com", hashed_password="hashed_pw_charlie")
     project = Project(name="Project Gamma")
     db_session.add_all([user, project])
     db_session.commit()
@@ -145,8 +145,8 @@ def test_document_stored_filename_must_be_unique(db_session: Session) -> None:
 
 # Check duplicate user logins are rejected by unique constraint
 def test_user_login_must_be_unique(db_session: Session) -> None:
-    u1 = User(login="dave", hashed_password="pw1")
-    u2 = User(login="dave", hashed_password="pw2")
+    u1 = User(login="dave", email="dave1@example.com", hashed_password="pw1")
+    u2 = User(login="dave", email="dave2@example.com", hashed_password="pw2")
 
     db_session.add(u1)
     db_session.commit()

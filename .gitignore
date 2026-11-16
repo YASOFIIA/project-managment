@@ -137,3 +137,5 @@ CLAUDE.md
 .claude/
 PROMPTS.md
 REFERENCE_NOTES.md
+
+.coverage*
