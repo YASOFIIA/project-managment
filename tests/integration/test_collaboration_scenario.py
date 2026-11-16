@@ -17,14 +17,24 @@ def test_full_collaboration_lifecycle_scenario(
     # --- Step 1: Register User A and User B ---
     reg_a = client.post(
         "/auth",
-        json={"login": "alice", "password": "password123", "repeat_password": "password123"},
+        json={
+            "login": "alice",
+            "email": "alice@example.com",
+            "password": "password123",
+            "repeat_password": "password123",
+        },
     )
     assert reg_a.status_code == 201
     user_a_id = reg_a.json()["id"]
 
     reg_b = client.post(
         "/auth",
-        json={"login": "bob", "password": "password123", "repeat_password": "password123"},
+        json={
+            "login": "bob",
+            "email": "bob@example.com",
+            "password": "password123",
+            "repeat_password": "password123",
+        },
     )
     assert reg_b.status_code == 201
     user_b_id = reg_b.json()["id"]
@@ -85,10 +95,22 @@ def test_full_collaboration_lifecycle_scenario(
     assert proj_info_a.status_code == 200
     assert proj_info_a.json()["total_size_bytes"] == len(initial_pdf_bytes)
 
-    # --- Step 5: User A invites User B ---
-    invite_resp = client.post(
-        f"/project/{project_id}/invite?user=bob",
+    # --- Step 5: User A invites User B by email and User B accepts ---
+    share_resp = client.get(
+        f"/project/{project_id}/share?with=bob@example.com",
         headers=headers_a,
+    )
+    assert share_resp.status_code == 200
+
+    pending_resp = client.get("/invitations", headers=headers_b)
+    assert pending_resp.status_code == 200
+    pending_list = pending_resp.json()
+    assert len(pending_list) == 1
+    assert pending_list[0]["project_id"] == project_id
+
+    invite_resp = client.post(
+        f"/invitations/{pending_list[0]['id']}/accept",
+        headers=headers_b,
     )
     assert invite_resp.status_code == 200
     invite_data = invite_resp.json()
@@ -163,12 +185,17 @@ def test_full_collaboration_lifecycle_scenario(
     # --- Step 10: User B attempts to invite someone else -> 403 Forbidden ---
     charlie_reg = client.post(
         "/auth",
-        json={"login": "charlie", "password": "password123", "repeat_password": "password123"},
+        json={
+            "login": "charlie",
+            "email": "charlie@example.com",
+            "password": "password123",
+            "repeat_password": "password123",
+        },
     )
     assert charlie_reg.status_code == 201
 
-    invite_by_b_resp = client.post(
-        f"/project/{project_id}/invite?user=charlie",
+    invite_by_b_resp = client.get(
+        f"/project/{project_id}/share?with=charlie@example.com",
         headers=headers_b,
     )
     assert invite_by_b_resp.status_code == 403

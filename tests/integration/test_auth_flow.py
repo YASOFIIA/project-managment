@@ -15,6 +15,7 @@ def test_full_auth_lifecycle_end_to_end(client: TestClient) -> None:
         "/auth",
         json={
             "login": username,
+            "email": "e2e_student@example.com",
             "password": password,
             "repeat_password": password,
         },
@@ -22,6 +23,7 @@ def test_full_auth_lifecycle_end_to_end(client: TestClient) -> None:
     assert register_resp.status_code == 201
     user_data = register_resp.json()
     assert user_data["login"] == username
+    assert user_data["email"] == "e2e_student@example.com"
     user_id = user_data["id"]
 
     # 2. Attempt duplicate registration -> 409 Conflict
@@ -29,6 +31,7 @@ def test_full_auth_lifecycle_end_to_end(client: TestClient) -> None:
         "/auth",
         json={
             "login": username,
+            "email": "e2e_student_other@example.com",
             "password": password,
             "repeat_password": password,
         },

@@ -14,7 +14,12 @@ def test_two_users_collaboration_and_access_lifecycle(
     # 1. Register and login User A (Project Creator / Owner)
     reg_a = client.post(
         "/auth",
-        json={"login": "alice", "password": "password123", "repeat_password": "password123"},
+        json={
+            "login": "alice",
+            "email": "alice@example.com",
+            "password": "password123",
+            "repeat_password": "password123",
+        },
     )
     assert reg_a.status_code == 201
 
@@ -26,7 +31,12 @@ def test_two_users_collaboration_and_access_lifecycle(
     # 2. Register and login User B (Collaborator / Participant)
     reg_b = client.post(
         "/auth",
-        json={"login": "bob_collab", "password": "password123", "repeat_password": "password123"},
+        json={
+            "login": "bob_collab",
+            "email": "bob_collab@example.com",
+            "password": "password123",
+            "repeat_password": "password123",
+        },
     )
     assert reg_b.status_code == 201
     user_b_id = reg_b.json()["id"]
@@ -112,6 +122,7 @@ def test_api_status_codes_matrix(client: TestClient, db_session: Session) -> Non
         "/auth",
         json={
             "login": "status_tester",
+            "email": "status_tester@example.com",
             "password": "password123",
             "repeat_password": "password123",
         },

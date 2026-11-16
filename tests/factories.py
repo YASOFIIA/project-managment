@@ -11,11 +11,15 @@ from app.models import Document, Project, ProjectMember, User
 def create_user(
     session: Session,
     login: str | None = None,
+    email: str | None = None,
     hashed_password: str = "hashed_dummy_password",
     **kwargs: Any,
 ) -> User:
+    user_login = login or f"user_{uuid.uuid4().hex[:8]}"
+    user_email = email or f"{user_login}_{uuid.uuid4().hex[:6]}@example.com"
     user = User(
-        login=login or f"user_{uuid.uuid4().hex[:8]}",
+        login=user_login,
+        email=user_email,
         hashed_password=hashed_password,
         **kwargs,
     )

@@ -26,7 +26,11 @@ from app.models.user import User
 
 def test_user_repository_crud(db_session: Session) -> None:
     repo = SqlAlchemyUserRepository(db_session)
-    user = User(login="repo_user", hashed_password="hashed_password_123")
+    user = User(
+        login="repo_user",
+        email="repo_user@example.com",
+        hashed_password="hashed_password_123",
+    )
     repo.add(user)
     assert user.id is not None
 
@@ -38,14 +42,19 @@ def test_user_repository_crud(db_session: Session) -> None:
     assert found_by_login is not None
     assert found_by_login.id == user.id
 
+    found_by_email = repo.get_by_email("repo_user@example.com")
+    assert found_by_email is not None
+    assert found_by_email.id == user.id
+
     assert repo.get_by_login("nonexistent") is None
+    assert repo.get_by_email("missing@example.com") is None
 
 
 def test_project_repository_crud_and_membership(db_session: Session) -> None:
     user_repo = SqlAlchemyUserRepository(db_session)
     proj_repo = SqlAlchemyProjectRepository(db_session)
 
-    user = User(login="proj_owner", hashed_password="pwd")
+    user = User(login="proj_owner", email="proj_owner@example.com", hashed_password="pwd")
     user_repo.add(user)
 
     project = Project(name="Repo Project", description="Test Description")
@@ -67,6 +76,10 @@ def test_project_repository_crud_and_membership(db_session: Session) -> None:
     assert membership is not None
     assert membership.role == ProjectRole.OWNER
 
+    found_member = proj_repo.get_member_by_id(member.id)
+    assert found_member is not None
+    assert found_member.id == member.id
+
     projects = proj_repo.list_for_user_with_documents(user.id)
     assert len(projects) == 1
     assert isinstance(projects[0], ProjectWithDocuments)
@@ -83,7 +96,7 @@ def test_document_repository_crud_and_filenames(db_session: Session) -> None:
     proj_repo = SqlAlchemyProjectRepository(db_session)
     doc_repo = SqlAlchemyDocumentRepository(db_session)
 
-    user = User(login="doc_owner", hashed_password="pwd")
+    user = User(login="doc_owner", email="doc_owner@example.com", hashed_password="pwd")
     user_repo.add(user)
 
     project = Project(name="Doc Project")
@@ -135,14 +148,14 @@ def test_document_repository_crud_and_filenames(db_session: Session) -> None:
 
 def test_unit_of_work_lifecycle_and_rollback(uow: UnitOfWork, db_session: Session) -> None:
     with uow:
-        user = User(login="uow_user", hashed_password="pwd")
+        user = User(login="uow_user", email="uow_user@example.com", hashed_password="pwd")
         uow.users.add(user)
         uow.commit()
 
     assert uow.users.get_by_login("uow_user") is not None
 
     with pytest.raises(RuntimeError), uow:
-        user2 = User(login="uow_fail", hashed_password="pwd")
+        user2 = User(login="uow_fail", email="uow_fail@example.com", hashed_password="pwd")
         uow.users.add(user2)
         raise RuntimeError("Force failure")
 
@@ -175,7 +188,7 @@ def test_project_repository_add_member_fk_violation_raises_integrity_error(
 
 def test_user_repository_non_unique_integrity_error_is_reraised(db_session: Session) -> None:
     repo = SqlAlchemyUserRepository(db_session)
-    user = User(login="fk_test_user", hashed_password="pwd")
+    user = User(login="fk_test_user", email="fk_test_user@example.com", hashed_password="pwd")
     mock_orig = Exception("FK violation")
     mock_orig.sqlstate = "23503"  # type: ignore[attr-defined]
     mock_orig.pgcode = "23503"  # type: ignore[attr-defined]
