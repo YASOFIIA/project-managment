@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Mail, MoreHorizontal, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { FileText, Mail, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import type { ProjectDetail, ProjectMember } from '../../types';
 import { formatBytes, PROJECT_LIMIT_BYTES } from '../../utils/formatBytes';
 import { formatDate } from '../../utils/formatDate';
@@ -10,7 +10,7 @@ import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { ProgressBar } from '../ui/ProgressBar';
 
-export type ProjectAction = 'edit' | 'invite' | 'share' | 'delete';
+export type ProjectAction = 'edit' | 'share' | 'delete';
 
 interface Props {
   project: ProjectDetail;
@@ -39,15 +39,15 @@ export function ProjectCard({ project, members, isOwner, onAction }: Props) {
         </Link>
       </h3>
       <p className="mt-1 line-clamp-2 min-h-[2.75rem] text-sm text-ink-soft">
-        {project.description || 'Без опису'}
+        {project.description || 'No description'}
       </p>
 
       <div className="mt-4">
         <div className="mb-1.5 flex justify-between text-xs text-ink-soft">
           <span>{formatBytes(project.total_size_bytes)}</span>
-          <span>з {formatBytes(PROJECT_LIMIT_BYTES)}</span>
+          <span>of {formatBytes(PROJECT_LIMIT_BYTES)}</span>
         </div>
-        <ProgressBar value={pct} tone="auto" label="Використано місця" />
+        <ProgressBar value={pct} tone="auto" label="Storage used" />
       </div>
 
       <div className="mt-4 flex items-center justify-between text-xs text-ink-soft">
@@ -104,7 +104,8 @@ function CardMenu({ onAction }: { onAction: (a: ProjectAction) => void }) {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Дії з проєктом"
+        aria-label="Project actions"
+        title="Project actions"
         onClick={() => setOpen((v) => !v)}
         className="rounded-btn p-1 text-ink-soft transition-colors hover:bg-black/5 hover:text-ink"
       >
@@ -113,13 +114,12 @@ function CardMenu({ onAction }: { onAction: (a: ProjectAction) => void }) {
       {open && (
         <div
           role="menu"
-          className="glass absolute right-0 top-8 z-20 w-56 rounded-xl border border-line bg-white p-1 shadow-pop"
+          className="glass absolute right-0 top-8 z-20 w-48 rounded-xl border border-line bg-white p-1 shadow-pop"
         >
-          {item('edit', 'Редагувати', <Pencil size={16} strokeWidth={1.5} />)}
-          {item('invite', 'Запросити учасника', <UserPlus size={16} strokeWidth={1.5} />)}
-          {item('share', 'Email-запрошення', <Mail size={16} strokeWidth={1.5} />)}
+          {item('edit', 'Edit', <Pencil size={16} strokeWidth={1.5} />)}
+          {item('share', 'Invite by Email', <Mail size={16} strokeWidth={1.5} />)}
           <div className="my-1 h-px bg-line" />
-          {item('delete', 'Видалити', <Trash2 size={16} strokeWidth={1.5} />, true)}
+          {item('delete', 'Delete', <Trash2 size={16} strokeWidth={1.5} />, true)}
         </div>
       )}
     </div>

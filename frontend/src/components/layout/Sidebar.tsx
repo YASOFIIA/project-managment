@@ -34,46 +34,46 @@ export function Sidebar({ onNavigate, onClose }: Props) {
           </span>
         </div>
         {onClose && (
-          <button type="button" onClick={onClose} aria-label="Закрити меню" className="p-1 md:hidden">
+          <button type="button" onClick={onClose} aria-label="Close menu" className="p-1 md:hidden">
             <X size={18} strokeWidth={1.5} />
           </button>
         )}
       </div>
 
-      <nav className="flex flex-col gap-1" aria-label="Основна навігація" onClick={onNavigate}>
+      <nav className="flex flex-col gap-1" aria-label="Main navigation" onClick={onNavigate}>
         <NavLink to="/dashboard" className={navClass}>
-          <LayoutDashboard size={18} strokeWidth={1.5} aria-hidden /> Дашборд
+          <LayoutDashboard size={18} strokeWidth={1.5} aria-hidden /> Dashboard
         </NavLink>
         <NavLink to="/projects" className={navClass}>
           <FolderKanban size={18} strokeWidth={1.5} aria-hidden />
-          <span className="flex-1">Проєкти</span>
+          <span className="flex-1">Projects</span>
           <span className="rounded-full bg-black/5 px-2 text-xs text-ink-soft">{projects.length}</span>
         </NavLink>
         <NavLink to="/documents" className={navClass}>
-          <FileText size={18} strokeWidth={1.5} aria-hidden /> Документи
+          <FileText size={18} strokeWidth={1.5} aria-hidden /> Documents
         </NavLink>
         <NavLink to="/team" className={navClass}>
-          <Users size={18} strokeWidth={1.5} aria-hidden /> Команда
+          <Users size={18} strokeWidth={1.5} aria-hidden /> Team
         </NavLink>
       </nav>
 
       <div className="mt-auto flex flex-col gap-3">
         <div className="h-px bg-line" />
         <NavLink to="/settings" className={navClass} onClick={onNavigate}>
-          <Settings size={18} strokeWidth={1.5} aria-hidden /> Налаштування
+          <Settings size={18} strokeWidth={1.5} aria-hidden /> Settings
         </NavLink>
         {user && (
           <div className="flex items-center gap-3 rounded-btn px-2 py-1.5">
             <Avatar name={user.login} size={34} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user.login}</p>
-              <p className="text-xs text-ink-soft">Користувач</p>
+              <p className="truncate text-xs text-ink-soft">{user.email}</p>
             </div>
             <button
               type="button"
               onClick={logout}
-              aria-label="Вийти"
-              title="Вийти"
+              aria-label="Sign Out"
+              title="Sign Out"
               className="rounded-btn p-1.5 text-ink-soft transition-colors hover:bg-black/5 hover:text-ink"
             >
               <LogOut size={18} strokeWidth={1.5} />

@@ -29,7 +29,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel, onConfirm, o
       <p className="text-sm text-ink-soft">{message}</p>
       <div className="mt-6 flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose} autoFocus>
-          Скасувати
+          Cancel
         </Button>
         <Button variant="danger" loading={busy} onClick={handleConfirm}>
           {confirmLabel}

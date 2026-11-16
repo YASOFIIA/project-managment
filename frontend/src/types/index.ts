@@ -1,6 +1,7 @@
 export interface User {
   id: number;
   login: string;
+  email: string;
   created_at: string;
 }
 
@@ -37,7 +38,7 @@ export interface ProjectMember {
   created_at: string;
 }
 
-// Response of invite-by-login and join endpoints
+// Response of join and accept invitation endpoints
 export interface MembershipResponse {
   id: number;
   project_id: number;
@@ -55,4 +56,13 @@ export interface InvitationResponse {
   message: string;
   email: string;
   expires_in_hours: number;
+}
+
+export interface PendingInvitation {
+  id: number;
+  project_id: number;
+  project_name: string;
+  email: string;
+  created_at: string;
+  expires_at: string;
 }

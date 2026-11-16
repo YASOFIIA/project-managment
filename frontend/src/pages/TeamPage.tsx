@@ -24,12 +24,12 @@ export default function TeamPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-2xl">Команда</h2>
-        <p className="mt-1 text-sm text-ink-soft">Колеги з ваших спільних проєктів</p>
+        <h2 className="text-2xl">Team</h2>
+        <p className="mt-1 text-sm text-ink-soft">Collaborators across your shared projects</p>
       </div>
       {!loading && people.size === 0 ? (
         <Card>
-          <EmptyState icon={Users} title="Поки що ви працюєте самі" description="Запросіть колег на вкладці «Команда» у проєкті." />
+          <EmptyState icon={Users} title="No team members yet" description="Invite collaborators from the Team tab inside a project." />
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

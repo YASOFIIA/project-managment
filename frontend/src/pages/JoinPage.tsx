@@ -35,18 +35,18 @@ export default function JoinPage() {
   }
 
   return (
-    <AuthShell title="Запрошення в проєкт" subtitle="Перевіряємо ваше запрошення">
-      {!token && <Result icon="error" text="У посиланні немає токена запрошення." />}
+    <AuthShell title="Project Invitation" subtitle="Verifying your invitation">
+      {!token && <Result icon="error" text="Invitation token is missing from the URL." />}
       {token && state.kind === 'loading' && (
-        <div className="flex justify-center py-4" role="status" aria-label="Завантаження">
+        <div className="flex justify-center py-4" role="status" aria-label="Loading">
           <Loader2 className="animate-spin text-accent" size={28} />
         </div>
       )}
       {state.kind === 'ok' && (
         <>
-          <Result icon="ok" text="Ви приєдналися до проєкту!" />
+          <Result icon="ok" text="You joined the project!" />
           <Link to={`/project/${state.projectId}`}>
-            <Button fullWidth className="mt-5">Перейти до проєкту</Button>
+            <Button fullWidth className="mt-5">Go to Project</Button>
           </Link>
         </>
       )}
@@ -54,7 +54,7 @@ export default function JoinPage() {
         <>
           <Result icon="error" text={state.message} />
           <Link to="/dashboard">
-            <Button variant="secondary" fullWidth className="mt-5">До дашборду</Button>
+            <Button variant="secondary" fullWidth className="mt-5">Back to Dashboard</Button>
           </Link>
         </>
       )}

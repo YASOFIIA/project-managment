@@ -21,7 +21,7 @@ export function AppLayout() {
           <div className="fixed inset-0 z-40 md:hidden">
             <button
               type="button"
-              aria-label="Закрити меню"
+              aria-label="Close menu"
               className="absolute inset-0 bg-black/30 backdrop-blur-sm"
               onClick={() => setMenuOpen(false)}
             />
