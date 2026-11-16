@@ -84,6 +84,11 @@ class LoginTaken(AlreadyExistsError):
     pass
 
 
+# Email already taken
+class EmailTaken(AlreadyExistsError):
+    pass
+
+
 # User is already a project member
 class UserAlreadyMember(AlreadyExistsError):
     pass

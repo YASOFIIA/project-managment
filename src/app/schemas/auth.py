@@ -1,14 +1,27 @@
+import re
 from datetime import datetime
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 # Registration request payload
 class UserRegisterRequest(BaseModel):
     login: str = Field(..., min_length=3, max_length=64, description="Unique username")
+    email: str = Field(..., min_length=5, max_length=255, description="User email address")
     password: str = Field(..., min_length=6, description="Raw user password")
     repeat_password: str = Field(..., min_length=6, description="Password confirmation")
+
+    # Validate email format
+    @field_validator("email")
+    @classmethod
+    def check_email_format(cls, v: str) -> str:
+        clean = v.strip().lower()
+        if not EMAIL_REGEX.match(clean):
+            raise ValueError("Invalid email address")
+        return clean
 
     # Validate matching passwords
     @model_validator(mode="after")
@@ -36,4 +49,5 @@ class UserResponse(BaseModel):
 
     id: int
     login: str
+    email: str
     created_at: datetime
