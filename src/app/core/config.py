@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     local_storage_dir: str = "./data/storage"
 
     # AWS / LocalStack Configuration
-    aws_region: str = "eu-central-1"
+    aws_region: str = "eu-north-1"
     aws_access_key_id: str = "test"
     aws_secret_access_key: str = "test"
     aws_endpoint_url: str | None = "http://localhost:4566"
@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     smtp_host: str = ""
     smtp_port: int = 1025
     smtp_from: str = "pm-service@localhost"
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = False
     app_base_url: str = "http://localhost:8000"
     invitation_expire_hours: int = 48
 

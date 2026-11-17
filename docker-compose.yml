@@ -37,16 +37,19 @@ services:
       LAMBDA_CALLBACK_SECRET: ${LAMBDA_CALLBACK_SECRET:-compose-lambda-secret-replace-in-production}
       STORAGE_BACKEND: local
       LOCAL_STORAGE_DIR: /app/data/storage
-      AWS_REGION: eu-central-1
+      AWS_REGION: ${AWS_REGION:-eu-north-1}
       AWS_ENDPOINT_URL: http://localstack:4566
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       S3_BUCKET_NAME: pm-documents
       PROJECT_SIZE_LIMIT_BYTES: 52428800
       MAX_FILE_SIZE_BYTES: 52428800
-      SMTP_HOST: mailhog
-      SMTP_PORT: 1025
-      SMTP_FROM: pm-service@localhost
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_FROM: ${SMTP_FROM:-pm-service@localhost}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
       # Invitation links point to the frontend (it serves /join)
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
     ports:

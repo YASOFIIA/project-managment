@@ -1,0 +1,26 @@
+# Production overrides — use with:
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  api:
+    environment:
+      ENVIRONMENT: production
+      STORAGE_BACKEND: s3
+      AWS_REGION: ${AWS_REGION:-eu-north-1}
+      AWS_ENDPOINT_URL: ""
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME:-pm-documents}
+      SMTP_HOST: ${SMTP_HOST:-email-smtp.eu-north-1.amazonaws.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_USE_TLS: "true"
+      APP_BASE_URL: ${APP_BASE_URL}
+
+  # Disable dev-only services in production
+  localstack:
+    profiles: ["dev"]
+
+  mailhog:
+    profiles: ["dev"]

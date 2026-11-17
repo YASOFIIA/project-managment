@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 from email.message import EmailMessage
+from typing import Any
 
 import aiosmtplib
 
@@ -12,12 +13,15 @@ from app.core.logging import get_logger
 logger = get_logger("app.email")
 
 
-# SMTP email sender (works with MailHog in dev)
+# SMTP email sender (works with MailHog in dev and AWS SES in prod)
 class SmtpEmailSender:
     def __init__(self, settings: Settings) -> None:
         self._host = settings.smtp_host
         self._port = settings.smtp_port
         self._from = settings.smtp_from
+        self._username = settings.smtp_username
+        self._password = settings.smtp_password
+        self._use_tls = settings.smtp_use_tls
 
     # Send invitation HTML email
     def send_invitation(
@@ -69,6 +73,18 @@ class SmtpEmailSender:
         )
         message.add_alternative(html_body, subtype="html")
 
+        # Build SMTP connection kwargs
+        smtp_kwargs: dict[str, Any] = {
+            "hostname": self._host,
+            "port": self._port,
+        }
+        # SES requires STARTTLS on port 587 + username/password auth
+        if self._use_tls:
+            smtp_kwargs["start_tls"] = True
+        if self._username and self._password:
+            smtp_kwargs["username"] = self._username
+            smtp_kwargs["password"] = self._password
+
         try:
             try:
                 loop = asyncio.get_running_loop()
@@ -79,20 +95,11 @@ class SmtpEmailSender:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                     pool.submit(
                         asyncio.run,
-                        aiosmtplib.send(
-                            message,
-                            hostname=self._host,
-                            port=self._port,
-                        ),
+                        aiosmtplib.send(message, **smtp_kwargs),
                     ).result()
             else:
-                asyncio.run(
-                    aiosmtplib.send(
-                        message,
-                        hostname=self._host,
-                        port=self._port,
-                    )
-                )
+                asyncio.run(aiosmtplib.send(message, **smtp_kwargs))
+
             logger.info("Invitation email dispatched successfully to %s", to_email)
         except Exception as exc:
             logger.error("Failed to send invitation email to %s: %s", to_email, exc)
