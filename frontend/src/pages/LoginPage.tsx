@@ -72,15 +72,6 @@ export default function LoginPage() {
           }
           {...register('password')}
         />
-        <div className="-mt-1 text-right">
-          <button
-            type="button"
-            onClick={() => toast('Password recovery is not implemented yet')}
-            className="text-xs text-ink-soft hover:text-accent"
-          >
-            Forgot password?
-          </button>
-        </div>
         <Button type="submit" fullWidth loading={isSubmitting}>
           Sign In
         </Button>
