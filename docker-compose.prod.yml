@@ -1,26 +1,75 @@
-# Production overrides — use with:
-# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pm-service-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pm_db}
+      POSTGRES_USER: ${POSTGRES_USER:-pm_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pm_user} -d ${POSTGRES_DB:-pm_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
   api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pm-service-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Apply DB migrations, then start the server
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     environment:
       ENVIRONMENT: production
-      STORAGE_BACKEND: s3
-      AWS_REGION: ${AWS_REGION:-eu-north-1}
-      AWS_ENDPOINT_URL: ""
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-pm_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pm_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      LAMBDA_CALLBACK_SECRET: ${LAMBDA_CALLBACK_SECRET}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      LOCAL_STORAGE_DIR: ${LOCAL_STORAGE_DIR:-/app/data/storage}
+      AWS_REGION: eu-north-1
       S3_BUCKET_NAME: ${S3_BUCKET_NAME:-pm-documents}
-      SMTP_HOST: ${SMTP_HOST:-email-smtp.eu-north-1.amazonaws.com}
+      PROJECT_SIZE_LIMIT_BYTES: ${PROJECT_SIZE_LIMIT_BYTES:-52428800}
+      MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-52428800}
+      SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_FROM: ${SMTP_FROM}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_USE_TLS: "true"
-      APP_BASE_URL: ${APP_BASE_URL}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      APP_BASE_URL: ${APP_BASE_URL:-http://13.49.241.226}
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage_data:/app/data/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
-  # Disable dev-only services in production
-  localstack:
-    profiles: ["dev"]
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pm-service-frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
 
-  mailhog:
-    profiles: ["dev"]
+volumes:
+  postgres_data:
+  storage_data:

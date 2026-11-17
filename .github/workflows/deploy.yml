@@ -1,0 +1,48 @@
+name: Deploy to EC2
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/project-managment
+
+            # Discard local Dockerfile edits from previous non-BuildKit builds
+            git checkout -- Dockerfile
+
+            # Pull latest code
+            git pull origin main
+
+            # Fix Dockerfile for non-BuildKit Docker (remove --mount=type=cache)
+            sed -i 's/RUN --mount=type=cache,target=\/root\/.cache\/uv /RUN /g' Dockerfile
+
+            # Rebuild images
+            docker build -t pm-service-api .
+            docker build -t pm-service-frontend ./frontend
+
+            # Tag images to match docker-compose service names
+            docker tag pm-service-api project-managment-api
+            docker tag pm-service-frontend project-managment-frontend
+
+            # Restart services (--no-build because we built manually)
+            docker-compose -f docker-compose.prod.yml up -d --no-build
+
+            # Clean up dangling images
+            docker image prune -f
+
+            echo "✅ Deploy complete!"

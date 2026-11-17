@@ -215,3 +215,52 @@ uv build
 # Verify build artifacts in dist/
 ls -lh dist/
 ```
+
+---
+
+## Deployment (CI/CD & AWS EC2)
+
+### 1. Continuous Integration (`.github/workflows/ci.yml`)
+Triggered automatically on every `push` and `pull_request` to `main`:
+- **Lint & Format**: `ruff check` and `ruff format --check`
+- **Static Type Check**: `mypy` (strict mode)
+- **Database Migrations**: `alembic upgrade head` and `alembic check` against PostgreSQL 16
+- **Automated Tests & Coverage**: `pytest` with coverage gate (`>= 85%`) and `uv build` package verification
+- **Container Registry**: Builds the multi-stage Docker image and pushes tags (`latest` and `sha-<commit>`) to GitHub Container Registry (`ghcr.io`) on merges to `main`.
+
+### 2. Continuous Deployment (`.github/workflows/deploy.yml`)
+Triggered automatically via `workflow_run` **only after the `CI` workflow succeeds on `main`**:
+- Connects to the AWS EC2 instance (`Amazon Linux 2023`, `eu-north-1`) over SSH using `appleboy/ssh-action`.
+- Pulls the latest `main` branch in `~/project-managment`.
+- Builds the backend (`pm-service-api`) and frontend (`pm-service-frontend`) Docker images on the server and restarts the stack with `docker-compose -f docker-compose.prod.yml up -d --no-build`.
+- Prunes dangling Docker images after deployment.
+
+### 3. Required GitHub Secrets
+Configure the following repository secrets in **Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|---|---|
+| `EC2_HOST` | Public IPv4 address or hostname of the AWS EC2 instance (e.g. `13.49.241.226`) |
+| `EC2_SSH_KEY` | Private SSH key (`.pem`) for the `ec2-user` account on the EC2 instance |
+
+### 4. Initial EC2 Server Setup
+```bash
+# 1. Install Docker, Git, and standalone docker-compose on Amazon Linux 2023
+sudo dnf update -y && sudo dnf install -y docker git
+sudo systemctl enable --now docker
+sudo usermod -aG docker ec2-user
+
+# 2. Clone repository
+git clone https://github.com/YASOFIIA/project-managment.git ~/project-managment
+cd ~/project-managment
+
+# 3. Create production .env from template and fill in secrets
+cp .env.production.example .env
+nano .env
+
+# 4. Build images and start production stack
+sed -i 's/RUN --mount=type=cache,target=\/root\/.cache\/uv /RUN /g' Dockerfile
+docker build -t project-managment-api .
+docker build -t project-managment-frontend ./frontend
+docker-compose -f docker-compose.prod.yml up -d --no-build
+```
