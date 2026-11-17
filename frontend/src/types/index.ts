@@ -56,6 +56,7 @@ export interface InvitationResponse {
   message: string;
   email: string;
   expires_in_hours: number;
+  email_sent: boolean;
 }
 
 export interface PendingInvitation {

@@ -45,6 +45,7 @@ def test_create_and_send_invitation_success() -> None:
     assert resp.message == "Invitation sent"
     assert resp.email == "bob@example.com"
     assert resp.expires_in_hours == 48
+    assert resp.email_sent is True
 
     mock_uow.invitations.create.assert_called_once()
     mock_uow.commit.assert_called_once()
@@ -53,6 +54,33 @@ def test_create_and_send_invitation_success() -> None:
     assert kwargs["to_email"] == "bob@example.com"
     assert kwargs["project_name"] == "Apollo"
     assert "/join?token=" in kwargs["join_url"]
+
+
+# Check invitation is still created and email_sent is False when email delivery fails
+def test_create_and_send_invitation_email_failure_graceful() -> None:
+    mock_uow = MagicMock(spec=UnitOfWork)
+    mock_email_sender = MagicMock(spec=EmailSender)
+    mock_email_sender.send_invitation.side_effect = RuntimeError("SES sandbox rejection")
+
+    owner_member = ProjectMember(project_id=1, user_id=10, role=ProjectRole.OWNER)
+    mock_uow.projects.get_membership.return_value = owner_member
+    mock_uow.projects.get_by_id.return_value = Project(id=1, name="Apollo")
+
+    resp = create_and_send_invitation(
+        uow=mock_uow,
+        email_sender=mock_email_sender,
+        project_id=1,
+        owner_id=10,
+        email="unverified@example.com",
+        base_url="http://localhost:8000",
+        expire_hours=48,
+    )
+
+    assert resp.message == "Invitation sent"
+    assert resp.email == "unverified@example.com"
+    assert resp.email_sent is False
+    mock_uow.invitations.create.assert_called_once()
+    mock_uow.commit.assert_called_once()
 
 
 # Check participant cannot generate share invitations

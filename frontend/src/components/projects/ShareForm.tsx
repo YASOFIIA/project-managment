@@ -21,7 +21,11 @@ export function ShareForm({ projectId, onDone }: { projectId: number; onDone?: (
   const submit = handleSubmit(async ({ email }) => {
     try {
       const res = await shareByEmail(projectId, email);
-      toast.success(`Invitation sent to ${res.email} (expires in ${res.expires_in_hours}h)`);
+      if (res.email_sent) {
+        toast.success('Invitation sent to email');
+      } else {
+        toast.success("Invitation sent to user's account");
+      }
       reset();
       onDone?.();
     } catch (error) {

@@ -69,6 +69,7 @@ class InvitationResponse(BaseModel):
     message: str = Field(default="Invitation sent", description="Status message")
     email: str = Field(description="Invited recipient email address")
     expires_in_hours: int = Field(default=48, description="Hours until invitation token expires")
+    email_sent: bool = Field(default=True, description="Whether the email was delivered via SMTP")
 
 
 # Pending email invitation for current user

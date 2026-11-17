@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -16,6 +17,8 @@ from app.domain.roles import ProjectRole
 from app.models.project import ProjectMember
 from app.schemas.project import InvitationResponse, PendingInvitationResponse
 from app.services.access import get_project_membership, require_project_access
+
+logger = logging.getLogger(__name__)
 
 
 # Create invitation token and send email with join link
@@ -50,16 +53,27 @@ def create_and_send_invitation(
         uow.commit()
 
     join_url = f"{base_url.rstrip('/')}/join?token={token}"
-    email_sender.send_invitation(
-        to_email=clean_email,
-        project_name=project.name,
-        join_url=join_url,
-    )
+    email_sent = True
+    try:
+        email_sender.send_invitation(
+            to_email=clean_email,
+            project_name=project.name,
+            join_url=join_url,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to send invitation email to %s for project '%s': %s",
+            clean_email,
+            project.name,
+            exc,
+        )
+        email_sent = False
 
     return InvitationResponse(
         message="Invitation sent",
         email=clean_email,
         expires_in_hours=expire_hours,
+        email_sent=email_sent,
     )
 
 
