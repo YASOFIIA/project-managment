@@ -25,7 +25,8 @@ A robust REST API backend for collaborative project management and secure docume
 - **Information Hiding**: Non-members attempting to access private project endpoints receive `404 Not Found` rather than `403 Forbidden`, neutralizing ID enumeration attacks.
 - **Deep Content Validation**: File uploads are verified via binary magic byte signatures (PDF, DOCX, PNG, JPEG), canonical MIME detection, and strict size constraints.
 - **Dual-Write Consistency**: Transactional compensation patterns ensure that any failed database commit automatically rolls back and cleans up physical storage objects, avoiding orphaned binary assets.
-- **Project Size Quotas**: Enforces project storage quotas (50 MB limit) atomically on upload and replacement.
+- **Project Size Quotas**: Enforces project storage quotas (50 MB limit) atomically on upload and replacement, backed by an event-driven S3 `size_limit` AWS Lambda (`lambdas/size_limit`).
+- **Automatic Image Thumbnailing**: An S3-triggered `image_resize` AWS Lambda (`lambdas/image_resize`) automatically generates 200×200px aspect-preserving thumbnails (`thumb_<filename>`) using Pillow whenever PNG or JPEG images are uploaded to a project.
 - **Distributed Tracing**: Automatically propagates correlation identifiers (`X-Request-ID`) across incoming requests, application logs, and HTTP response headers.
 
 ---
