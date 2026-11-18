@@ -25,17 +25,6 @@ except ImportError:  # pragma: no cover
         return f"{THUMBNAIL_PREFIX}{original_key}"
 
 
-try:
-    from app.application.ports.storage import THUMBNAIL_PREFIX, build_thumbnail_key
-except ImportError:  # pragma: no cover
-    THUMBNAIL_PREFIX = "thumb_"
-
-    def build_thumbnail_key(original_key: str) -> str:
-        parts = original_key.rsplit("/", 1)
-        if len(parts) == 2:
-            return f"{parts[0]}/{THUMBNAIL_PREFIX}{parts[1]}"
-        return f"{THUMBNAIL_PREFIX}{original_key}"
-
 logger = logging.getLogger("lambdas.image_resize")
 logger.setLevel(os.getenv("LOG_LEVEL", "INFO"))
 
