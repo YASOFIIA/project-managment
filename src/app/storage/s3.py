@@ -70,6 +70,19 @@ class S3Storage(StorageBackend):
             Bucket=self.bucket_name,
             Key=stored_filename,
         )
+        # Also delete thumbnail if it exists
+        parts = stored_filename.rsplit("/", 1)
+        if len(parts) == 2:
+            thumbnail_key = f"{parts[0]}/thumbnails/{parts[1]}"
+        else:
+            thumbnail_key = f"thumbnails/{stored_filename}"
+        try:
+            self._client.delete_object(
+                Bucket=self.bucket_name,
+                Key=thumbnail_key,
+            )
+        except ClientError:
+            pass
         return True
 
     # Check if object exists in S3
