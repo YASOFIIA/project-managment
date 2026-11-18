@@ -279,3 +279,4 @@ def test_get_s3_client_endpoint(
 
     get_s3_client("http://custom:9000")
     mock_boto_client.assert_called_with("s3", endpoint_url="http://custom:9000")
+
