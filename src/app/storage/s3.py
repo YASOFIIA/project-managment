@@ -1,3 +1,4 @@
+import contextlib
 from typing import Any, BinaryIO
 
 import boto3
@@ -5,7 +6,6 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 from app.application.ports.storage import StorageBackend
-import contextlib
 
 __all__ = ["S3Storage"]
 
