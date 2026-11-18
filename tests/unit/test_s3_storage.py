@@ -101,9 +101,14 @@ def test_s3_storage_delete() -> None:
     # 1. Existing file
     mock_client.head_object.return_value = {"ContentLength": 50}
     assert storage.delete("file_to_del.pdf") is True
-    mock_client.delete_object.assert_called_once_with(
+    assert mock_client.delete_object.call_count == 2
+    mock_client.delete_object.assert_any_call(
         Bucket="test-bucket",
         Key="file_to_del.pdf",
+    )
+    mock_client.delete_object.assert_any_call(
+        Bucket="test-bucket",
+        Key="thumbnails/file_to_del.pdf",
     )
 
     # 2. Non-existent file
