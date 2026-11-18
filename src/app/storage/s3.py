@@ -5,6 +5,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 from app.application.ports.storage import StorageBackend
+import contextlib
 
 __all__ = ["S3Storage"]
 
@@ -76,13 +77,11 @@ class S3Storage(StorageBackend):
             thumbnail_key = f"{parts[0]}/thumbnails/{parts[1]}"
         else:
             thumbnail_key = f"thumbnails/{stored_filename}"
-        try:
+        with contextlib.suppress(ClientError):
             self._client.delete_object(
                 Bucket=self.bucket_name,
                 Key=thumbnail_key,
             )
-        except ClientError:
-            pass
         return True
 
     # Check if object exists in S3
