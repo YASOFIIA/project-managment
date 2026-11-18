@@ -7,6 +7,7 @@ import { deleteDocument, downloadDocument, replaceDocument, uploadDocuments } fr
 import { DocumentTable } from '../components/documents/DocumentTable';
 import { UploadProgress } from '../components/documents/UploadProgress';
 import { ProjectForm } from '../components/projects/ProjectForm';
+import { InviteForm } from '../components/projects/InviteForm';
 import { ShareForm } from '../components/projects/ShareForm';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
@@ -222,6 +223,15 @@ function TeamTab({ projectId }: { projectId: number }) {
             <h3 id="share-title" className="text-sm font-semibold">Invite by Email</h3>
             <p className="mb-3 mt-1 text-xs text-ink-soft">Send a time-limited invitation link.</p>
             <ShareForm projectId={projectId} />
+          </section>
+        </Card>
+      )}
+      {isOwner && (
+        <Card className="p-5">
+          <section aria-labelledby="invite-login-title" className="max-w-lg">
+            <h3 id="invite-login-title" className="text-sm font-semibold">Invite by Login</h3>
+            <p className="mb-3 mt-1 text-xs text-ink-soft">Add an existing user directly by their username.</p>
+            <InviteForm projectId={projectId} onDone={reload} />
           </section>
         </Card>
       )}

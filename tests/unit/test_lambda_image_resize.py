@@ -13,6 +13,9 @@ from lambdas.image_resize.handler import (
     lambda_handler,
 )
 
+from app.application.ports.storage import build_thumbnail_key
+from app.storage.s3 import S3Storage
+
 # Minimal valid 1x1 PNG binary
 MINIMAL_PNG_BYTES: bytes = (
     b"\x89PNG\r\n\x1a\n"
@@ -279,3 +282,30 @@ def test_get_s3_client_endpoint(
 
     get_s3_client("http://custom:9000")
     mock_boto_client.assert_called_with("s3", endpoint_url="http://custom:9000")
+
+
+# Verify Lambda thumbnail_key matches build_thumbnail_key and S3Storage.delete() cleanup key
+@patch("lambdas.image_resize.handler.get_s3_client")
+def test_lambda_thumbnail_key_matches_s3_storage_delete_convention(
+    mock_get_s3: MagicMock,
+    png_bytes: bytes,
+) -> None:
+    mock_s3 = MagicMock()
+    mock_get_s3.return_value = mock_s3
+    mock_s3.get_object.return_value = {"Body": io.BytesIO(png_bytes)}
+    mock_s3.head_object.return_value = {"ContentLength": len(png_bytes)}
+
+    original_key = "projects/1/5/report.png"
+    event = _build_s3_event("pm-documents", original_key, size=len(png_bytes))
+    result = lambda_handler(event)
+
+    generated_thumb_key = result["results"][0]["thumbnail_key"]
+    assert generated_thumb_key == "projects/1/5/thumb_report.png"
+    assert generated_thumb_key == build_thumbnail_key(original_key)
+
+    storage = S3Storage(bucket_name="pm-documents", s3_client=mock_s3)
+    assert storage.delete(original_key) is True
+    mock_s3.delete_object.assert_any_call(
+        Bucket="pm-documents",
+        Key=generated_thumb_key,
+    )

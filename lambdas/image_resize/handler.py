@@ -13,6 +13,29 @@ from typing import Any
 
 import boto3
 
+try:
+    from app.application.ports.storage import THUMBNAIL_PREFIX, build_thumbnail_key
+except ImportError:  # pragma: no cover
+    THUMBNAIL_PREFIX = "thumb_"
+
+    def build_thumbnail_key(original_key: str) -> str:
+        parts = original_key.rsplit("/", 1)
+        if len(parts) == 2:
+            return f"{parts[0]}/{THUMBNAIL_PREFIX}{parts[1]}"
+        return f"{THUMBNAIL_PREFIX}{original_key}"
+
+
+try:
+    from app.application.ports.storage import THUMBNAIL_PREFIX, build_thumbnail_key
+except ImportError:  # pragma: no cover
+    THUMBNAIL_PREFIX = "thumb_"
+
+    def build_thumbnail_key(original_key: str) -> str:
+        parts = original_key.rsplit("/", 1)
+        if len(parts) == 2:
+            return f"{parts[0]}/{THUMBNAIL_PREFIX}{parts[1]}"
+        return f"{THUMBNAIL_PREFIX}{original_key}"
+
 logger = logging.getLogger("lambdas.image_resize")
 logger.setLevel(os.getenv("LOG_LEVEL", "INFO"))
 
@@ -126,7 +149,7 @@ def lambda_handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]
         document_id = int(match.group("document_id"))
         filename = match.group("filename")
 
-        if filename.startswith("thumb_"):
+        if filename.startswith(THUMBNAIL_PREFIX):
             logger.info("Object '%s' is already a thumbnail. Skipping.", key)
             processed_results.append(
                 {"status": "skipped", "key": key, "reason": "already_thumbnail"}
@@ -140,8 +163,7 @@ def lambda_handler(event: dict[str, Any], context: Any = None) -> dict[str, Any]
             processed_results.append({"status": "skipped", "key": key, "reason": "not_an_image"})
             continue
 
-        thumb_filename = f"thumb_{filename}"
-        thumb_key = f"projects/{project_id}/{document_id}/{thumb_filename}"
+        thumb_key = build_thumbnail_key(key)
         save_format = EXTENSION_TO_FORMAT[ext_lower]
         content_type = EXTENSION_TO_CONTENT_TYPE[ext_lower]
 

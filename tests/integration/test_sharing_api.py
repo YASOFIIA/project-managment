@@ -137,3 +137,119 @@ def test_remove_nonexistent_member_returns_404(client: TestClient, db_session: S
         headers=_auth_headers(owner.id, owner.login),
     )
     assert resp.status_code == 404
+
+
+# Owner invites existing user by login -> 200 OK, user appears as participant in members list
+def test_owner_invites_existing_user_by_login_returns_200(
+    client: TestClient, db_session: Session
+) -> None:
+    owner = create_user(db_session, login="inv_owner")
+    candidate = create_user(db_session, login="inv_candidate")
+    project = create_project(db_session, name="Direct Invite Project")
+    create_project_member(
+        db_session, project_id=project.id, user_id=owner.id, role=ProjectRole.OWNER
+    )
+
+    resp = client.post(
+        f"/project/{project.id}/invite",
+        params={"user": candidate.login},
+        headers=_auth_headers(owner.id, owner.login),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["project_id"] == project.id
+    assert body["user_id"] == candidate.id
+    assert body["role"] == "participant"
+
+    members_resp = client.get(
+        f"/project/{project.id}/members",
+        headers=_auth_headers(owner.id, owner.login),
+    )
+    assert members_resp.status_code == 200
+    assert {(m["login"], m["role"]) for m in members_resp.json()} == {
+        ("inv_owner", "owner"),
+        ("inv_candidate", "participant"),
+    }
+
+
+# Participant attempts to invite someone by login -> 403 Forbidden
+def test_participant_cannot_invite_by_login_returns_403(
+    client: TestClient, db_session: Session
+) -> None:
+    owner = create_user(db_session, login="inv403_owner")
+    participant = create_user(db_session, login="inv403_participant")
+    candidate = create_user(db_session, login="inv403_candidate")
+    project = create_project(db_session)
+    create_project_member(
+        db_session, project_id=project.id, user_id=owner.id, role=ProjectRole.OWNER
+    )
+    create_project_member(
+        db_session, project_id=project.id, user_id=participant.id, role=ProjectRole.PARTICIPANT
+    )
+
+    resp = client.post(
+        f"/project/{project.id}/invite",
+        params={"user": candidate.login},
+        headers=_auth_headers(participant.id, participant.login),
+    )
+    assert resp.status_code == 403
+
+
+# Stranger (not in project) calls invite endpoint -> 404 Not Found
+def test_non_member_cannot_invite_by_login_returns_404(
+    client: TestClient, db_session: Session
+) -> None:
+    owner = create_user(db_session, login="inv404_owner")
+    outsider = create_user(db_session, login="inv404_outsider")
+    candidate = create_user(db_session, login="inv404_candidate")
+    project = create_project(db_session)
+    create_project_member(
+        db_session, project_id=project.id, user_id=owner.id, role=ProjectRole.OWNER
+    )
+
+    resp = client.post(
+        f"/project/{project.id}/invite",
+        params={"user": candidate.login},
+        headers=_auth_headers(outsider.id, outsider.login),
+    )
+    assert resp.status_code == 404
+
+
+# Owner invites an already-participating member again -> 409 Conflict
+def test_owner_invites_existing_member_by_login_returns_409(
+    client: TestClient, db_session: Session
+) -> None:
+    owner = create_user(db_session, login="inv409_owner")
+    member = create_user(db_session, login="inv409_member")
+    project = create_project(db_session)
+    create_project_member(
+        db_session, project_id=project.id, user_id=owner.id, role=ProjectRole.OWNER
+    )
+    create_project_member(
+        db_session, project_id=project.id, user_id=member.id, role=ProjectRole.PARTICIPANT
+    )
+
+    resp = client.post(
+        f"/project/{project.id}/invite",
+        params={"user": member.login},
+        headers=_auth_headers(owner.id, owner.login),
+    )
+    assert resp.status_code == 409
+
+
+# Owner invites a nonexistent login -> 404 Not Found
+def test_owner_invites_nonexistent_login_returns_404(
+    client: TestClient, db_session: Session
+) -> None:
+    owner = create_user(db_session, login="inv_missing_owner")
+    project = create_project(db_session)
+    create_project_member(
+        db_session, project_id=project.id, user_id=owner.id, role=ProjectRole.OWNER
+    )
+
+    resp = client.post(
+        f"/project/{project.id}/invite",
+        params={"user": "no_such_user_exists"},
+        headers=_auth_headers(owner.id, owner.login),
+    )
+    assert resp.status_code == 404

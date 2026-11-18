@@ -3,6 +3,8 @@ from __future__ import annotations
 import abc
 from typing import Any, BinaryIO
 
+THUMBNAIL_PREFIX: str = "thumb_"
+
 
 # Generate S3 storage key: projects/<project_id>/<document_id>/<name>
 def format_s3_key(
@@ -13,6 +15,14 @@ def format_s3_key(
 ) -> str:
     name = stored_name or str(kwargs.get("filename", ""))
     return f"projects/{project_id}/{document_id}/{name}"
+
+
+# Build S3 thumbnail key in the same directory as the original object: <dir>/thumb_<filename>
+def build_thumbnail_key(original_key: str) -> str:
+    parts = original_key.rsplit("/", 1)
+    if len(parts) == 2:
+        return f"{parts[0]}/{THUMBNAIL_PREFIX}{parts[1]}"
+    return f"{THUMBNAIL_PREFIX}{original_key}"
 
 
 # Storage backend interface

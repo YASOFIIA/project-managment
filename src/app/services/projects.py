@@ -6,12 +6,12 @@ from app.application.ports.project_repository import ProjectWithDocuments
 from app.application.ports.storage import StorageBackend
 from app.application.ports.unit_of_work import UnitOfWork
 from app.domain.access_policy import Action
-from app.domain.errors import PermissionDenied, ProjectNotFound
+from app.domain.errors import PermissionDenied, ProjectNotFound, UserAlreadyMember, UserNotFound
 from app.domain.roles import ProjectRole
 from app.models.project import Project, ProjectMember
 from app.models.user import User
 from app.schemas.project import ProjectCreateRequest, ProjectUpdateRequest
-from app.services.access import require_project_access
+from app.services.access import get_project_membership, require_project_access
 
 logger = logging.getLogger(__name__)
 
@@ -145,3 +145,35 @@ def remove_member(
     with uow:
         uow.projects.remove_member(member)
         uow.commit()
+
+
+# Invite a registered user by login directly as a project participant (owner only)
+def invite_member_by_login(
+    uow: UnitOfWork,
+    project_id: int,
+    owner_id: int,
+    login: str,
+) -> ProjectMember:
+    require_project_access(
+        uow, project_id=project_id, user_id=owner_id, action=Action.INVITE_MEMBER
+    )
+
+    clean_login = login.strip()
+    target_user = uow.users.get_by_login(clean_login)
+    if target_user is None:
+        raise UserNotFound(f"User '{clean_login}' not found")
+
+    existing = get_project_membership(uow, project_id=project_id, user_id=target_user.id)
+    if existing is not None:
+        raise UserAlreadyMember(f"User '{clean_login}' is already a member of this project")
+
+    membership = ProjectMember(
+        project_id=project_id,
+        user_id=target_user.id,
+        role=ProjectRole.PARTICIPANT,
+    )
+    with uow:
+        uow.projects.add_member(membership)
+        uow.commit()
+
+    return membership

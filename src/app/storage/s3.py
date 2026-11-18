@@ -5,7 +5,7 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 
-from app.application.ports.storage import StorageBackend
+from app.application.ports.storage import StorageBackend, build_thumbnail_key
 
 __all__ = ["S3Storage"]
 
@@ -72,11 +72,7 @@ class S3Storage(StorageBackend):
             Key=stored_filename,
         )
         # Also delete thumbnail if it exists
-        parts = stored_filename.rsplit("/", 1)
-        if len(parts) == 2:
-            thumbnail_key = f"{parts[0]}/thumbnails/{parts[1]}"
-        else:
-            thumbnail_key = f"thumbnails/{stored_filename}"
+        thumbnail_key = build_thumbnail_key(stored_filename)
         with contextlib.suppress(ClientError):
             self._client.delete_object(
                 Bucket=self.bucket_name,

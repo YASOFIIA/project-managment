@@ -38,5 +38,8 @@ export const removeMember = async (projectId: number, memberId: number): Promise
 export const shareByEmail = async (id: number, email: string): Promise<InvitationResponse> =>
   (await api.get<InvitationResponse>(`/project/${id}/share`, { params: { with: email } })).data;
 
+export const inviteByLogin = async (id: number, login: string): Promise<MembershipResponse> =>
+  (await api.post<MembershipResponse>(`/project/${id}/invite`, null, { params: { user: login } })).data;
+
 export const joinByToken = async (token: string): Promise<MembershipResponse> =>
   (await api.get<MembershipResponse>('/join', { params: { token } })).data;

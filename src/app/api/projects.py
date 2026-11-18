@@ -12,6 +12,7 @@ from app.schemas.project import (
     ProjectCreateRequest,
     ProjectDetailResponse,
     ProjectMemberDetailResponse,
+    ProjectMemberResponse,
     ProjectResponse,
     ProjectUpdateRequest,
 )
@@ -20,6 +21,7 @@ from app.services.projects import (
     create_project,
     delete_project,
     get_project_info,
+    invite_member_by_login,
     list_project_members,
     list_user_projects,
     remove_member,
@@ -150,6 +152,32 @@ def remove_project_member(
         owner_id=current_user.id,
         member_id=member_id,
     )
+
+
+# Invite registered user by login endpoint (owner only)
+@router.post(
+    "/project/{project_id}/invite",
+    response_model=ProjectMemberResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Invite user by login",
+    description=(
+        "Directly invite a registered user by login as a project participant. "
+        "Permitted for owner only."
+    ),
+)
+def invite_user_by_login(
+    project_id: int,
+    current_user: CurrentUser,
+    uow: UowDep,
+    login: Annotated[str, Query(alias="user", min_length=1, description="Target user login")],
+) -> ProjectMemberResponse:
+    membership = invite_member_by_login(
+        uow=uow,
+        project_id=project_id,
+        owner_id=current_user.id,
+        login=login,
+    )
+    return ProjectMemberResponse.model_validate(membership)
 
 
 # Share project via email endpoint (owner only)

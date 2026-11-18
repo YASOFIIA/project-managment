@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from botocore.exceptions import ClientError
 
-from app.application.ports.storage import format_s3_key
+from app.application.ports.storage import build_thumbnail_key, format_s3_key
 from app.core.config import get_settings
 from app.storage import get_storage
 from app.storage.s3 import S3Storage
@@ -98,7 +98,7 @@ def test_s3_storage_delete() -> None:
     mock_client = MagicMock()
     storage = S3Storage(bucket_name="test-bucket", s3_client=mock_client)
 
-    # 1. Existing file
+    # 1. Existing file (root key)
     mock_client.head_object.return_value = {"ContentLength": 50}
     assert storage.delete("file_to_del.pdf") is True
     assert mock_client.delete_object.call_count == 2
@@ -108,10 +108,27 @@ def test_s3_storage_delete() -> None:
     )
     mock_client.delete_object.assert_any_call(
         Bucket="test-bucket",
-        Key="thumbnails/file_to_del.pdf",
+        Key="thumb_file_to_del.pdf",
     )
 
-    # 2. Non-existent file
+    # 2. Existing nested project key -> deletes projects/1/5/thumb_report.png (not thumbnails/...)
+    mock_client.reset_mock()
+    mock_client.head_object.return_value = {"ContentLength": 120}
+    assert storage.delete("projects/1/5/report.png") is True
+    assert mock_client.delete_object.call_count == 2
+    mock_client.delete_object.assert_any_call(
+        Bucket="test-bucket",
+        Key="projects/1/5/report.png",
+    )
+    mock_client.delete_object.assert_any_call(
+        Bucket="test-bucket",
+        Key="projects/1/5/thumb_report.png",
+    )
+    deleted_keys = [call.kwargs["Key"] for call in mock_client.delete_object.call_args_list]
+    assert "projects/1/5/thumbnails/report.png" not in deleted_keys
+    assert build_thumbnail_key("projects/1/5/report.png") in deleted_keys
+
+    # 3. Non-existent file
     mock_client.reset_mock()
     error_response: Any = {
         "Error": {"Code": "NoSuchKey", "Message": "Not Found"},
